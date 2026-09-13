@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import UIKit
 import OSLog
 
 private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "HTTPServer")
@@ -176,11 +177,54 @@ public final class HTTPServer: @unchecked Sendable {
                 sendResponse(connection: connection, statusCode: 500, contentType: "text/xml; charset=\"utf-8\"", body: fault)
             }
 
+        // MARK: - CarPlay Diagnostics Endpoint
+        case ("GET", "/debug/carplay"):
+            Task { @MainActor in
+                let scenes = UIApplication.shared.connectedScenes.map { scene -> [String: Any] in
+                    return [
+                        "role": scene.session.role.rawValue,
+                        "class": String(describing: type(of: scene)),
+                        "delegate": String(describing: type(of: scene.delegate ?? nil)),
+                        "activationState": scene.activationState.rawValue
+                    ]
+                }
+                let cpDelegate = CarPlaySceneDelegate.shared
+                let isConn = cpDelegate?.isConnected ?? false
+                let hasInterface = cpDelegate?.interfaceController != nil
+                let hasRoot = cpDelegate?.rootTemplate != nil
+                let videoAvail = cpDelegate?.isVideoPlaybackAvailable ?? false
+                let sectionsCount = cpDelegate?.rootTemplate?.sections.count ?? 0
+
+                let json: [String: Any] = [
+                    "connectedScenes": scenes,
+                    "carPlayDelegateShared": cpDelegate != nil,
+                    "isConnected": isConn,
+                    "hasInterfaceController": hasInterface,
+                    "hasRootTemplate": hasRoot,
+                    "rootTemplateSectionsCount": sectionsCount,
+                    "isVideoPlaybackAvailable": videoAvail,
+                    "playerStatus": PlayerService.shared.session.status.rawValue,
+                    "hasCurrentItem": PlayerService.shared.session.currentItem?.title ?? "none"
+                ]
+                if let data = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+                   let str = String(data: data, encoding: .utf8) {
+                    self.sendResponse(connection: connection, statusCode: 200, contentType: "application/json; charset=\"utf-8\"", body: str)
+                } else {
+                    self.sendResponse(connection: connection, statusCode: 500, contentType: "text/plain", body: "error")
+                }
+            }
+
         // MARK: - REST API for Local Web Remote & Diagnostics
         case ("GET", "/api/status"):
             Task {
-                let (session, mpvRenderDiagnostic) = await MainActor.run {
-                    (PlayerService.shared.session, PlayerService.shared.activeMPVRenderDiagnostic ?? "")
+                let (session, mpvRenderDiagnostic, carPlayConnected, carPlayVideo, carPlaySections) = await MainActor.run {
+                    (
+                        PlayerService.shared.session,
+                        PlayerService.shared.activeMPVRenderDiagnostic ?? "",
+                        CarPlaySceneDelegate.shared?.isConnected ?? false,
+                        CarPlaySceneDelegate.shared?.isVideoPlaybackAvailable ?? false,
+                        CarPlaySceneDelegate.shared?.rootTemplate?.sections.count ?? 0
+                    )
                 }
                 let responseDict: [String: Any] = [
                     "status": session.status.rawValue,
@@ -193,9 +237,22 @@ public final class HTTPServer: @unchecked Sendable {
                     "ip": self.localIPAddress,
                     "port": self.port,
                     "friendlyName": UPnPDevice.shared.friendlyName,
-                    "mpvRenderDiagnostic": mpvRenderDiagnostic
+                    "mpvRenderDiagnostic": mpvRenderDiagnostic,
+                    "carPlayConnected": carPlayConnected,
+                    "carPlayVideoAvailable": carPlayVideo,
+                    "carPlayRootSections": carPlaySections
                 ]
                 if let jsonData = try? JSONSerialization.data(withJSONObject: responseDict, options: [.prettyPrinted]),
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    self.sendResponse(connection: connection, statusCode: 200, contentType: "application/json", body: jsonString)
+                } else {
+                    self.sendResponse(connection: connection, statusCode: 500, contentType: "application/json", body: "{\"error\":\"json_encoding_failed\"}")
+                }
+            }
+
+        case ("GET", "/api/logs"):
+            SSDPService.shared.requestDiagnosticHistory { logs in
+                if let jsonData = try? JSONSerialization.data(withJSONObject: logs, options: [.prettyPrinted]),
                    let jsonString = String(data: jsonData, encoding: .utf8) {
                     self.sendResponse(connection: connection, statusCode: 200, contentType: "application/json", body: jsonString)
                 } else {
