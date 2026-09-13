@@ -291,9 +291,10 @@ public struct PlayerView: View {
             // MARK: Top Bar
             HStack(spacing: 14) {
                 Button {
+                    playerService.stop()
                     dismiss()
                 } label: {
-                    Image(systemName: "chevron.down")
+                    Image(systemName: "xmark")
                         .font(.title3.bold())
                         .foregroundColor(.white)
                         .padding(10)
