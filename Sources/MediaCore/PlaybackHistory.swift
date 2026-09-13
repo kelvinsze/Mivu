@@ -35,6 +35,19 @@ public final class PlaybackHistory: ObservableObject {
         saveHistory()
     }
 
+    public func updateProgress(for itemID: UUID, position: TimeInterval, duration: TimeInterval) {
+        guard position.isFinite, position >= 0,
+              let index = items.firstIndex(where: { $0.id == itemID }) else { return }
+        var updated = items
+        updated[index].resumePosition = duration.isFinite && duration > 0
+            ? min(position, duration) : position
+        if duration.isFinite && duration > 0 {
+            updated[index].duration = duration
+        }
+        items = updated
+        saveHistory()
+    }
+
     public func clear() {
         items.removeAll()
         saveHistory()

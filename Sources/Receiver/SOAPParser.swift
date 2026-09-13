@@ -69,6 +69,16 @@ public final class SOAPParser {
         return String(format: "%02d:%02d:%02d", hours, minutes, secs)
     }
 
+    /// Formats bytes per second into human-readable network speed (e.g. 1.2 MB/s, 450 KB/s).
+    public static func formatSpeed(_ bytesPerSecond: Double) -> String {
+        guard bytesPerSecond > 0 && bytesPerSecond.isFinite else { return "0 KB/s" }
+        if bytesPerSecond >= 1024 * 1024 {
+            return String(format: "%.1f MB/s", bytesPerSecond / (1024 * 1024))
+        } else {
+            return String(format: "%.0f KB/s", bytesPerSecond / 1024)
+        }
+    }
+
     /// Parses UPnP time string (hh:mm:ss or mm:ss or seconds) into TimeInterval.
     public static func parseUPnPTime(_ timeString: String) -> TimeInterval {
         let parts = timeString.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ":").compactMap { Double($0) }

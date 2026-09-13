@@ -19,6 +19,9 @@ public final class PlayerService: ObservableObject {
     @Published public var selectedSpeed: Float = 1.0
     @Published public private(set) var subtitleTracks: [SubtitleTrack] = []
     @Published public private(set) var selectedSubtitleTrack: SubtitleTrack?
+    @Published public private(set) var downloadSpeed: Double = 0
+
+    private var telemetryTask: Task<Void, Never>?
 
     private let nativeEngine: AVPlayerEngine
     private let mpvEngine: MPVPlayerEngine?
@@ -27,11 +30,15 @@ public final class PlayerService: ObservableObject {
     private var engineGeneration = 0
     private var cancellables = Set<AnyCancellable>()
     private var lastProgressReportDate = Date.distantPast
+    private var lastHistoryUpdateDate = Date.distantPast
     private var castTraceGeneration = 0
     private var lastTracePlayerTime: TimeInterval?
     private var lastTraceSnapshotAt: TimeInterval = 0
     private var pendingSeekOrigin: (target: TimeInterval, origin: String)?
+    private var firstSOAPSeekPending = false
+    private var castPlaybackStartedAt: Date?
     private var mpvFallbackAttempted = false
+    private var mpvInitialLoadRetryAttempted = false
 
     public init() {
         let avEngine = AVPlayerEngine()
@@ -45,6 +52,7 @@ public final class PlayerService: ObservableObject {
         setupRemoteCommands()
         setupNotifications()
         observeEngineEvents()
+        startTelemetryLoop()
     }
 
     /// The active MPV adapter is exposed only for the MPV surface view. All
@@ -79,6 +87,7 @@ public final class PlayerService: ObservableObject {
     public func loadAndPlay(item: MediaItem, origin: String = #function, recordHistory: Bool = true) {
         setupAudioSession()
         mpvFallbackAttempted = false
+        mpvInitialLoadRetryAttempted = false
         subtitleTracks = item.subtitleTracks ?? []
         let subtitleKey = subtitlePreferenceKey(for: item)
         let savedSubtitleID = UserDefaults.standard.string(forKey: subtitleKey)
@@ -98,6 +107,8 @@ public final class PlayerService: ObservableObject {
             castTraceGeneration += 1
             SSDPService.shared.recordCastDebug("LOAD g=\(castTraceGeneration) origin=\(origin) sameURL=\(session.currentItem?.url == item.url) previous=\(traceTime(player.currentTime().seconds)) host=\(item.url.host ?? "local")")
         }
+        firstSOAPSeekPending = item.sourceType == .dlna
+        castPlaybackStartedAt = nil
         lastTracePlayerTime = nil
         lastTraceSnapshotAt = 0
         logger.info("Loading media item: \(item.title) (\(item.url.absoluteString))")
@@ -108,12 +119,15 @@ public final class PlayerService: ObservableObject {
         // Update session
         session.currentItem = item
         lastProgressReportDate = .distantPast
+        lastHistoryUpdateDate = .distantPast
         session.status = .loading
         let resumePosition = max(0, item.resumePosition ?? 0)
         session.currentTime = resumePosition
         session.duration = item.duration ?? 0
         session.bufferedTime = 0
         session.errorMessage = nil
+        NetworkSpeedMonitor.reset()
+        startTelemetryLoop()
 
         // The AVFoundation lifecycle and item observers now live behind the engine seam.
         traceCast("REPLACE_ITEM")
@@ -139,6 +153,7 @@ public final class PlayerService: ObservableObject {
 
     public func pause() {
         traceCast("PAUSE")
+        updateHistoryProgress(force: true)
         engine.pause()
         session.status = .paused
         updateNowPlayingInfo()
@@ -147,12 +162,16 @@ public final class PlayerService: ObservableObject {
 
     public func stop() {
         traceCast("STOP / REMOVE_ITEM")
+        updateHistoryProgress(force: true)
+        firstSOAPSeekPending = false
+        castPlaybackStartedAt = nil
         reportPlaybackProgress(force: true, isPaused: true, isStopped: true)
         engine.stop()
         session.status = .stopped
         session.currentTime = 0
         session.duration = 0
         session.bufferedTime = 0
+        stopTelemetryLoop()
         updateNowPlayingInfo()
     }
 
@@ -166,8 +185,26 @@ public final class PlayerService: ObservableObject {
 
     public func seek(to seconds: TimeInterval, origin: String = #function) {
         let targetSeconds = max(0, min(seconds, session.duration > 0 ? session.duration : seconds))
+        if origin != "SOAP.Seek" {
+            firstSOAPSeekPending = false
+        }
+        if origin == "SOAP.Seek", firstSOAPSeekPending {
+            firstSOAPSeekPending = false
+            let position = player.currentTime().seconds
+            if targetSeconds == 0,
+               session.status == .playing,
+               position.isFinite, (0...2.5).contains(position),
+               let startedAt = castPlaybackStartedAt,
+               (0...3).contains(Date().timeIntervalSince(startedAt)) {
+                traceCast("SKIP_INITIAL_ZERO_SEEK origin=\(origin) target=0")
+                return
+            }
+        }
         traceCast("SEEK origin=\(origin) target=\(traceTime(targetSeconds))")
         pendingSeekOrigin = (targetSeconds, origin)
+        if targetSeconds > session.bufferedTime || targetSeconds < session.currentTime {
+            session.bufferedTime = targetSeconds
+        }
         engine.seek(to: targetSeconds)
     }
 
@@ -309,7 +346,9 @@ public final class PlayerService: ObservableObject {
             if snapshot.duration > 0 {
                 nextSession.duration = snapshot.duration
             }
-            nextSession.bufferedTime = snapshot.bufferedTime
+            if snapshot.bufferedTime > 0 {
+                nextSession.bufferedTime = snapshot.bufferedTime
+            }
             nextSession.playbackRate = snapshot.playbackRate
             nextSession.isMuted = snapshot.isMuted
             nextSession.volume = snapshot.volume
@@ -317,6 +356,8 @@ public final class PlayerService: ObservableObject {
             if nextSession != session {
                 session = nextSession
             }
+            updateHistoryProgress(force: false)
+            pollTelemetryTick()
             if snapshot.status == .playing {
                 reportPlaybackProgress(force: false, isPaused: false, isStopped: false)
             }
@@ -353,6 +394,11 @@ public final class PlayerService: ObservableObject {
                     }
                 }
             case .timeControl(let rawValue, let waitingReason):
+                if rawValue == AVPlayer.TimeControlStatus.playing.rawValue,
+                   session.currentItem?.sourceType == .dlna,
+                   castPlaybackStartedAt == nil {
+                    castPlaybackStartedAt = Date()
+                }
                 traceCast("TIME_CONTROL=\(rawValue) waiting=\(waitingReason ?? "none")")
                 SSDPService.shared.recordPlaybackDebug("TIME_CONTROL engine=\(engineName) raw=\(rawValue) waiting=\(waitingReason ?? "none")")
             case .timeJump:
@@ -387,6 +433,24 @@ public final class PlayerService: ObservableObject {
 
     private func handlePlaybackFailure() {
         let hasServerAlternative = session.currentItem?.playbackAlternatives?.isEmpty == false
+        if engine is MPVPlayerEngine,
+           !mpvInitialLoadRetryAttempted,
+           session.currentTime < 0.5,
+           session.duration == 0,
+           session.currentItem?.url.scheme?.lowercased() == "https",
+           let item = session.currentItem {
+            // FFmpeg's SecureTransport backend can transiently abort the first
+            // TLS handshake. Retry once before surfacing a failure to the UI.
+            mpvInitialLoadRetryAttempted = true
+            session.status = .loading
+            session.currentTime = max(0, item.resumePosition ?? 0)
+            session.errorMessage = nil
+            SSDPService.shared.recordPlaybackDebug("RETRY mpv_initial_https_load url=\(SSDPService.sanitizedPlaybackURL(item.url))")
+            engine.load(item.playbackRequest)
+            engine.setSubtitleTrack(selectedSubtitleTrack)
+            updateNowPlayingInfo()
+            return
+        }
         if engine is MPVPlayerEngine, !mpvFallbackAttempted, !hasServerAlternative {
             // Skip the AVPlayer fallback for containers that AVPlayer definitely
             // cannot decode (WebM, MKV, etc.). Falling back would just produce a
@@ -524,6 +588,17 @@ public final class PlayerService: ObservableObject {
         }
     }
 
+    private func updateHistoryProgress(force: Bool) {
+        guard let item = session.currentItem, session.currentTime.isFinite,
+              session.currentTime > 0 else { return }
+        let now = Date()
+        if !force && now.timeIntervalSince(lastHistoryUpdateDate) < 15 { return }
+        lastHistoryUpdateDate = now
+        PlaybackHistory.shared.updateProgress(
+            for: item.id, position: session.currentTime, duration: session.duration
+        )
+    }
+
     private func traceTime(_ value: TimeInterval) -> String {
         value.isFinite ? String(format: "%.3f", value) : "unknown"
     }
@@ -535,6 +610,87 @@ public final class PlayerService: ObservableObject {
     private func traceCast(_ event: String) {
         guard session.currentItem?.sourceType == .dlna else { return }
         SSDPService.shared.recordCastDebug("\(event) g=\(castTraceGeneration) player=\(traceTime(player.currentTime().seconds)) reported=\(traceTime(session.currentTime)) duration=\(traceTime(session.duration)) state=\(session.status.rawValue) rate=\(player.rate)")
+    }
+
+    // MARK: - Telemetry & Network Monitoring
+
+    private func startTelemetryLoop() {
+        telemetryTask?.cancel()
+        telemetryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 400_000_000)
+                } catch {
+                    break
+                }
+                guard let self = self else { return }
+                self.pollTelemetryTick()
+            }
+        }
+    }
+
+    private func stopTelemetryLoop() {
+        telemetryTask?.cancel()
+        telemetryTask = nil
+        downloadSpeed = 0
+    }
+
+    private func pollTelemetryTick() {
+        guard session.status != .stopped && session.status != .idle && session.status != .failed else {
+            if downloadSpeed != 0 {
+                downloadSpeed = 0
+            }
+            return
+        }
+
+        // 1. Hardware network download throughput with AVPlayer accessLog fallback
+        var speed = NetworkSpeedMonitor.currentDownloadSpeed()
+        if speed <= 0, let event = player.currentItem?.accessLog()?.events.last {
+            if event.observedBitrate > 0 {
+                speed = event.observedBitrate / 8.0
+            }
+        }
+        downloadSpeed = speed
+
+        // 2. Direct buffer check for AVPlayer if in AVPlayerEngine mode
+        if let currentItem = player.currentItem {
+            let currentTime = player.currentTime().seconds
+            let loadedTimeRanges = currentItem.loadedTimeRanges
+            var maxBuffered: TimeInterval = 0
+            for value in loadedTimeRanges {
+                let range = value.timeRangeValue
+                let start = range.start.seconds
+                let end = (range.start + range.duration).seconds
+                if start.isFinite && end.isFinite && !start.isNaN && !end.isNaN {
+                    if start <= (currentTime.isFinite ? currentTime + 1.5 : 1.5) && end >= (currentTime.isFinite ? currentTime : 0) {
+                        maxBuffered = max(maxBuffered, end)
+                    } else if start <= 1.0 {
+                        maxBuffered = max(maxBuffered, end)
+                    }
+                }
+            }
+            if maxBuffered == 0 {
+                for value in loadedTimeRanges {
+                    let range = value.timeRangeValue
+                    let start = range.start.seconds
+                    let duration = range.duration.seconds
+                    if start.isFinite && duration.isFinite && !start.isNaN && !duration.isNaN {
+                        maxBuffered = max(maxBuffered, start + duration)
+                    }
+                }
+            }
+            if maxBuffered > 0 && maxBuffered > session.bufferedTime {
+                session.bufferedTime = maxBuffered
+            }
+
+            // 3. Duration recovery if session duration is still 0
+            if session.duration == 0 {
+                let dur = currentItem.duration.seconds
+                if dur.isFinite && !dur.isNaN && dur > 0 {
+                    session.duration = dur
+                }
+            }
+        }
     }
 
     private func handleAudioInterruption(_ notification: Notification) {

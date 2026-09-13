@@ -15,6 +15,7 @@ public final class AVPlayerEngine: PlayerEngine {
     private var eventContinuation: AsyncStream<PlaybackEngineEvent>.Continuation?
     private var timeObserverToken: Any?
     private var itemStatusObserver: NSKeyValueObservation?
+    private var itemDurationObserver: NSKeyValueObservation?
     private var itemLoadedRangesObserver: NSKeyValueObservation?
     private var itemBufferEmptyObserver: NSKeyValueObservation?
     private var itemBufferKeepUpObserver: NSKeyValueObservation?
@@ -196,11 +197,13 @@ public final class AVPlayerEngine: PlayerEngine {
 
     private func invalidateCurrentItemObservers() {
         itemStatusObserver?.invalidate()
+        itemDurationObserver?.invalidate()
         itemLoadedRangesObserver?.invalidate()
         itemBufferEmptyObserver?.invalidate()
         itemBufferKeepUpObserver?.invalidate()
         itemPresentationSizeObserver?.invalidate()
         itemStatusObserver = nil
+        itemDurationObserver = nil
         itemLoadedRangesObserver = nil
         itemBufferEmptyObserver = nil
         itemBufferKeepUpObserver = nil
@@ -211,7 +214,16 @@ public final class AVPlayerEngine: PlayerEngine {
         itemStatusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
             Task { @MainActor [weak self] in self?.handleItemStatusChange(item) }
         }
-        itemLoadedRangesObserver = item.observe(\.loadedTimeRanges, options: [.new]) { [weak self] item, _ in
+        itemDurationObserver = item.observe(\.duration, options: [.initial, .new]) { [weak self] item, _ in
+            Task { @MainActor [weak self] in
+                guard let self, item === self.player.currentItem else { return }
+                let dur = CMTimeGetSeconds(item.duration)
+                if dur.isFinite && !dur.isNaN && dur > 0 {
+                    self.updateSnapshot { $0.duration = dur }
+                }
+            }
+        }
+        itemLoadedRangesObserver = item.observe(\.loadedTimeRanges, options: [.initial, .new]) { [weak self] item, _ in
             Task { @MainActor [weak self] in self?.handleLoadedTimeRangesChange(item) }
         }
         itemBufferEmptyObserver = item.observe(\.isPlaybackBufferEmpty, options: [.new]) { [weak self] item, _ in
@@ -246,7 +258,15 @@ public final class AVPlayerEngine: PlayerEngine {
                 guard let self else { return }
                 let current = CMTimeGetSeconds(time)
                 guard current.isFinite, !current.isNaN else { return }
-                self.updateSnapshot { $0.currentTime = max(0, current) }
+                self.updateSnapshot {
+                    $0.currentTime = max(0, current)
+                    if $0.duration == 0, let dur = self.player.currentItem?.duration.seconds, dur.isFinite, !dur.isNaN, dur > 0 {
+                        $0.duration = dur
+                    }
+                }
+                if let currentItem = self.player.currentItem {
+                    self.handleLoadedTimeRangesChange(currentItem)
+                }
             }
         }
 
@@ -322,7 +342,14 @@ public final class AVPlayerEngine: PlayerEngine {
         switch item.status {
         case .readyToPlay:
             if let pendingSubtitleTrack { setSubtitleTrack(pendingSubtitleTrack) }
-            updateSnapshot { $0.status = .playing; $0.duration = safeDuration; $0.errorMessage = nil }
+            updateSnapshot {
+                $0.status = .playing
+                if safeDuration > 0 {
+                    $0.duration = safeDuration
+                }
+                $0.errorMessage = nil
+            }
+            handleLoadedTimeRangesChange(item)
             eventContinuation?.yield(.diagnostic(.itemStatus(rawValue: item.status.rawValue, duration: safeDuration, errorMessage: nil)))
         case .failed:
             let message = item.error?.localizedDescription ?? "Unknown playback error"
@@ -338,9 +365,31 @@ public final class AVPlayerEngine: PlayerEngine {
 
     private func handleLoadedTimeRangesChange(_ item: AVPlayerItem) {
         guard item === player.currentItem else { return }
-        guard let timeRange = item.loadedTimeRanges.first?.timeRangeValue else { return }
-        let buffered = CMTimeGetSeconds(CMTimeAdd(timeRange.start, timeRange.duration))
-        guard buffered.isFinite, !buffered.isNaN else { return }
-        updateSnapshot { $0.bufferedTime = buffered }
+        let current = snapshot.currentTime
+        var maxBuffered: TimeInterval = 0
+        for value in item.loadedTimeRanges {
+            let timeRange = value.timeRangeValue
+            let start = CMTimeGetSeconds(timeRange.start)
+            let duration = CMTimeGetSeconds(timeRange.duration)
+            guard start.isFinite && duration.isFinite && !start.isNaN && !duration.isNaN else { continue }
+            let end = start + duration
+            if start <= current + 1.5 && end >= current {
+                maxBuffered = max(maxBuffered, end)
+            } else if start <= 1.0 {
+                maxBuffered = max(maxBuffered, end)
+            }
+        }
+        if maxBuffered == 0 {
+            for value in item.loadedTimeRanges {
+                let timeRange = value.timeRangeValue
+                let start = CMTimeGetSeconds(timeRange.start)
+                let duration = CMTimeGetSeconds(timeRange.duration)
+                if start.isFinite && duration.isFinite && !start.isNaN && !duration.isNaN {
+                    maxBuffered = max(maxBuffered, start + duration)
+                }
+            }
+        }
+        guard maxBuffered > 0 else { return }
+        updateSnapshot { $0.bufferedTime = maxBuffered }
     }
 }

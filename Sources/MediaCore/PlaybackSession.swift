@@ -50,6 +50,6 @@ public struct PlaybackSession: Equatable, Sendable {
     }
 
     public var isLiveStream: Bool {
-        return duration.isInfinite || duration.isNaN || duration <= 0
+        return duration.isInfinite || duration.isNaN
     }
 }

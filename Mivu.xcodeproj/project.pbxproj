@@ -15,16 +15,19 @@
 		273D43254AF1B78F73D50C9C /* AVPlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC90A7E0F61FF392B8796615 /* AVPlayerEngine.swift */; };
 		2F55EEC28DAB8991C92947B3 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E308EDFF7E3D8D5060751D6F /* PlayerView.swift */; };
 		360783D98894D9018D8F4F31 /* UPnPDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18EF5AAF3D3D0692C051180B /* UPnPDevice.swift */; };
+		36436C5DF492C43FFD76C4E4 /* NetworkSpeedMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 628B96790260663C8722C14A /* NetworkSpeedMonitor.swift */; };
 		3B0C3F58792CD6E3A802DB28 /* PhoneSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11EB3F07520AF133D3A25B6A /* PhoneSceneDelegate.swift */; };
 		3FB53F5CC4296D466EF92E09 /* MivuApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1255C4ABB3088512F3C8BDEC /* MivuApp.swift */; };
 		46C79B1C0251D09C85459E0D /* PlaybackRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0AAC7AA4CE0E40B63D26F2 /* PlaybackRouter.swift */; };
 		46C7F8F5470B4213D2EA45A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C1A2C1479CAA66881A6286 /* SettingsView.swift */; };
+		4EA213CAF65320CCA8E7BC35 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */; };
 		4F34AE11601F64CEEF07191A /* SOAPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D927BAD78CBBFFFD3F9DEAE5 /* SOAPParser.swift */; };
 		56DFD7DD123D2B09622A605F /* SMBAssetResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */; };
 		6A2D64379E2FC927C6B673A8 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBD723FDFD184AD9E7AA0A9 /* MainTabView.swift */; };
 		6DA8B04D20CF864E63C61919 /* SSDPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADE3606E944B2EE920D9C0F /* SSDPService.swift */; };
 		79B77AFA7C2F558E76160A9D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F68133D47D1518BB634A92 /* HomeView.swift */; };
 		7AB58271875F8BCE9D37B5C2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E53F2115543AC50B694798D8 /* LaunchScreen.storyboard */; };
+		7F8170BBA28F183501E63B4F /* DeveloperLabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50511C184EAAFD64A57FC5B6 /* DeveloperLabView.swift */; };
 		80EC3F592A55DA87F2ED17A3 /* SMBClient in Frameworks */ = {isa = PBXBuildFile; productRef = 363E3E41D8FA4FEF8929AEBC /* SMBClient */; };
 		829E174F11B73D464CF0D67F /* PlaybackCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D673EA9A7EAE22D49590863E /* PlaybackCoreTests.swift */; };
 		881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48F0DA8AF7F12BB7CA1570C /* WebDAVClient.swift */; };
@@ -78,9 +81,11 @@
 		2D8DAD3E2C5CA2A845F13D1E /* JellyfinClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JellyfinClient.swift; sourceTree = "<group>"; };
 		3D90DE5A69B57FC399065E0D /* ReceiverStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiverStatusView.swift; sourceTree = "<group>"; };
 		47BCF5BC8AFED357491270F9 /* DLNASource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNASource.swift; sourceTree = "<group>"; };
+		50511C184EAAFD64A57FC5B6 /* DeveloperLabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperLabView.swift; sourceTree = "<group>"; };
 		56CD08DA8D5885F2C3A66F21 /* SMBLocalHTTPProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMBLocalHTTPProxy.swift; sourceTree = "<group>"; };
 		57BFC9747064979AFA051932 /* PlaybackSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackSession.swift; sourceTree = "<group>"; };
 		5C8DA8A948A8C67371826710 /* SMBMediaClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMBMediaClient.swift; sourceTree = "<group>"; };
+		628B96790260663C8722C14A /* NetworkSpeedMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkSpeedMonitor.swift; sourceTree = "<group>"; };
 		69D821A8E48FA5536B51DD0D /* libmpv.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libmpv.xcframework; path = Frameworks/MPV/libmpv.xcframework; sourceTree = "<group>"; };
 		723940D1AE88CF92874CC8B0 /* MPVPlayerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MPVPlayerEngine.swift; sourceTree = "<group>"; };
 		755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMBAssetResourceLoader.swift; sourceTree = "<group>"; };
@@ -98,6 +103,7 @@
 		C48F0DA8AF7F12BB7CA1570C /* WebDAVClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebDAVClient.swift; sourceTree = "<group>"; };
 		C8A64FA60D3B38DB93DFA095 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		C9C889A778633FF9D4D7590B /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		CEBD723FDFD184AD9E7AA0A9 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		D673EA9A7EAE22D49590863E /* PlaybackCoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackCoreTests.swift; sourceTree = "<group>"; };
 		D927BAD78CBBFFFD3F9DEAE5 /* SOAPParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOAPParser.swift; sourceTree = "<group>"; };
@@ -128,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				8A0D166AEE34812DFDF14EA3 /* MediaItem.swift */,
+				628B96790260663C8722C14A /* NetworkSpeedMonitor.swift */,
 				042A4A51D1B57A2966D6DC60 /* PlaybackHistory.swift */,
 				57BFC9747064979AFA051932 /* PlaybackSession.swift */,
 				28D62DF33021F9BF985B2DDB /* PlayerService.swift */,
@@ -285,6 +292,8 @@
 		FD9EF9D06FA181DE3DBE1BEE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				50511C184EAAFD64A57FC5B6 /* DeveloperLabView.swift */,
+				CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */,
 				A9F68133D47D1518BB634A92 /* HomeView.swift */,
 				CEBD723FDFD184AD9E7AA0A9 /* MainTabView.swift */,
 				E308EDFF7E3D8D5060751D6F /* PlayerView.swift */,
@@ -410,9 +419,11 @@
 				1A176E5815F1E36B584945EA /* CarPlayTemplateBuilder.swift in Sources */,
 				D9E4FDFB053D897F9E01791A /* CarPlayVideoPresentation.swift in Sources */,
 				A2A01B3586F3FB9FD6810727 /* DLNASource.swift in Sources */,
+				7F8170BBA28F183501E63B4F /* DeveloperLabView.swift in Sources */,
 				9B60D72C6FC2BCC55F630677 /* DiagnosticsView.swift in Sources */,
 				26867796F56D7F76F12BC6FD /* EmbyClient.swift in Sources */,
 				F7421C7D6A6F35E9A47A70CC /* HTTPServer.swift in Sources */,
+				4EA213CAF65320CCA8E7BC35 /* HistoryView.swift in Sources */,
 				79B77AFA7C2F558E76160A9D /* HomeView.swift in Sources */,
 				045F69FE04C1D5D3D42529B6 /* JellyfinClient.swift in Sources */,
 				8EF95EFA7831B6805B7B6C91 /* MPVBridge.m in Sources */,
@@ -422,6 +433,7 @@
 				E7E61F750F050CCA6BEC3646 /* MediaServerManager.swift in Sources */,
 				C2366BC1D139429CE9C15ACC /* MediaServerProtocol.swift in Sources */,
 				3FB53F5CC4296D466EF92E09 /* MivuApp.swift in Sources */,
+				36436C5DF492C43FFD76C4E4 /* NetworkSpeedMonitor.swift in Sources */,
 				3B0C3F58792CD6E3A802DB28 /* PhoneSceneDelegate.swift in Sources */,
 				BDAA1CA065A53D5C9F848B9D /* PlaybackHistory.swift in Sources */,
 				46C79B1C0251D09C85459E0D /* PlaybackRouter.swift in Sources */,

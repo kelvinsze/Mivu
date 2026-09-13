@@ -1,0 +1,258 @@
+import SwiftUI
+
+/// Playback history and watchlist view.
+public struct HistoryView: View {
+    @ObservedObject var history = PlaybackHistory.shared
+    @ObservedObject var playerService = PlayerService.shared
+    @State private var searchText = ""
+    @State private var isShowingPlayer = false
+    @State private var isConfirmingClear = false
+    @State private var playbackResolveTask: Task<Void, Never>?
+    @State private var playbackResolveID: UUID?
+    @State private var errorMessage: String?
+    @State private var isShowingErrorAlert = false
+
+    public init() {}
+
+    private var filteredItems: [MediaItem] {
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return history.items
+        }
+        return history.items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    public var body: some View {
+        NavigationStack {
+            Group {
+                if history.items.isEmpty {
+                    emptyStateView
+                } else {
+                    List {
+                        ForEach(filteredItems) { item in
+                            historyRow(item)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        withAnimation {
+                                            history.remove(item: item)
+                                        }
+                                    } label: {
+                                        Label("删除", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
+                    .listStyle(.plain)
+                    .searchable(text: $searchText, prompt: "搜索观看历史")
+                }
+            }
+            .navigationTitle("播放历史")
+            .toolbar {
+                if !history.items.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(role: .destructive) {
+                            isConfirmingClear = true
+                        } label: {
+                            Text("清空")
+                                .font(.subheadline)
+                                .foregroundColor(.red.opacity(0.85))
+                        }
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $isShowingPlayer) {
+                PlayerView()
+            }
+            .confirmationDialog("清空所有播放历史？", isPresented: $isConfirmingClear) {
+                Button("清空历史", role: .destructive) {
+                    withAnimation { history.clear() }
+                }
+            }
+            .alert("播放错误", isPresented: $isShowingErrorAlert) {
+                Button("好", role: .cancel) {}
+            } message: {
+                Text(errorMessage ?? "无法解析该媒体，请检查服务器连接")
+            }
+        }
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 56))
+                .foregroundColor(.secondary.opacity(0.6))
+
+            Text("暂无播放记录")
+                .font(.title3.bold())
+                .foregroundColor(.primary)
+
+            Text("你在 iPhone 或 CarPlay 播放的视频将在此自动同步记录播放进度。")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func historyRow(_ item: MediaItem) -> some View {
+        Button {
+            playHistoryItem(item)
+        } label: {
+            HStack(spacing: 14) {
+                // Video thumbnail or placeholder
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(.secondarySystemFill))
+                        .frame(width: 100, height: 62)
+
+                    if let poster = item.posterUrl {
+                        AsyncImage(url: poster) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            default:
+                                fallbackIcon(for: item)
+                            }
+                        }
+                        .frame(width: 100, height: 62)
+                        .clipped()
+                        .cornerRadius(8)
+                    } else {
+                        fallbackIcon(for: item)
+                    }
+
+                    // Play icon overlay
+                    Image(systemName: "play.fill")
+                        .font(.caption)
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Color.black.opacity(0.6))
+                        .clipShape(Circle())
+
+                    // Resume progress bar if available
+                    if let resume = item.resumePosition, let dur = item.duration, dur > 0 {
+                        VStack {
+                            Spacer()
+                            ProgressView(value: min(max(resume / dur, 0), 1.0))
+                                .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                .scaleEffect(x: 1, y: 1.5, anchor: .center)
+                                .clipShape(RoundedRectangle(cornerRadius: 2))
+                        }
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 2)
+                    }
+                }
+                .frame(width: 100, height: 62)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+
+                    HStack(spacing: 6) {
+                        sourceBadge(item.sourceType)
+
+                        if let resume = item.resumePosition, resume > 0 {
+                            Text("已看至 \(SOAPParser.formatUPnPTime(resume))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else if let dur = item.duration, dur > 0 {
+                            Text("时长 \(SOAPParser.formatUPnPTime(dur))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Text(item.url.lastPathComponent)
+                        .font(.caption2)
+                        .foregroundColor(.secondary.opacity(0.8))
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary.opacity(0.5))
+            }
+            .padding(10)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func fallbackIcon(for item: MediaItem) -> some View {
+        Image(systemName: item.sourceType == .personalMedia ? "film" : "antenna.radiowaves.left.and.right")
+            .font(.title3)
+            .foregroundColor(.secondary)
+    }
+
+    private func sourceBadge(_ source: MediaSourceType) -> some View {
+        Text(badgeText(for: source))
+            .font(.system(size: 9, weight: .bold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(badgeColor(for: source).opacity(0.15))
+            .foregroundColor(badgeColor(for: source))
+            .cornerRadius(4)
+    }
+
+    private func badgeText(for source: MediaSourceType) -> String {
+        switch source {
+        case .personalMedia: return "媒体库"
+        case .dlna: return "DLNA 投送"
+        case .directUrl: return "网络流"
+        case .testStream: return "测试源"
+        }
+    }
+
+    private func badgeColor(for source: MediaSourceType) -> Color {
+        switch source {
+        case .personalMedia: return .orange
+        case .dlna: return .cyan
+        case .directUrl: return .purple
+        case .testStream: return .blue
+        }
+    }
+
+    private func playHistoryItem(_ item: MediaItem) {
+        guard item.sourceType == .personalMedia,
+              let serverID = item.serverID,
+              let client = MediaServerManager.shared.getClient(for: serverID) else {
+            playerService.loadAndPlay(item: item)
+            isShowingPlayer = true
+            return
+        }
+
+        playbackResolveTask?.cancel()
+        let resolveID = UUID()
+        playbackResolveID = resolveID
+        playbackResolveTask = Task {
+            do {
+                let resolved = try await client.resolvePlaybackItem(item)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard playbackResolveID == resolveID else { return }
+                    playbackResolveTask = nil
+                    playbackResolveID = nil
+                    playerService.loadAndPlay(item: resolved)
+                    isShowingPlayer = true
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard playbackResolveID == resolveID else { return }
+                    playbackResolveTask = nil
+                    playbackResolveID = nil
+                    errorMessage = error.localizedDescription
+                    isShowingErrorAlert = true
+                }
+            }
+        }
+    }
+}
