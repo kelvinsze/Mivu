@@ -35,6 +35,14 @@ struct MivuMPV {
     int pool_width;
     int pool_height;
     GLuint fbo;
+    GLuint intermediate_fbo;
+    GLuint intermediate_texture;
+    int intermediate_width;
+    int intermediate_height;
+    GLuint swizzle_program;
+    GLuint swizzle_vertex_buffer;
+    GLint swizzle_position_location;
+    GLint swizzle_texture_location;
 };
 
 static void set_error(MivuMPV *player, const char *message) {
@@ -55,6 +63,152 @@ static void *get_proc_address(void *context, const char *name) {
     });
     void *sym = (framework && framework != RTLD_DEFAULT) ? dlsym(framework, name) : NULL;
     return sym ? sym : dlsym(RTLD_DEFAULT, name);
+}
+
+static GLuint compile_shader(MivuMPV *player, GLenum type, const char *source) {
+    GLuint shader = glCreateShader(type);
+    if (!shader) {
+        set_error(player, "Failed to create color swizzle shader");
+        return 0;
+    }
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+    GLint compiled = GL_FALSE;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+    if (compiled != GL_TRUE) {
+        char log[192] = {0};
+        glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+        snprintf(player->last_error, sizeof(player->last_error), "Color swizzle shader failed: %s", log);
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+static int setup_swizzle_resources(MivuMPV *player) {
+    static const char *vertex_source =
+        "attribute vec2 a_position;\n"
+        "varying highp vec2 v_tex_coord;\n"
+        "void main() {\n"
+        "  gl_Position = vec4(a_position, 0.0, 1.0);\n"
+        "  v_tex_coord = a_position * 0.5 + 0.5;\n"
+        "}\n";
+    static const char *fragment_source =
+        "precision mediump float;\n"
+        "uniform sampler2D u_texture;\n"
+        "varying highp vec2 v_tex_coord;\n"
+        "void main() {\n"
+        "  vec4 color = texture2D(u_texture, v_tex_coord);\n"
+        "  gl_FragColor = color.bgra;\n"
+        "}\n";
+    static const GLfloat vertices[] = {
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+        -1.0f,  1.0f,
+         1.0f,  1.0f,
+    };
+
+    GLuint vertex_shader = compile_shader(player, GL_VERTEX_SHADER, vertex_source);
+    if (!vertex_shader) return -1;
+    GLuint fragment_shader = compile_shader(player, GL_FRAGMENT_SHADER, fragment_source);
+    if (!fragment_shader) {
+        glDeleteShader(vertex_shader);
+        return -1;
+    }
+
+    player->swizzle_program = glCreateProgram();
+    if (!player->swizzle_program) {
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        set_error(player, "Failed to create color swizzle program");
+        return -1;
+    }
+    glAttachShader(player->swizzle_program, vertex_shader);
+    glAttachShader(player->swizzle_program, fragment_shader);
+    glLinkProgram(player->swizzle_program);
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    GLint linked = GL_FALSE;
+    glGetProgramiv(player->swizzle_program, GL_LINK_STATUS, &linked);
+    if (linked != GL_TRUE) {
+        char log[192] = {0};
+        glGetProgramInfoLog(player->swizzle_program, sizeof(log), NULL, log);
+        snprintf(player->last_error, sizeof(player->last_error), "Color swizzle program failed: %s", log);
+        glDeleteProgram(player->swizzle_program);
+        player->swizzle_program = 0;
+        return -1;
+    }
+
+    player->swizzle_position_location = glGetAttribLocation(player->swizzle_program, "a_position");
+    player->swizzle_texture_location = glGetUniformLocation(player->swizzle_program, "u_texture");
+    if (player->swizzle_position_location < 0 || player->swizzle_texture_location < 0) {
+        set_error(player, "Color swizzle shader locations unavailable");
+        return -1;
+    }
+
+    glGenBuffers(1, &player->swizzle_vertex_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, player->swizzle_vertex_buffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    return 0;
+}
+
+static int setup_intermediate_target(MivuMPV *player, int width, int height) {
+    if (player->intermediate_texture &&
+        player->intermediate_width == width && player->intermediate_height == height) {
+        return 0;
+    }
+    if (player->intermediate_texture) {
+        glDeleteTextures(1, &player->intermediate_texture);
+        player->intermediate_texture = 0;
+    }
+
+    glGenTextures(1, &player->intermediate_texture);
+    glBindTexture(GL_TEXTURE_2D, player->intermediate_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glBindFramebuffer(GL_FRAMEBUFFER, player->intermediate_fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, player->intermediate_texture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        set_error(player, "Intermediate color swizzle FBO is incomplete");
+        return -1;
+    }
+    player->intermediate_width = width;
+    player->intermediate_height = height;
+    return 0;
+}
+
+static int blit_bgra(MivuMPV *player, int width, int height) {
+    while (glGetError() != GL_NO_ERROR) {}
+    glBindFramebuffer(GL_FRAMEBUFFER, player->fbo);
+    glViewport(0, 0, width, height);
+    glDisable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glDisable(GL_STENCIL_TEST);
+    glUseProgram(player->swizzle_program);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, player->intermediate_texture);
+    glUniform1i(player->swizzle_texture_location, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, player->swizzle_vertex_buffer);
+    glEnableVertexAttribArray((GLuint)player->swizzle_position_location);
+    glVertexAttribPointer((GLuint)player->swizzle_position_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    GLenum error = glGetError();
+    glDisableVertexAttribArray((GLuint)player->swizzle_position_location);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(0);
+    if (error != GL_NO_ERROR) {
+        snprintf(player->last_error, sizeof(player->last_error), "Color swizzle failed GL=0x%X", (unsigned int)error);
+        return -1;
+    }
+    return 0;
 }
 
 // libmpv invokes this from an internal thread when frame state changes.
@@ -153,6 +307,22 @@ void mivu_mpv_destroy(MivuMPV *player) {
             if (player->fbo) {
                 glDeleteFramebuffers(1, &player->fbo);
                 player->fbo = 0;
+            }
+            if (player->intermediate_fbo) {
+                glDeleteFramebuffers(1, &player->intermediate_fbo);
+                player->intermediate_fbo = 0;
+            }
+            if (player->intermediate_texture) {
+                glDeleteTextures(1, &player->intermediate_texture);
+                player->intermediate_texture = 0;
+            }
+            if (player->swizzle_vertex_buffer) {
+                glDeleteBuffers(1, &player->swizzle_vertex_buffer);
+                player->swizzle_vertex_buffer = 0;
+            }
+            if (player->swizzle_program) {
+                glDeleteProgram(player->swizzle_program);
+                player->swizzle_program = 0;
             }
             if (player->texture_cache) {
                 CVOpenGLESTextureCacheFlush(player->texture_cache, 0);
@@ -335,14 +505,26 @@ int mivu_mpv_poll_event(MivuMPV *player, int *end_reason, int *end_error) {
     }
 }
 
-int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, int *paused) {
+int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, double *buffered, int *paused) {
     if (!player || !player->handle) return -1;
     double current = 0;
     double total = 0;
+    double buf = 0;
     int is_paused = 1;
     if (mpv_get_property(player->handle, "time-pos", MPV_FORMAT_DOUBLE, &current) < 0) current = 0;
     if (mpv_get_property(player->handle, "duration", MPV_FORMAT_DOUBLE, &total) < 0) total = 0;
     if (mpv_get_property(player->handle, "pause", MPV_FORMAT_FLAG, &is_paused) < 0) is_paused = 1;
+
+    // Query MPV demuxer cache time or duration
+    if (mpv_get_property(player->handle, "demuxer-cache-time", MPV_FORMAT_DOUBLE, &buf) < 0 || buf <= 0) {
+        double cache_duration = 0;
+        if (mpv_get_property(player->handle, "demuxer-cache-duration", MPV_FORMAT_DOUBLE, &cache_duration) == 0 && cache_duration > 0) {
+            buf = current + cache_duration;
+        } else {
+            buf = 0;
+        }
+    }
+
     int video_width = 0;
     int video_height = 0;
     if (atomic_load_explicit(&player->file_loaded, memory_order_acquire)) {
@@ -353,6 +535,7 @@ int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, int *paus
                           memory_order_release);
     if (time) *time = isfinite(current) ? fmax(0, current) : 0;
     if (duration) *duration = isfinite(total) ? fmax(0, total) : 0;
+    if (buffered) *buffered = isfinite(buf) ? fmax(0, buf) : 0;
     if (paused) *paused = is_paused;
     return 0;
 }
@@ -403,6 +586,10 @@ static int init_renderer_current_context(MivuMPV *player) {
     }
 
     glGenFramebuffers(1, &player->fbo);
+    glGenFramebuffers(1, &player->intermediate_fbo);
+    if (setup_swizzle_resources(player) != 0) {
+        return -1;
+    }
 
     mpv_opengl_init_params gl_params = {
         .get_proc_address = get_proc_address,
@@ -545,9 +732,15 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
         return NULL;
     }
 
+    if (setup_intermediate_target(player, width, height) != 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        CFRelease(textureRef);
+        CFRelease(pixelBuffer);
+        return NULL;
+    }
 
     mpv_opengl_fbo fbo = {
-        .fbo = (int)player->fbo,
+        .fbo = (int)player->intermediate_fbo,
         .w = width,
         .h = height,
         .internal_format = 0,
@@ -564,16 +757,24 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
     glViewport(0, 0, width, height);
     while (glGetError() != GL_NO_ERROR) {}
     int result = mpv_render_context_render(player->render_context, params);
-    glFlush();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    CFRelease(textureRef);
 
     if (result < 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        CFRelease(textureRef);
         CFRelease(pixelBuffer);
         set_error(player, mpv_error_string(result));
         return NULL;
     }
+    if (blit_bgra(player, width, height) != 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        CFRelease(textureRef);
+        CFRelease(pixelBuffer);
+        return NULL;
+    }
+    glFlush();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    CFRelease(textureRef);
 
     CMVideoFormatDescriptionRef formatDesc = NULL;
     OSStatus status = CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, pixelBuffer, &formatDesc);
@@ -612,7 +813,7 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
     }
 
     snprintf(player->last_error, sizeof(player->last_error),
-             "MPV sample buffer size=%dx%d update=0x%llX callbacks=%llu",
+             "MPV sample buffer size=%dx%d bgra=swizzled update=0x%llX callbacks=%llu",
              width, height,
              (unsigned long long)player->last_render_update_flags,
              (unsigned long long)atomic_load_explicit(&player->render_update_callback_count, memory_order_relaxed));

@@ -25,7 +25,7 @@ private func mivuMPVSetMuted(_ player: UnsafeMutableRawPointer?, _ muted: Int32)
 @_silgen_name("mivu_mpv_poll_event")
 private func mivuMPVPollEvent(_ player: UnsafeMutableRawPointer?, _ endReason: UnsafeMutablePointer<Int32>?, _ endError: UnsafeMutablePointer<Int32>?) -> Int32
 @_silgen_name("mivu_mpv_snapshot")
-private func mivuMPVSnapshot(_ player: UnsafeMutableRawPointer?, _ time: UnsafeMutablePointer<Double>?, _ duration: UnsafeMutablePointer<Double>?, _ paused: UnsafeMutablePointer<Int32>?) -> Int32
+private func mivuMPVSnapshot(_ player: UnsafeMutableRawPointer?, _ time: UnsafeMutablePointer<Double>?, _ duration: UnsafeMutablePointer<Double>?, _ buffered: UnsafeMutablePointer<Double>?, _ paused: UnsafeMutablePointer<Int32>?) -> Int32
 @_silgen_name("mivu_mpv_last_error")
 private func mivuMPVLastError(_ player: UnsafeMutableRawPointer?) -> UnsafePointer<CChar>?
 @_silgen_name("mivu_mpv_set_subtitle_id")
@@ -126,6 +126,7 @@ private struct MPVControlUpdate {
     let events: [MPVControlEvent]
     let time: TimeInterval
     let duration: TimeInterval
+    let bufferedTime: TimeInterval
     let paused: Bool
 }
 
@@ -162,6 +163,8 @@ public final class MPVPlayerEngine: PlayerEngine {
     private var pendingSubtitleTrack: SubtitleTrack?
     private var hasLoadedFile = false
     private var renderedFrameCount = 0
+    private var webmSurfaceDiagnosticMilestones = Set<Int>()
+    private var lastSurfaceAttachmentState: Bool?
 
     public init() {
         var continuation: AsyncStream<PlaybackEngineEvent>.Continuation?
@@ -252,6 +255,9 @@ public final class MPVPlayerEngine: PlayerEngine {
     fileprivate func onFrameRendered() {
         renderedFrameCount += 1
         recordSurfaceDiagnostic("frames rendered=\(renderedFrameCount)")
+        if [1, 30, 90, 150].contains(renderedFrameCount) {
+            recordWebMSurfaceDiagnostic("frame \(renderedFrameCount)", milestone: renderedFrameCount)
+        }
         if !renderDiagnosticReported {
             renderDiagnosticReported = true
             let diag = renderDiagnostic()
@@ -284,6 +290,61 @@ public final class MPVPlayerEngine: PlayerEngine {
 
     fileprivate func recordSurfaceDiagnostic(_ message: String) {
         surfaceDiagnostic = message
+        guard message.hasPrefix("surface attached=") else { return }
+        let attached = message == "surface attached=true"
+        guard lastSurfaceAttachmentState != attached else { return }
+        lastSurfaceAttachmentState = attached
+        recordWebMSurfaceDiagnostic("didMoveToWindow attached=\(attached)")
+    }
+
+    private func recordWebMSurfaceDiagnostic(_ reason: String, milestone: Int? = nil) {
+        if let milestone, !webmSurfaceDiagnosticMilestones.insert(milestone).inserted {
+            return
+        }
+        let view = sampleBufferView
+        let layer = view?.sampleBufferDisplayLayer
+        let error = layer?.error.map { error -> String in
+            let nsError = error as NSError
+            return "\(nsError.domain)/\(nsError.code)"
+        } ?? "none"
+        let bounds = view.map { "\($0.bounds.width)x\($0.bounds.height)" } ?? "none"
+        let layerFrame = layer.map { "\($0.frame.width)x\($0.frame.height)" } ?? "none"
+        let activationState = view?.window?.windowScene?.activationState.rawValue ?? -1
+        let readyForDisplay: String
+        if #available(iOS 17.4, *) {
+            readyForDisplay = layer.map { String($0.isReadyForDisplay) } ?? "none"
+        } else {
+            readyForDisplay = "unavailable"
+        }
+        let videoWindow = view?.window
+        let videoWindowID = videoWindow.map { String(describing: ObjectIdentifier($0)) } ?? "none"
+        let sceneWindows = videoWindow?.windowScene?.windows.map { window in
+            let id = String(describing: ObjectIdentifier(window))
+            let root = window.rootViewController.map { String(describing: type(of: $0)) } ?? "none"
+            let presented = window.rootViewController?.presentedViewController
+                .map { String(describing: type(of: $0)) } ?? "none"
+            return "id=\(id),key=\(window.isKeyWindow),hidden=\(window.isHidden),alpha=\(window.alpha),level=\(window.windowLevel.rawValue),video=\(window === videoWindow),root=\(root),presented=\(presented)"
+        }.joined(separator: ";") ?? "none"
+        var parentChain: [String] = []
+        var parent: UIView? = view
+        for _ in 0..<6 {
+            guard let current = parent else { break }
+            let id = String(describing: ObjectIdentifier(current))
+            parentChain.append("\(String(describing: type(of: current)))#\(id),hidden=\(current.isHidden),alpha=\(current.alpha)")
+            parent = current.superview
+        }
+        SSDPService.shared.recordPlaybackDebug(
+            "[DEBUG-webm-surface] reason=\(reason) renderedFrameCount=\(renderedFrameCount) " +
+            "view=\(view != nil) window=\(view?.window != nil) bounds=\(bounds) layerFrame=\(layerFrame) " +
+            "isReadyForDisplay=\(readyForDisplay) status=\(layer?.status.rawValue ?? -1) " +
+            "isReadyForMoreMediaData=\(layer?.isReadyForMoreMediaData ?? false) " +
+            "requiresFlushToResumeDecoding=\(layer?.requiresFlushToResumeDecoding ?? false) " +
+            "error=\(error) windowScene.activationState=\(activationState) " +
+            "videoWindowID=\(videoWindowID) videoWindow.key=\(videoWindow?.isKeyWindow ?? false) " +
+            "videoWindow.hidden=\(videoWindow?.isHidden ?? false) videoWindow.alpha=\(videoWindow?.alpha ?? 0) " +
+            "videoWindow.level=\(videoWindow?.windowLevel.rawValue ?? 0) sceneWindows=[\(sceneWindows)] " +
+            "viewParentChain=[\(parentChain.joined(separator: " <- "))]"
+        )
     }
 
     public func load(_ request: PlaybackRequest) {
@@ -296,6 +357,8 @@ public final class MPVPlayerEngine: PlayerEngine {
         renderFailureReported = false
         renderDiagnosticReported = false
         renderedFrameCount = 0
+        webmSurfaceDiagnosticMilestones.removeAll()
+        lastSurfaceAttachmentState = nil
         let startPaused: Int32 = 0
         startRenderTimer()
         updateSnapshot {
@@ -464,11 +527,12 @@ public final class MPVPlayerEngine: PlayerEngine {
         }
         var time = 0.0
         var duration = 0.0
+        var buffered = 0.0
         var paused: Int32 = 1
-        guard mivuMPVSnapshot(handle, &time, &duration, &paused) >= 0 else {
-            return MPVControlUpdate(events: events, time: 0, duration: 0, paused: true)
+        guard mivuMPVSnapshot(handle, &time, &duration, &buffered, &paused) >= 0 else {
+            return MPVControlUpdate(events: events, time: 0, duration: 0, bufferedTime: 0, paused: true)
         }
-        return MPVControlUpdate(events: events, time: time, duration: duration, paused: paused != 0)
+        return MPVControlUpdate(events: events, time: time, duration: duration, bufferedTime: buffered, paused: paused != 0)
     }
 
     private func applyControlUpdate(_ update: MPVControlUpdate) {
@@ -476,6 +540,7 @@ public final class MPVPlayerEngine: PlayerEngine {
             switch event {
             case .loaded:
                 hasLoadedFile = true
+                recordWebMSurfaceDiagnostic("loaded", milestone: -1)
                 applySubtitleTrack(pendingSubtitleTrack)
                 updateSnapshot {
                     $0.status = .playing
@@ -504,6 +569,9 @@ public final class MPVPlayerEngine: PlayerEngine {
         updateSnapshot {
             $0.currentTime = update.time
             $0.duration = update.duration
+            if update.bufferedTime > 0 {
+                $0.bufferedTime = update.bufferedTime
+            }
             if $0.status != .loading && $0.status != .stopped && $0.status != .failed {
                 $0.status = update.paused ? .paused : .playing
             }

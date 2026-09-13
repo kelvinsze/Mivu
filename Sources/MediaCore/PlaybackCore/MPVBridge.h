@@ -14,7 +14,7 @@ int mivu_mpv_set_rate(MivuMPV *player, double rate);
 int mivu_mpv_set_volume(MivuMPV *player, double volume);
 int mivu_mpv_set_muted(MivuMPV *player, int muted);
 int mivu_mpv_poll_event(MivuMPV *player, int *end_reason, int *end_error);
-int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, int *paused);
+int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, double *buffered, int *paused);
 const char *mivu_mpv_last_error(MivuMPV *player);
 int mivu_mpv_set_subtitle_id(MivuMPV *player, int subtitle_id);
 int mivu_mpv_add_subtitle(MivuMPV *player, const char *url);
