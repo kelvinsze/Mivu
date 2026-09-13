@@ -22,6 +22,7 @@ struct MivuMPV {
     mpv_handle *handle;
     mpv_render_context *render_context;
     char last_error[256];
+    char current_hwdec[64];
     uint64_t last_render_update_flags;
     _Atomic uint64_t render_update_callback_count;
     _Atomic int has_new_frame;
@@ -43,6 +44,7 @@ struct MivuMPV {
     GLuint swizzle_vertex_buffer;
     GLint swizzle_position_location;
     GLint swizzle_texture_location;
+    GLint swizzle_enabled_location;
 };
 
 static void set_error(MivuMPV *player, const char *message) {
@@ -96,10 +98,11 @@ static int setup_swizzle_resources(MivuMPV *player) {
     static const char *fragment_source =
         "precision mediump float;\n"
         "uniform sampler2D u_texture;\n"
+        "uniform float u_swizzle;\n"
         "varying highp vec2 v_tex_coord;\n"
         "void main() {\n"
         "  vec4 color = texture2D(u_texture, v_tex_coord);\n"
-        "  gl_FragColor = color.bgra;\n"
+        "  gl_FragColor = (u_swizzle != 0.0) ? color.bgra : color;\n"
         "}\n";
     static const GLfloat vertices[] = {
         -1.0f, -1.0f,
@@ -142,7 +145,8 @@ static int setup_swizzle_resources(MivuMPV *player) {
 
     player->swizzle_position_location = glGetAttribLocation(player->swizzle_program, "a_position");
     player->swizzle_texture_location = glGetUniformLocation(player->swizzle_program, "u_texture");
-    if (player->swizzle_position_location < 0 || player->swizzle_texture_location < 0) {
+    player->swizzle_enabled_location = glGetUniformLocation(player->swizzle_program, "u_swizzle");
+    if (player->swizzle_position_location < 0 || player->swizzle_texture_location < 0 || player->swizzle_enabled_location < 0) {
         set_error(player, "Color swizzle shader locations unavailable");
         return -1;
     }
@@ -182,7 +186,7 @@ static int setup_intermediate_target(MivuMPV *player, int width, int height) {
     return 0;
 }
 
-static int blit_bgra(MivuMPV *player, int width, int height) {
+static int blit_bgra(MivuMPV *player, int width, int height, BOOL swizzle) {
     while (glGetError() != GL_NO_ERROR) {}
     glBindFramebuffer(GL_FRAMEBUFFER, player->fbo);
     glViewport(0, 0, width, height);
@@ -195,6 +199,7 @@ static int blit_bgra(MivuMPV *player, int width, int height) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, player->intermediate_texture);
     glUniform1i(player->swizzle_texture_location, 0);
+    glUniform1f(player->swizzle_enabled_location, swizzle ? 1.0f : 0.0f);
     glBindBuffer(GL_ARRAY_BUFFER, player->swizzle_vertex_buffer);
     glEnableVertexAttribArray((GLuint)player->swizzle_position_location);
     glVertexAttribPointer((GLuint)player->swizzle_position_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
@@ -266,9 +271,14 @@ MivuMPV *mivu_mpv_create(void) {
     mpv_set_option_string(player->handle, "terminal", "no");
     mpv_set_option_string(player->handle, "msg-level", "all=warn");
     mpv_set_option_string(player->handle, "vo", "libmpv");
-    // Keep the OpenGL ES render baseline on software decoding until
-    // VideoToolbox interop has passed its own device validation.
-    mpv_set_option_string(player->handle, "hwdec", "no");
+#if DEBUG
+    // Both configurations use the validated VideoToolbox copy backend; Debug
+    // additionally requests detailed decoder logs.
+    mpv_set_option_string(player->handle, "msg-level", "all=warn,vd=info");
+    mpv_set_option_string(player->handle, "hwdec", "videotoolbox-copy");
+#else
+    mpv_set_option_string(player->handle, "hwdec", "videotoolbox-copy");
+#endif
     mpv_set_option_string(player->handle, "framedrop", "no");
     // Disable blocking in mpv_render_context_render so the main thread never blocks
     mpv_set_option_string(player->handle, "video-timing-offset", "0");
@@ -282,7 +292,11 @@ MivuMPV *mivu_mpv_create(void) {
         mpv_terminate_destroy(player->handle);
         player->handle = NULL;
     } else {
+#if DEBUG
+        mpv_request_log_messages(player->handle, "info");
+#else
         mpv_request_log_messages(player->handle, "warn");
+#endif
     }
     return player;
 }
@@ -398,7 +412,20 @@ int mivu_mpv_load(MivuMPV *player, const char *url, const char *headers, double 
     mpv_set_property_string(player->handle, "pause", start_paused ? "yes" : "no");
     atomic_store_explicit(&player->frame_render_pending, 0, memory_order_release);
     const char *args[] = {"loadfile", url, "replace", NULL};
-    int result = mpv_command(player->handle, args);
+    EAGLContext *previous_context = [EAGLContext currentContext];
+    BOOL has_context = player->gl_context != nil;
+    NSLog(@"[MPV][HWDEC] load context=%@", has_context ? @"present" : @"nil");
+    int result = -1;
+    @try {
+        if (has_context && ![EAGLContext setCurrentContext:player->gl_context]) {
+            set_error(player, "Failed to bind EAGLContext for load");
+        } else {
+            result = mpv_command(player->handle, args);
+        }
+    } @finally {
+        [EAGLContext setCurrentContext:previous_context];
+    }
+    NSLog(@"[MPV][HWDEC] loadfile result=%d", result);
     if (result < 0) set_error(player, mpv_error_string(result));
     return result;
 }
@@ -473,7 +500,16 @@ int mivu_mpv_poll_event(MivuMPV *player, int *end_reason, int *end_error) {
     switch (event->event_id) {
         case MPV_EVENT_FILE_LOADED: {
             atomic_store_explicit(&player->file_loaded, 1, memory_order_release);
+            char *hwdec = mpv_get_property_string(player->handle, "hwdec-current");
+            NSLog(@"[MPV][HWDEC] requested=videotoolbox-copy active=%s", hwdec ?: "none");
+            if (hwdec) mpv_free(hwdec);
             return 1;
+        }
+        case MPV_EVENT_VIDEO_RECONFIG: {
+            char *hwdec = mpv_get_property_string(player->handle, "hwdec-current");
+            NSLog(@"[MPV][HWDEC] video reconfig active=%s", hwdec ?: "none");
+            if (hwdec) mpv_free(hwdec);
+            return 3;
         }
         case MPV_EVENT_END_FILE: {
             atomic_store_explicit(&player->file_loaded, 0, memory_order_release);
@@ -542,6 +578,15 @@ int mivu_mpv_snapshot(MivuMPV *player, double *time, double *duration, double *b
 
 const char *mivu_mpv_last_error(MivuMPV *player) {
     return player ? player->last_error : "MPV unavailable";
+}
+
+const char *mivu_mpv_current_hwdec(MivuMPV *player) {
+    if (!player || !player->handle) return "unavailable";
+
+    char *value = mpv_get_property_string(player->handle, "hwdec-current");
+    snprintf(player->current_hwdec, sizeof(player->current_hwdec), "%s", value ?: "none");
+    if (value) mpv_free(value);
+    return player->current_hwdec;
 }
 
 static int setup_pool(MivuMPV *player, int width, int height) {
@@ -686,6 +731,7 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
     }
 
     CVOpenGLESTextureRef textureRef = NULL;
+    BOOL swizzle = NO;
     cvRet = CVOpenGLESTextureCacheCreateTextureFromImage(
         kCFAllocatorDefault,
         player->texture_cache,
@@ -695,11 +741,12 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
         GL_RGBA,
         width,
         height,
-        GL_RGBA,
+        GL_BGRA_EXT,
         GL_UNSIGNED_BYTE,
         0,
         &textureRef);
     if (cvRet != kCVReturnSuccess || !textureRef) {
+        swizzle = YES;
         cvRet = CVOpenGLESTextureCacheCreateTextureFromImage(
             kCFAllocatorDefault,
             player->texture_cache,
@@ -709,7 +756,7 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
             GL_RGBA,
             width,
             height,
-            GL_BGRA_EXT,
+            GL_RGBA,
             GL_UNSIGNED_BYTE,
             0,
             &textureRef);
@@ -765,7 +812,7 @@ static CMSampleBufferRef render_sample_buffer_current_context(MivuMPV *player, i
         set_error(player, mpv_error_string(result));
         return NULL;
     }
-    if (blit_bgra(player, width, height) != 0) {
+    if (blit_bgra(player, width, height, swizzle) != 0) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         CFRelease(textureRef);
         CFRelease(pixelBuffer);

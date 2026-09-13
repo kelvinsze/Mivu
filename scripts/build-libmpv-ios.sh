@@ -237,7 +237,7 @@ build_target() {
         -Dmanpage-build=disabled -Dhtml-build=disabled -Dpdf-build=disabled \
         -Dtests=false -Dfuzzers=false -Dlua=disabled -Djavascript=disabled \
         -Duchardet=disabled -Dcplugins=disabled -Dlibavdevice=disabled \
-        -Dgl=enabled -Dplain-gl=enabled -Dios-gl=disabled -Dvideotoolbox-gl=disabled \
+        -Dgl=enabled -Dplain-gl=enabled -Dios-gl=enabled -Dvideotoolbox-gl=disabled \
         -Dvideotoolbox-pl=disabled \
         -Daudiounit=enabled -Dcoreaudio=disabled -Davfoundation=disabled \
         -Dcocoa=disabled -Dgl-cocoa=disabled -Dswift-build=disabled \

@@ -35,7 +35,7 @@ system or Codex Python installation.
 ## Build configuration
 
 - Outputs: arm64 iOS and arm64 iOS Simulator, deployment target iOS 17.0.
-- mpv: static libmpv, `-Dgpl=false`, `-Dcplayer=false`, `-Dlibmpv=true`, `-Dgl=enabled`, `-Dplain-gl=enabled`, `-Dios-gl=disabled`, `-Dvideotoolbox-gl=disabled`, `-Dvideotoolbox-pl=disabled`, `-Dvulkan=disabled`, `-Dlua=disabled`, `-Djavascript=disabled`, `-Duchardet=disabled`.
+- mpv: static libmpv, `-Dgpl=false`, `-Dcplayer=false`, `-Dlibmpv=true`, `-Dgl=enabled`, `-Dplain-gl=enabled`, experimental official `-Dios-gl=enabled` interop, `-Dvideotoolbox-gl=disabled`, `-Dvideotoolbox-pl=disabled`, `-Dvulkan=disabled`, `-Dlua=disabled`, `-Djavascript=disabled`, `-Duchardet=disabled`. Release builds use the validated `videotoolbox-copy` hardware-decoding backend.
 - FFmpeg: static, PIC, cross-compiled for Darwin, programs/docs and avdevice disabled, `--disable-gpl`, `--disable-nonfree`, `--disable-autodetect`, VideoToolbox enabled. AudioUnit is provided by mpv; FFmpeg AudioToolbox codec support is not enabled.
 - libplacebo: static, Vulkan/OpenGL/shaderc/demos/tests disabled for the initial `vo=libmpv` path.
 - libass: static, CoreText enabled, Fontconfig/DirectWrite/assembly/tests disabled.
@@ -58,9 +58,10 @@ simulators are intentionally unsupported and excluded from the app target.
 The full two-platform archive build completed locally (69 MB; arm64 device and
 arm64 simulator). The app selects MPV only for explicit non-Native container
 hints (`mkv`, `webm`, `avi`, `flv`, `ts`, `m2ts`, `ogv`) and keeps generic server
-`/stream` URLs on AVPlayer. mpv's legacy `ios-gl`/`videotoolbox-gl` hardware
-interop is disabled because upstream mpv 0.40.0 is incompatible with the
-current iOS 26.5 SDK headers; the OpenGL ES Render API surface remains enabled.
+`/stream` URLs on AVPlayer. mpv's official `ios-gl` hardware interop is enabled
+as an experimental path; the legacy `videotoolbox-gl`/`videotoolbox-pl` paths
+remain disabled. Release builds use the validated `videotoolbox-copy`
+backend, and the OpenGL ES Render API surface remains enabled.
 A successful archive build does not establish decoder coverage, render
 correctness, AirPlay/PiP/CarPlay compatibility, or App Store license
 compliance; those remain device and distribution acceptance work.

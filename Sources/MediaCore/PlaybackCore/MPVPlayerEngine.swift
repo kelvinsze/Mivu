@@ -28,6 +28,8 @@ private func mivuMPVPollEvent(_ player: UnsafeMutableRawPointer?, _ endReason: U
 private func mivuMPVSnapshot(_ player: UnsafeMutableRawPointer?, _ time: UnsafeMutablePointer<Double>?, _ duration: UnsafeMutablePointer<Double>?, _ buffered: UnsafeMutablePointer<Double>?, _ paused: UnsafeMutablePointer<Int32>?) -> Int32
 @_silgen_name("mivu_mpv_last_error")
 private func mivuMPVLastError(_ player: UnsafeMutableRawPointer?) -> UnsafePointer<CChar>?
+@_silgen_name("mivu_mpv_current_hwdec")
+private func mivuMPVCurrentHWDec(_ player: UnsafeMutableRawPointer?) -> UnsafePointer<CChar>?
 @_silgen_name("mivu_mpv_set_subtitle_id")
 private func mivuMPVSetSubtitleID(_ player: UnsafeMutableRawPointer?, _ id: Int32) -> Int32
 @_silgen_name("mivu_mpv_add_subtitle")
@@ -118,7 +120,8 @@ private final class SampleBufferRendererTarget: @unchecked Sendable {
 }
 
 private enum MPVControlEvent {
-    case loaded
+    case loaded(hwdec: String)
+    case hardwareDecodingDiagnostic(hwdec: String)
     case ended(reason: Int32, error: Int32, message: String?)
 }
 
@@ -160,6 +163,7 @@ public final class MPVPlayerEngine: PlayerEngine {
     private var renderDiagnosticReported = false
     private var renderContextReady = false
     private var surfaceDiagnostic = "surface not initialized"
+    private var hardwareDecodingDiagnostic = "hwdec=pending"
     private var pendingSubtitleTrack: SubtitleTrack?
     private var hasLoadedFile = false
     private var renderedFrameCount = 0
@@ -285,7 +289,7 @@ public final class MPVPlayerEngine: PlayerEngine {
     }
 
     public func latestRenderDiagnostic() -> String {
-        "\(surfaceDiagnostic); \(renderDiagnostic())"
+        "\(hardwareDecodingDiagnostic); \(surfaceDiagnostic); \(renderDiagnostic())"
     }
 
     fileprivate func recordSurfaceDiagnostic(_ message: String) {
@@ -518,10 +522,14 @@ public final class MPVPlayerEngine: PlayerEngine {
         var event = mivuMPVPollEvent(handle, &endReason, &endError)
         while event > 0 {
             if event == 1 {
-                events.append(.loaded)
+                let hwdec = mivuMPVCurrentHWDec(handle).map { String(cString: $0) } ?? "unavailable"
+                events.append(.loaded(hwdec: hwdec))
             } else if event == 2 {
                 let message = endError < 0 ? controlError(handle) : nil
                 events.append(.ended(reason: endReason, error: endError, message: message))
+            } else if event == 3 {
+                let hwdec = mivuMPVCurrentHWDec(handle).map { String(cString: $0) } ?? "unavailable"
+                events.append(.hardwareDecodingDiagnostic(hwdec: hwdec))
             }
             event = mivuMPVPollEvent(handle, &endReason, &endError)
         }
@@ -538,8 +546,10 @@ public final class MPVPlayerEngine: PlayerEngine {
     private func applyControlUpdate(_ update: MPVControlUpdate) {
         for event in update.events {
             switch event {
-            case .loaded:
+            case let .loaded(hwdec):
                 hasLoadedFile = true
+                hardwareDecodingDiagnostic = "hwdec=\(hwdec)"
+                SSDPService.shared.recordPlaybackDebug("MPV_HWDEC active=\(hwdec)")
                 recordWebMSurfaceDiagnostic("loaded", milestone: -1)
                 applySubtitleTrack(pendingSubtitleTrack)
                 updateSnapshot {
@@ -548,6 +558,9 @@ public final class MPVPlayerEngine: PlayerEngine {
                 }
                 eventContinuation?.yield(.diagnostic(.itemStatus(rawValue: 1, duration: snapshot.duration, errorMessage: nil)))
                 surfaceViewAppeared()
+            case let .hardwareDecodingDiagnostic(hwdec):
+                hardwareDecodingDiagnostic = "hwdec=\(hwdec)"
+                SSDPService.shared.recordPlaybackDebug("MPV_HWDEC reconfig=\(hwdec)")
             case let .ended(reason, error, message):
                 if reason == 4 || error < 0 {
                     let errorMessage = message ?? "MPV playback ended with an error"
