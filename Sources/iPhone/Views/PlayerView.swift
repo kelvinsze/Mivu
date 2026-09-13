@@ -2,68 +2,107 @@ import SwiftUI
 import AVKit
 import MediaPlayer
 
-/// SwiftUI Video Player View embedding native AVPlayer, custom playback overlay,
-/// speed selector, aspect ratio toggle, and stream diagnostics HUD.
+/// Video Player View embedding native AVPlayer / MPV surface,
+/// frosted-glass overlays, gesture brightness/volume HUD, precision scrubbing,
+/// speed selector, subtitle management, aspect ratio toggle, and stream telemetry HUD.
 public struct PlayerView: View {
     @ObservedObject var playerService = PlayerService.shared
     @Environment(\.dismiss) private var dismiss
+
     @State private var isControlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var isScrubbing = false
     @State private var scrubTime: TimeInterval = 0
     @State private var showDiagnosticsHUD = false
 
+    // Gestures: Brightness & Volume HUD state
+    @State private var brightnessLevel: CGFloat = UIScreen.main.brightness
+    @State private var brightnessAtDragStart: CGFloat?
+    @State private var showBrightnessHUD = false
+    @State private var showVolumeHUD = false
+    @State private var hudDismissTask: Task<Void, Never>?
+
+    // Double tap ripple animation feedback
+    @State private var seekFeedback: Int? = nil // -15 or +15
+
     private let speeds: [Float] = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
     public init() {}
 
     public var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            playbackSurface
-                .ignoresSafeArea(edges: [.top, .bottom])
+                // Video rendering surface (AVPlayer or MPV)
+                playbackSurface
+                    .ignoresSafeArea(edges: [.top, .bottom])
 
-            // Full-screen invisible touch target so tapping anywhere always toggles controls
-            Color.clear
-                .contentShape(Rectangle())
-                .ignoresSafeArea()
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isControlsVisible.toggle()
-                    }
-                    if isControlsVisible {
-                        scheduleHideControls()
-                    }
+                // Gesture interaction layer (tap to toggle, double-tap to seek, vertical drag for brightness)
+                gestureLayer(geometry: geometry)
+
+                // Error overlay if playback failed
+                if playerService.session.status == .failed,
+                   let errorMessage = playerService.session.errorMessage {
+                    playbackErrorOverlay(errorMessage)
                 }
 
-            if playerService.session.status == .failed,
-               let errorMessage = playerService.session.errorMessage {
-                playbackErrorOverlay(errorMessage)
-            }
+                // On-screen HUD for Brightness
+                if showBrightnessHUD {
+                    gestureIndicatorHUD(icon: "sun.max.fill", value: brightnessLevel)
+                        .transition(.opacity)
+                }
 
-            // Stream Diagnostics HUD Overlay
-            if showDiagnosticsHUD {
-                diagnosticsHUD
-                    .transition(.opacity)
-            }
+                // Seek Ripple Feedback (-15s or +15s)
+                if let feedback = seekFeedback {
+                    seekRippleView(feedback: feedback)
+                        .transition(.opacity)
+                }
 
-            // Controls Overlay
-            if isControlsVisible {
-                controlsOverlay
-                    .transition(.opacity)
+                // Loading & Buffering Overlay with Speed and Percentage
+                if playerService.session.status == .loading {
+                    loadingBufferingOverlay
+                        .transition(.opacity)
+                }
+
+                // Stream Diagnostics HUD Overlay
+                if showDiagnosticsHUD {
+                    diagnosticsHUD
+                        .transition(.opacity)
+                }
+
+                // Top & Bottom Controls Overlays
+                if isControlsVisible {
+                    controlsOverlay
+                        .transition(.opacity)
+                }
             }
         }
         .statusBar(hidden: !isControlsVisible)
         .onAppear {
-            scheduleHideControls()
+            if playerService.session.status == .playing {
+                scheduleHideControls()
+            } else {
+                isControlsVisible = true
+            }
+            brightnessLevel = UIScreen.main.brightness
             if playerService.renderSurfaceKind == .mpvSampleBuffer || playerService.renderSurfaceKind == .mpvOpenGLES {
                 playerService.activeMPVEngine?.surfaceViewAppeared()
             }
         }
+        .onChange(of: playerService.session.status) { _, newStatus in
+            if newStatus == .playing {
+                scheduleHideControls()
+            } else {
+                hideControlsTask?.cancel()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isControlsVisible = true
+                }
+            }
+        }
     }
 
-    // MARK: - Overlays
+    // MARK: - Overlays & Surfaces
 
     @ViewBuilder
     private var playbackSurface: some View {
@@ -85,12 +124,152 @@ public struct PlayerView: View {
 #endif
     }
 
-    private func playbackErrorOverlay(_ message: String) -> some View {
+    // MARK: - Gesture Interaction Layer
+
+    private func gestureLayer(geometry: GeometryProxy) -> some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .ignoresSafeArea()
+            .onTapGesture(count: 2) { location in
+                // Double tap left half -> -15s, right half -> +15s
+                if location.x < geometry.size.width / 2 {
+                    triggerSeekFeedback(-15)
+                    playerService.seek(by: -15)
+                } else {
+                    triggerSeekFeedback(15)
+                    playerService.seek(by: 15)
+                }
+            }
+            .onTapGesture(count: 1) {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isControlsVisible.toggle()
+                }
+                if isControlsVisible && playerService.session.status == .playing {
+                    scheduleHideControls()
+                }
+            }
+            .gesture(
+                DragGesture(minimumDistance: 15)
+                    .onChanged { value in
+                        // Left half vertical drag controls screen brightness
+                        if value.startLocation.x < geometry.size.width * 0.4 {
+                            let startBrightness = brightnessAtDragStart ?? UIScreen.main.brightness
+                            brightnessAtDragStart = startBrightness
+                            let delta = -value.translation.height / 300.0
+                            let newBrightness = min(max(startBrightness + delta, 0.0), 1.0)
+                            UIScreen.main.brightness = newBrightness
+                            brightnessLevel = newBrightness
+                            showBrightnessHUD = true
+                        }
+                    }
+                    .onEnded { _ in
+                        brightnessAtDragStart = nil
+                        triggerDismissHUD()
+                    }
+            )
+    }
+
+    private func triggerSeekFeedback(_ seconds: Int) {
+        seekFeedback = seconds
+        Task {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            await MainActor.run { seekFeedback = nil }
+        }
+    }
+
+    private func triggerDismissHUD() {
+        hudDismissTask?.cancel()
+        hudDismissTask = Task {
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            await MainActor.run {
+                withAnimation {
+                    showBrightnessHUD = false
+                    showVolumeHUD = false
+                }
+            }
+        }
+    }
+
+    // MARK: - HUDs
+
+    private func gestureIndicatorHUD(icon: String, value: CGFloat) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.white)
+
+            ZStack(alignment: .bottom) {
+                Capsule()
+                    .fill(Color.white.opacity(0.25))
+                    .frame(width: 6, height: 110)
+
+                Capsule()
+                    .fill(Color.orange)
+                    .frame(width: 6, height: 110 * value)
+            }
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.3), radius: 8)
+    }
+
+    private func seekRippleView(feedback: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: feedback > 0 ? "goforward.15" : "gobackward.15")
                 .font(.system(size: 36))
-                .foregroundColor(.yellow)
-            Text("播放失败")
+                .foregroundColor(.white)
+            Text(feedback > 0 ? "+15s" : "-15s")
+                .font(.title3.bold())
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
+        .background(Color.black.opacity(0.65))
+        .clipShape(Capsule())
+    }
+
+    private var loadingBufferingOverlay: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+                .scaleEffect(1.3)
+
+            HStack(spacing: 8) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                    Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
+                        .font(.caption.monospacedDigit().bold())
+                        .foregroundColor(.white)
+                }
+
+                if playerService.session.duration > 0 {
+                    Text("·")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.4))
+                    let bufferRatio = min(max(playerService.session.bufferedTime / playerService.session.duration, 0), 1.0)
+                    Text("已缓冲 \(Int(bufferRatio * 100))%")
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(.white.opacity(0.9))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.3), radius: 6)
+        }
+    }
+
+    private func playbackErrorOverlay(_ message: String) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 40))
+                .foregroundColor(.orange)
+            Text("播放遇到异常")
                 .font(.headline)
                 .foregroundColor(.white)
             Text(message)
@@ -100,32 +279,37 @@ public struct PlayerView: View {
                 .lineLimit(4)
         }
         .padding(24)
-        .background(Color.black.opacity(0.8))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(32)
     }
 
+    // MARK: - Controls Overlay
+
     private var controlsOverlay: some View {
         VStack(spacing: 0) {
-            // Top Bar
-            HStack(spacing: 16) {
+            // MARK: Top Bar
+            HStack(spacing: 14) {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: "chevron.down.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(.white.opacity(0.9))
+                    Image(systemName: "chevron.down")
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(playerService.session.currentItem?.title ?? "Playing Media")
+                    Text(playerService.session.currentItem?.title ?? "正在播放")
                         .font(.headline)
                         .foregroundColor(.white)
                         .lineLimit(1)
 
                     if let originator = playerService.session.currentItem?.originator {
                         Text(originator)
-                            .font(.caption)
+                            .font(.caption2)
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
@@ -151,12 +335,13 @@ public struct PlayerView: View {
                     Text("\(String(format: "%.1fx", playerService.selectedSpeed))")
                         .font(.caption.bold())
                         .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(6)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
                 }
 
+                // Subtitles Menu
                 Menu {
                     Button {
                         playerService.setSubtitleTrack(nil)
@@ -182,14 +367,14 @@ public struct PlayerView: View {
                 } label: {
                     Image(systemName: playerService.selectedSubtitleTrack == nil ? "captions.bubble" : "captions.bubble.fill")
                         .font(.body)
-                        .foregroundColor(.white.opacity(0.9))
-                        .padding(6)
-                        .background(Color.white.opacity(0.2))
+                        .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : .orange)
+                        .padding(8)
+                        .background(.ultraThinMaterial)
                         .clipShape(Circle())
                 }
 
                 if playerService.renderSurfaceKind == .nativeAVPlayer {
-                    // Aspect ratio and AirPlay are AVPlayer-only controls.
+                    // Aspect ratio toggle
                     Button {
                         playerService.toggleVideoGravity()
                         scheduleHideControls()
@@ -197,8 +382,8 @@ public struct PlayerView: View {
                         Image(systemName: playerService.videoGravity == .resizeAspect ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
                             .font(.body)
                             .foregroundColor(.white.opacity(0.9))
-                            .padding(6)
-                            .background(Color.white.opacity(0.2))
+                            .padding(8)
+                            .background(.ultraThinMaterial)
                             .clipShape(Circle())
                     }
                 }
@@ -212,35 +397,34 @@ public struct PlayerView: View {
                 } label: {
                     Image(systemName: "info.circle")
                         .font(.body)
-                        .foregroundColor(showDiagnosticsHUD ? .cyan : .white.opacity(0.9))
-                        .padding(6)
-                        .background(Color.white.opacity(0.2))
+                        .foregroundColor(showDiagnosticsHUD ? .orange : .white.opacity(0.9))
+                        .padding(8)
+                        .background(.ultraThinMaterial)
                         .clipShape(Circle())
                 }
 
                 if playerService.renderSurfaceKind == .nativeAVPlayer {
-                    // MPV's custom surface does not inherit AVPlayer external playback.
                     AirPlayRoutePickerView()
                         .frame(width: 36, height: 36)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.top, 16)
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
             .background(
-                LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
             )
 
             Spacer()
 
-            // Center Play/Pause & Seek Buttons
-            HStack(spacing: 44) {
+            // MARK: Center Play/Pause & 15s Jump
+            HStack(spacing: 50) {
                 Button {
                     playerService.seek(by: -15)
                     scheduleHideControls()
                 } label: {
                     Image(systemName: "gobackward.15")
-                        .font(.system(size: 32))
+                        .font(.system(size: 34))
                         .foregroundColor(.white)
                 }
 
@@ -248,9 +432,13 @@ public struct PlayerView: View {
                     playerService.togglePlayPause()
                     scheduleHideControls()
                 } label: {
-                    Image(systemName: playerService.session.status == .playing ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 64))
+                    Image(systemName: playerService.session.status == .playing ? "pause.fill" : "play.fill")
+                        .font(.system(size: 44))
                         .foregroundColor(.white)
+                        .padding(22)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.3), radius: 10)
                 }
 
                 Button {
@@ -258,68 +446,133 @@ public struct PlayerView: View {
                     scheduleHideControls()
                 } label: {
                     Image(systemName: "goforward.15")
-                        .font(.system(size: 32))
+                        .font(.system(size: 34))
                         .foregroundColor(.white)
                 }
             }
 
             Spacer()
 
-            // Bottom Progress & Time Bar
-            VStack(spacing: 8) {
+            // MARK: Bottom Scrubber & Time
+            VStack(spacing: 10) {
                 let currentTime = isScrubbing ? scrubTime : playerService.session.currentTime
                 let duration = max(playerService.session.duration, 1)
+                let playProgress = min(max(currentTime / duration, 0), 1.0)
+                let bufferProgress = min(max(playerService.session.bufferedTime / duration, 0), 1.0)
 
-                Slider(
-                    value: Binding(
-                        get: { currentTime },
-                        set: { newVal in
-                            scrubTime = newVal
-                        }
-                    ),
-                    in: 0...duration,
-                    onEditingChanged: { editing in
-                        isScrubbing = editing
-                        if !editing {
-                            playerService.seek(to: scrubTime)
-                            scheduleHideControls()
-                        }
+                // 3-Tier Layered Scrubber: Uncached -> Cached / Buffered -> Played -> Thumb
+                GeometryReader { geom in
+                    let totalWidth = geom.size.width
+                    let trackHeight: CGFloat = isScrubbing ? 7 : 5
+                    ZStack(alignment: .leading) {
+                        // 1. Uncached background (dark translucent track)
+                        Capsule()
+                            .fill(Color.white.opacity(0.20))
+                            .frame(height: trackHeight)
+
+                        // 2. Cached / Buffered progress track (prominent bright translucent white)
+                        Capsule()
+                            .fill(Color.white.opacity(0.65))
+                            .frame(width: max(0, totalWidth * bufferProgress), height: trackHeight)
+                            .animation(.linear(duration: 0.25), value: bufferProgress)
+
+                        // 3. Played progress track (accent color)
+                        Capsule()
+                            .fill(Color.orange)
+                            .frame(width: max(0, totalWidth * playProgress), height: trackHeight)
+
+                        // 4. Scrubbing thumb knob
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: isScrubbing ? 18 : 13, height: isScrubbing ? 18 : 13)
+                            .shadow(color: .black.opacity(0.45), radius: 3)
+                            .offset(x: max(0, min(totalWidth * playProgress - (isScrubbing ? 9 : 6.5), totalWidth - (isScrubbing ? 18 : 13))))
+                            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isScrubbing)
                     }
-                )
-                .tint(.cyan)
+                    .frame(maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { val in
+                                isScrubbing = true
+                                let percent = min(max(val.location.x / totalWidth, 0), 1.0)
+                                scrubTime = percent * duration
+                            }
+                            .onEnded { val in
+                                isScrubbing = false
+                                let percent = min(max(val.location.x / totalWidth, 0), 1.0)
+                                playerService.seek(to: percent * duration)
+                                if playerService.session.status == .playing {
+                                    scheduleHideControls()
+                                }
+                            }
+                    )
+                }
+                .frame(height: 22)
 
-                HStack {
+                HStack(alignment: .center) {
                     Text(SOAPParser.formatUPnPTime(currentTime))
                         .font(.caption.monospacedDigit())
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(.white.opacity(0.9))
+
+                    Spacer()
+
+                    // Real-time Buffer & Speed Status
+                    if !playerService.session.isLiveStream {
+                        HStack(spacing: 6) {
+                            if playerService.session.duration > 0 {
+                                Text("已缓冲 \(Int(bufferProgress * 100))%")
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundColor(.white.opacity(0.7))
+
+                                Text("·")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.down")
+                                    .font(.system(size: 9, weight: .bold))
+                                Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
+                                    .font(.caption2.monospacedDigit())
+                            }
+                            .foregroundColor(.orange.opacity(0.95))
+                        }
+                    }
 
                     Spacer()
 
                     if playerService.session.isLiveStream {
-                        Text("LIVE")
-                            .font(.caption.bold())
-                            .foregroundColor(.red)
+                        HStack(spacing: 4) {
+                            Circle().fill(Color.red).frame(width: 6, height: 6)
+                            Text("LIVE")
+                                .font(.caption.bold())
+                                .foregroundColor(.red)
+                        }
                     } else {
-                        Text(SOAPParser.formatUPnPTime(duration))
+                        let remaining = max(duration - currentTime, 0)
+                        Text("-\(SOAPParser.formatUPnPTime(remaining))")
                             .font(.caption.monospacedDigit())
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(.white.opacity(0.75))
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 28)
             .padding(.top, 16)
             .background(
-                LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
             )
         }
     }
 
+    // MARK: - Diagnostics HUD
+
     private var diagnosticsHUD: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("STREAM HUD")
+        VStack(alignment: .leading, spacing: 5) {
+            Text("STREAM TELEMETRY")
                 .font(.caption2.bold())
-                .foregroundColor(.cyan)
+                .foregroundColor(.orange)
 
             Text("Status: \(playerService.session.status.rawValue)")
                 .font(.caption2.monospaced())
@@ -328,6 +581,14 @@ public struct PlayerView: View {
             Text("Position: \(SOAPParser.formatUPnPTime(playerService.session.currentTime)) / \(SOAPParser.formatUPnPTime(playerService.session.duration))")
                 .font(.caption2.monospaced())
                 .foregroundColor(.white)
+
+            Text("Buffer: \(SOAPParser.formatUPnPTime(playerService.session.bufferedTime)) (\(Int((playerService.session.duration > 0 ? playerService.session.bufferedTime / playerService.session.duration : 0) * 100))%)")
+                .font(.caption2.monospaced())
+                .foregroundColor(.white)
+
+            Text("Download: \(SOAPParser.formatSpeed(playerService.downloadSpeed))")
+                .font(.caption2.monospaced())
+                .foregroundColor(.orange)
 
             Text("Speed: \(String(format: "%.2fx", playerService.selectedSpeed)) | Gravity: \(playerService.videoGravity == .resizeAspect ? "Aspect" : "Fill")")
                 .font(.caption2.monospaced())
@@ -350,25 +611,32 @@ public struct PlayerView: View {
                     .lineLimit(1)
             }
         }
-        .padding(10)
-        .background(Color.black.opacity(0.75))
-        .cornerRadius(8)
+        .padding(12)
+        .background(Color.black.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.cyan.opacity(0.4), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.4), lineWidth: 1)
         )
         .padding(.leading, 16)
-        .padding(.top, 80)
+        .padding(.top, 85)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     private func scheduleHideControls() {
         hideControlsTask?.cancel()
+        // 未开始播放（如加载中、已暂停、已停止）时不隐藏播放控制元素
+        guard playerService.session.status == .playing else {
+            isControlsVisible = true
+            return
+        }
         hideControlsTask = Task {
             try? await Task.sleep(nanoseconds: 3_500_000_000)
             if !Task.isCancelled {
                 withAnimation(.easeInOut(duration: 0.25)) {
-                    isControlsVisible = false
+                    if playerService.session.status == .playing {
+                        isControlsVisible = false
+                    }
                 }
             }
         }
@@ -442,7 +710,7 @@ public struct AirPlayRoutePickerView: UIViewRepresentable {
     public func makeUIView(context: Context) -> AVRoutePickerView {
         let routePicker = AVRoutePickerView()
         routePicker.tintColor = .white
-        routePicker.activeTintColor = .systemCyan
+        routePicker.activeTintColor = .systemOrange
         routePicker.prioritizesVideoDevices = true
         return routePicker
     }

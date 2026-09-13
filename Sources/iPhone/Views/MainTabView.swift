@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Main TabView uniting Player, Media Servers, Diagnostics, and Settings.
+/// Main TabView for Mivu:
+/// [Home, Servers, History, Settings]
 public struct MainTabView: View {
     public init() {}
 
@@ -8,24 +9,24 @@ public struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("Player", systemImage: "play.tv.fill")
+                    Label("首页", systemImage: "sparkles.tv")
                 }
 
             ServersView()
                 .tabItem {
-                    Label("Servers", systemImage: "server.rack")
+                    Label("媒体库", systemImage: "film.stack.fill")
                 }
 
-            DiagnosticsView()
+            HistoryView()
                 .tabItem {
-                    Label("Diagnostics", systemImage: "waveform.path.ecg")
+                    Label("历史", systemImage: "clock.arrow.circlepath")
                 }
 
             SettingsView()
                 .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    Label("设置", systemImage: "gearshape.fill")
                 }
         }
-        .tint(.cyan)
+        .tint(.orange)
     }
 }

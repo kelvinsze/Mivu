@@ -1,14 +1,17 @@
 import SwiftUI
 import Combine
 
-/// Main dashboard view for Mivu iPhone app.
+/// Home dashboard for Mivu.
+/// Features a cinematic Hero Continue Watching card, quick media servers rail,
+/// recently played posters, casting status pill, and floating mini player.
 public struct HomeView: View {
     private let playerService = PlayerService.shared
     @ObservedObject var history = PlaybackHistory.shared
+    @ObservedObject var serverManager = MediaServerManager.shared
 
-    @State private var inputUrlText: String = ""
     @State private var clipboardURL: URL?
     @State private var isShowingPlayerSheet = false
+    @State private var isShowingCastingSheet = false
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var playbackResolveTask: Task<Void, Never>?
@@ -19,38 +22,62 @@ public struct HomeView: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Receiver Status Banner
-                    ReceiverStatusView()
-
-                    // Clipboard Stream Auto-Detection Banner
+                VStack(alignment: .leading, spacing: 26) {
+                    // MARK: - 1. Clipboard Detected Banner (Sleek Capsule)
                     if let detected = clipboardURL {
                         clipboardBanner(detected)
+                            .padding(.horizontal)
                     }
 
-                    // Direct URL Playback Input
-                    directUrlCard
+                    // MARK: - 2. Hero: Continue Watching (正在看 / 继续观看)
+                    if let continueItem = history.items.first {
+                        heroContinueWatchingSection(continueItem)
+                            .padding(.horizontal)
+                    }
 
-                    // Sample Test Streams
-                    sampleStreamsSection
+                    // MARK: - 3. Connected Media Sources Rail
+                    mediaSourcesSection
+                        .padding(.horizontal)
 
-                    // Playback History
+                    // MARK: - 4. Recently Played Carousel (2:3 Posters)
                     if !history.items.isEmpty {
-                        historySection
+                        recentlyPlayedSection
+                            .padding(.bottom, 60) // Extra padding for mini-player clearance
                     }
                 }
-                .padding()
+                .padding(.top, 10)
             }
+            .background(Color(.systemBackground))
             .navigationTitle("Mivu")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // DLNA Casting Status Indicator Pill
+                    Button {
+                        isShowingCastingSheet = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 8, height: 8)
+                            Text("投送状态")
+                                .font(.caption.bold())
+                                .foregroundColor(.primary)
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                    }
+                }
+            }
             .onAppear {
                 checkClipboard()
             }
             .onReceive(playerService.$session.map { $0.currentItem?.id }.removeDuplicates()) { itemID in
-                // DLNA/Web Remote starts playback outside this view's buttons.
-                // Personal-media screens own their own player cover; presenting
-                // another one here makes the first launch immediately dismiss.
-                if itemID != nil,
-                   playerService.session.currentItem?.sourceType != .personalMedia {
+                if itemID != nil, playerService.session.currentItem?.sourceType != .personalMedia {
                     isShowingPlayerSheet = true
                 }
             }
@@ -63,63 +90,317 @@ public struct HomeView: View {
             .fullScreenCover(isPresented: $isShowingPlayerSheet) {
                 PlayerView()
             }
-            .alert("Playback Error", isPresented: $isShowingErrorAlert) {
-                Button("OK", role: .cancel) {}
+            .sheet(isPresented: $isShowingCastingSheet) {
+                NavigationStack {
+                    List {
+                        Section {
+                            ReceiverStatusView()
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                        }
+                    }
+                    .navigationTitle("投送接收端状态")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("关闭") { isShowingCastingSheet = false }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+            .alert("播放错误", isPresented: $isShowingErrorAlert) {
+                Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? "An unknown error occurred.")
+                Text(errorMessage ?? "发生未知错误")
             }
         }
     }
 
     // MARK: - Subviews
 
-    private var directUrlCard: some View {
+    /// Hero Card showcasing the last played item with backdrop and resume progress
+    private func heroContinueWatchingSection(_ item: MediaItem) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Play URL / Stream")
-                .font(.headline)
+            Text("继续观看")
+                .font(.title3.bold())
+                .foregroundColor(.primary)
 
-            HStack {
-                TextField("https://example.com/stream.m3u8", text: $inputUrlText)
-                    .textFieldStyle(.roundedBorder)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-                    .keyboardType(.URL)
+            Button {
+                playMediaItem(item)
+            } label: {
+                ZStack(alignment: .bottomLeading) {
+                    // Backdrop Image or Gradient
+                    if let poster = item.posterUrl {
+                        AsyncImage(url: poster) { phase in
+                            switch phase {
+                            case .success(let img):
+                                img.resizable().scaledToFill()
+                            default:
+                                fallbackHeroBackdrop
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 190)
+                        .clipped()
+                    } else {
+                        fallbackHeroBackdrop
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 190)
+                    }
 
-                Button {
-                    playInputUrl()
-                } label: {
-                    Image(systemName: "play.fill")
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                    // Scrim Gradient
+                    LinearGradient(
+                        colors: [.clear, .black.opacity(0.4), .black.opacity(0.85)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+
+                    // Information Overlay
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(sourceLabel(item.sourceType))
+                                .font(.system(size: 10, weight: .bold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.orange.opacity(0.85))
+                                .foregroundColor(.white)
+                                .clipShape(Capsule())
+
+                            Spacer()
+
+                            // Circular Play Button
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 38))
+                                .foregroundColor(.white)
+                                .shadow(radius: 4)
+                        }
+
+                        Text(item.title)
+                            .font(.title3.bold())
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+
+                        if let resume = item.resumePosition, let duration = item.duration, duration > 0 {
+                            let remain = max(duration - resume, 0)
+                            Text("剩余 \(SOAPParser.formatUPnPTime(remain)) · 已看 \(Int((resume / duration) * 100))%")
+                                .font(.caption.weight(.medium))
+                                .foregroundColor(.white.opacity(0.85))
+
+                            ProgressView(value: min(resume / duration, 1.0))
+                                .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                .scaleEffect(x: 1, y: 1.5, anchor: .center)
+                                .clipShape(RoundedRectangle(cornerRadius: 2))
+                        } else {
+                            Text("点击即可从头播放")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                    }
+                    .padding(16)
                 }
-                .disabled(inputUrlText.trimmingCharacters(in: .whitespaces).isEmpty)
+                .frame(maxWidth: .infinity)
+                .frame(height: 190)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var fallbackHeroBackdrop: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.orange.opacity(0.4), Color.purple.opacity(0.3), Color.black.opacity(0.9)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Image(systemName: "film")
+                .font(.system(size: 50))
+                .foregroundColor(.white.opacity(0.15))
+        }
+    }
+
+    /// Horizontal rail of connected servers (Emby / Jellyfin / SMB / WebDAV)
+    private var mediaSourcesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("媒体库来源")
+                    .font(.title3.bold())
+                Spacer()
+                NavigationLink {
+                    ServersView()
+                } label: {
+                    Text("全部")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    if serverManager.savedServers.isEmpty {
+                        NavigationLink {
+                            ServersView()
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.orange)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("添加个人媒体源")
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(.primary)
+                                    Text("连接 Emby、Jellyfin、NAS")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    } else {
+                        ForEach(serverManager.savedServers) { server in
+                            NavigationLink {
+                                ServerDetailView(serverInfo: server)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: iconForServer(server.serverType))
+                                        .font(.title3)
+                                        .foregroundColor(.orange)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(server.name)
+                                            .font(.subheadline.bold())
+                                            .foregroundColor(.primary)
+                                            .lineLimit(1)
+                                        Text(server.serverType.rawValue.uppercased())
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 12)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                        }
+                    }
+                }
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+    }
+
+    /// 2:3 vertical posters row for Recently Played
+    private var recentlyPlayedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("最近播放")
+                    .font(.title3.bold())
+                Spacer()
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Text("查看全部")
+                        .font(.subheadline)
+                        .foregroundColor(.orange)
+                }
+            }
+            .padding(.horizontal)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(history.items.prefix(8)) { item in
+                        Button {
+                            playMediaItem(item)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                ZStack(alignment: .bottom) {
+                                    if let poster = item.posterUrl {
+                                        AsyncImage(url: poster) { phase in
+                                            switch phase {
+                                            case .success(let img):
+                                                img.resizable().scaledToFill()
+                                            default:
+                                                posterPlaceholder(item)
+                                            }
+                                        }
+                                        .frame(width: 110, height: 165)
+                                        .clipped()
+                                        .cornerRadius(10)
+                                    } else {
+                                        posterPlaceholder(item)
+                                            .frame(width: 110, height: 165)
+                                            .cornerRadius(10)
+                                    }
+
+                                    // Small bottom progress bar on poster
+                                    if let resume = item.resumePosition, let dur = item.duration, dur > 0 {
+                                        ProgressView(value: min(resume / dur, 1.0))
+                                            .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                            .scaleEffect(x: 1, y: 2, anchor: .center)
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                                            .padding(.horizontal, 6)
+                                            .padding(.bottom, 4)
+                                    }
+                                }
+                                .shadow(color: .black.opacity(0.15), radius: 5, x: 0, y: 3)
+
+                                Text(item.title)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                    .frame(width: 110, alignment: .leading)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
+    private func posterPlaceholder(_ item: MediaItem) -> some View {
+        ZStack {
+            Color(.secondarySystemBackground)
+            VStack(spacing: 6) {
+                Image(systemName: "film")
+                    .font(.title2)
+                    .foregroundColor(.secondary.opacity(0.6))
+                Text(item.title)
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 4)
+            }
+        }
     }
 
     private func clipboardBanner(_ url: URL) -> some View {
-        HStack {
+        HStack(spacing: 12) {
+            Image(systemName: "link.badge.plus")
+                .font(.title3)
+                .foregroundColor(.orange)
+
             VStack(alignment: .leading, spacing: 2) {
-                Text("Video URL detected in Clipboard")
+                Text("剪贴板视频流已捕获")
                     .font(.caption.bold())
-                    .foregroundColor(.blue)
+                    .foregroundColor(.orange)
                 Text(url.absoluteString)
-                    .font(.caption)
+                    .font(.caption2)
                     .lineLimit(1)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
 
-            Button("Play") {
+            Button("播放") {
                 let item = MediaItem(
-                    title: url.lastPathComponent.isEmpty ? "Clipboard Stream" : url.lastPathComponent,
+                    title: url.lastPathComponent.isEmpty ? "剪贴板视频" : url.lastPathComponent,
                     url: url,
                     sourceType: .directUrl,
                     originator: "Clipboard"
@@ -129,116 +410,39 @@ public struct HomeView: View {
                 clipboardURL = nil
             }
             .buttonStyle(.borderedProminent)
+            .tint(.orange)
             .controlSize(.small)
         }
         .padding(12)
-        .background(Color.blue.opacity(0.12))
-        .cornerRadius(10)
+        .background(Color.orange.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private var sampleStreamsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Sample Test Streams (Phase 1 Validation)")
-                .font(.headline)
+    // MARK: - Helpers
 
-            VStack(spacing: 8) {
-                ForEach(MediaItem.sampleStreams) { sample in
-                    Button {
-                        playerService.loadAndPlay(item: sample)
-                        isShowingPlayerSheet = true
-                    } label: {
-                        HStack {
-                            Image(systemName: sample.mimeType?.contains("mpegURL") == true ? "antenna.radiowaves.left.and.right" : "film")
-                                .foregroundColor(.blue)
-                                .frame(width: 24)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(sample.title)
-                                    .font(.subheadline.bold())
-                                    .foregroundColor(.primary)
-                                Text(sample.url.absoluteString)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "play.circle")
-                                .foregroundColor(.blue)
-                        }
-                        .padding(12)
-                        .background(Color(.tertiarySystemBackground))
-                        .cornerRadius(8)
-                    }
-                }
-            }
+    private func sourceLabel(_ source: MediaSourceType) -> String {
+        switch source {
+        case .personalMedia: return "媒体库"
+        case .dlna: return "DLNA"
+        case .directUrl: return "网络流"
+        case .testStream: return "测试源"
         }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
     }
 
-    private var historySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recently Played")
-                    .font(.headline)
-                Spacer()
-                Button("Clear") {
-                    history.clear()
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
-            }
-
-            VStack(spacing: 8) {
-                ForEach(history.items) { item in
-                    HStack {
-                        Button {
-                            playHistoryItem(item)
-                        } label: {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                    .foregroundColor(.blue)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
-                                        .font(.subheadline.bold())
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                    Text(item.url.absoluteString)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                            }
-                        }
-
-                        Spacer()
-
-                        Button {
-                            history.remove(item: item)
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.caption)
-                                .foregroundColor(.red.opacity(0.8))
-                        }
-                    }
-                    .padding(10)
-                    .background(Color(.tertiarySystemBackground))
-                    .cornerRadius(8)
-                }
-            }
+    private func iconForServer(_ type: MediaServerType) -> String {
+        switch type {
+        case .emby: return "tv.fill"
+        case .jellyfin, .fnos: return "play.square.stack.fill"
+        case .webDAV: return "externaldrive.connected.to.line.below"
+        case .smb: return "folder.badge.gearshape"
         }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
     }
 
-    // MARK: - Actions
+    private func checkClipboard() {
+        clipboardURL = URLSource.detectPlayableURLInClipboard()
+    }
 
-    private func playHistoryItem(_ item: MediaItem) {
+    private func playMediaItem(_ item: MediaItem) {
         guard item.sourceType == .personalMedia,
               let serverID = item.serverID,
               let client = MediaServerManager.shared.getClient(for: serverID) else {
@@ -246,6 +450,7 @@ public struct HomeView: View {
             isShowingPlayerSheet = true
             return
         }
+
         playbackResolveTask?.cancel()
         let resolveID = UUID()
         playbackResolveID = resolveID
@@ -272,58 +477,43 @@ public struct HomeView: View {
             }
         }
     }
-
-    private func playInputUrl() {
-        let trimmed = inputUrlText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
-            errorMessage = "Invalid video URL. Please enter an HTTP or HTTPS stream."
-            isShowingErrorAlert = true
-            return
-        }
-
-        let item = MediaItem(
-            title: url.lastPathComponent.isEmpty ? "Direct Stream" : url.lastPathComponent,
-            url: url,
-            sourceType: .directUrl,
-            originator: "User Input"
-        )
-        playerService.loadAndPlay(item: item)
-        isShowingPlayerSheet = true
-        inputUrlText = ""
-    }
-
-    private func checkClipboard() {
-        clipboardURL = URLSource.detectPlayableURLInClipboard()
-    }
 }
 
+/// Frosted Glass Mini Player at the bottom of Home
 private struct HomeMiniPlayerBar: View {
     @ObservedObject var playerService: PlayerService
     @Binding var isShowingPlayerSheet: Bool
 
     var body: some View {
         if playerService.session.currentItem != nil {
-            HStack {
+            HStack(spacing: 12) {
                 Button {
                     isShowingPlayerSheet = true
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "film.fill")
-                            .font(.title3)
-                            .foregroundColor(.blue)
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.orange.opacity(0.15))
+                                .frame(width: 42, height: 42)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(playerService.session.currentItem?.title ?? "Playing Media")
+                            Image(systemName: "film.fill")
+                                .font(.subheadline)
+                                .foregroundColor(.orange)
+                        }
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(playerService.session.currentItem?.title ?? "正在播放")
                                 .font(.subheadline.bold())
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
 
                             Text("\(SOAPParser.formatUPnPTime(playerService.session.currentTime)) / \(SOAPParser.formatUPnPTime(playerService.session.duration))")
-                                .font(.caption.monospacedDigit())
+                                .font(.caption2.monospacedDigit())
                                 .foregroundColor(.secondary)
                         }
                     }
                 }
+                .buttonStyle(.plain)
 
                 Spacer()
 
@@ -333,7 +523,7 @@ private struct HomeMiniPlayerBar: View {
                     Image(systemName: playerService.session.status == .playing ? "pause.fill" : "play.fill")
                         .font(.title3)
                         .foregroundColor(.primary)
-                        .padding(8)
+                        .padding(6)
                 }
 
                 Button {
@@ -342,16 +532,16 @@ private struct HomeMiniPlayerBar: View {
                     Image(systemName: "xmark")
                         .font(.caption.bold())
                         .foregroundColor(.secondary)
-                        .padding(8)
+                        .padding(6)
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .background(.ultraThinMaterial)
-            .cornerRadius(14)
-            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 4)
             .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.bottom, 6)
         }
     }
 }

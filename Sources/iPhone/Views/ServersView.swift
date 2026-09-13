@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View for managing personal media servers and standard file shares.
+/// View for managing personal media servers and network shares.
 public struct ServersView: View {
     @ObservedObject var serverManager = MediaServerManager.shared
     @State private var isShowingAddServerSheet = false
@@ -12,49 +12,61 @@ public struct ServersView: View {
             List {
                 if serverManager.savedServers.isEmpty {
                     Section {
-                        VStack(spacing: 12) {
-                            Image(systemName: "server.rack")
-                                .font(.system(size: 44))
-                                .foregroundColor(.cyan)
-                                .padding(.top, 16)
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.orange.opacity(0.12))
+                                    .frame(width: 80, height: 80)
+                                Image(systemName: "server.rack")
+                                    .font(.system(size: 38))
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(.top, 20)
 
-                            Text("No Media Servers Added")
-                                .font(.headline)
+                            Text("尚未连接媒体服务器")
+                                .font(.title3.bold())
 
-                            Text("Connect Emby, Jellyfin, WebDAV, SMB, or fnOS WebDAV to browse and stream your personal videos on iPhone and CarPlay.")
-                                .font(.caption)
+                            Text("支持连接 Emby、Jellyfin、WebDAV、SMB 局域网共享与飞牛私有云，在 iPhone 和 CarPlay 上流畅播放海量个人影视。")
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal)
+                                .padding(.horizontal, 16)
 
                             Button {
                                 isShowingAddServerSheet = true
                             } label: {
-                                Label("Add Media Source", systemImage: "plus.circle.fill")
+                                Label("添加媒体源", systemImage: "plus.circle.fill")
                                     .font(.subheadline.bold())
+                                    .padding(.horizontal, 8)
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.cyan)
-                            .padding(.bottom, 16)
+                            .tint(.orange)
+                            .padding(.bottom, 20)
                         }
                         .frame(maxWidth: .infinity)
                     }
                 } else {
-                    Section("Your Connected Servers") {
+                    Section("已连接的服务器") {
                         ForEach(serverManager.savedServers) { server in
                             NavigationLink {
                                 ServerDetailView(serverInfo: server)
                             } label: {
                                 HStack(spacing: 14) {
-                                    Image(systemName: icon(for: server.serverType))
-                                        .font(.title2)
-                                        .foregroundColor(.cyan)
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .fill(Color.orange.opacity(0.12))
+                                            .frame(width: 44, height: 44)
+                                        Image(systemName: icon(for: server.serverType))
+                                            .font(.title3)
+                                            .foregroundColor(.orange)
+                                    }
 
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: 3) {
                                         Text(server.name)
                                             .font(.headline)
+                                            .foregroundColor(.primary)
                                         Text(server.url.absoluteString)
-                                            .font(.caption)
+                                            .font(.caption2)
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
                                     }
@@ -71,13 +83,15 @@ public struct ServersView: View {
                     }
                 }
             }
-            .navigationTitle("Media Servers")
+            .navigationTitle("媒体库")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         isShowingAddServerSheet = true
                     } label: {
                         Image(systemName: "plus")
+                            .font(.headline)
+                            .foregroundColor(.orange)
                     }
                 }
             }
@@ -112,79 +126,71 @@ struct AddServerView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Server Connection") {
-                    Picker("Server Type", selection: $serverType) {
+                Section("服务器类型与连接") {
+                    Picker("服务器类型", selection: $serverType) {
                         Text("Jellyfin").tag(MediaServerType.jellyfin)
                         Text("Emby").tag(MediaServerType.emby)
                         Text("WebDAV").tag(MediaServerType.webDAV)
-                        Text("SMB").tag(MediaServerType.smb)
-                        Text("fnOS (WebDAV)").tag(MediaServerType.fnos)
+                        Text("SMB (局域网共享)").tag(MediaServerType.smb)
+                        Text("fnOS (飞牛 WebDAV)").tag(MediaServerType.fnos)
                     }
-                    .pickerStyle(.menu)
 
-                    TextField("Server Name (e.g. Home Server)", text: $serverName)
-                    TextField(urlPlaceholder, text: $serverUrlStr)
+                    TextField("名称 (如: 客厅 NAS)", text: $serverName)
+
+                    TextField(serverType == .smb ? "smb://192.168.1.100/video" : "http://192.168.1.100:8096", text: $serverUrlStr)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .keyboardType(.URL)
                 }
 
-                Section("Credentials") {
-                    TextField("Username", text: $username)
+                Section("身份凭据") {
+                    TextField("用户名", text: $username)
                         .autocapitalization(.none)
-                    SecureField("Password", text: $password)
-                }
+                        .disableAutocorrection(true)
 
-                if serverType == .fnos {
-                    Section {
-                        Text("In fnOS, enable WebDAV under Settings → File Sharing Protocols, then paste its full WebDAV URL here. The fnOS private media API is not used.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                } else if serverType == .smb {
-                    Section {
-                        Text("Use smb://host/share/folder. SMB 2 is supported; SMB 1 is intentionally excluded.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    SecureField("密码", text: $password)
                 }
 
                 if let error = errorMessage {
                     Section {
                         Text(error)
-                            .font(.caption)
                             .foregroundColor(.red)
+                            .font(.caption)
                     }
                 }
+
+                Section {
+                    Button {
+                        authenticateAndSave()
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isAuthenticating {
+                                ProgressView()
+                                    .padding(.trailing, 8)
+                            }
+                            Text("连接并保存")
+                                .bold()
+                            Spacer()
+                        }
+                    }
+                    .disabled(isAuthenticating || serverUrlStr.isEmpty)
+                    .tint(.orange)
+                }
             }
-            .navigationTitle("Add Server")
+            .navigationTitle("添加媒体源")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Connect") {
-                        connectServer()
-                    }
-                    .disabled(isAuthenticating || serverUrlStr.isEmpty || username.isEmpty)
+                    Button("取消") { dismiss() }
                 }
             }
         }
     }
 
-    private var urlPlaceholder: String {
-        switch serverType {
-        case .emby: return "http://192.168.1.10:8096"
-        case .jellyfin: return "http://192.168.1.10:8096"
-        case .webDAV, .fnos: return "https://nas.example.com/webdav/"
-        case .smb: return "smb://192.168.1.10/Media/Movies"
-        }
-    }
-
-    private func connectServer() {
+    private func authenticateAndSave() {
         guard let url = URL(string: serverUrlStr.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            errorMessage = "Invalid server URL."
+            errorMessage = "输入的服务器地址不合法"
             return
         }
         let normalizedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -201,10 +207,12 @@ struct AddServerView: View {
                 switch serverType {
                 case .emby:
                     let emby = EmbyClient(serverName: name, serverBaseURL: url)
-                    client = emby; userID = emby.userId
+                    client = emby
+                    userID = emby.userId
                 case .jellyfin:
                     let jellyfin = JellyfinClient(serverName: name, serverBaseURL: url)
-                    client = jellyfin; userID = jellyfin.userId
+                    client = jellyfin
+                    userID = jellyfin.userId
                 case .webDAV, .fnos:
                     client = WebDAVClient(serverName: name, serverBaseURL: url, username: normalizedUsername)
                     userID = nil
@@ -212,21 +220,30 @@ struct AddServerView: View {
                     client = try SMBMediaClient(serverName: name, serverBaseURL: url, username: normalizedUsername)
                     userID = nil
                 }
+
                 let token = try await client.authenticate(username: normalizedUsername, password: password)
                 let resolvedUserID: String? = {
                     if let emby = client as? EmbyClient { return emby.userId }
                     if let jellyfin = client as? JellyfinClient { return jellyfin.userId }
                     return userID
                 }()
+
                 await MainActor.run {
-                    MediaServerManager.shared.addServer(name: name, url: url, type: serverType, username: normalizedUsername, token: token, userId: resolvedUserID)
-                    isAuthenticating = false
+                    MediaServerManager.shared.addServer(
+                        name: name,
+                        url: url,
+                        type: serverType,
+                        username: normalizedUsername,
+                        token: token,
+                        userId: resolvedUserID
+                    )
+                    self.isAuthenticating = false
                     dismiss()
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = error.localizedDescription
-                    isAuthenticating = false
+                    self.isAuthenticating = false
+                    self.errorMessage = error.localizedDescription
                 }
             }
         }

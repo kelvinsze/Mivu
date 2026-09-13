@@ -17,7 +17,10 @@ public struct ServerDetailView: View {
     @State private var isShowingPlayer = false
     @State private var playbackResolveTask: Task<Void, Never>?
     @State private var playbackResolveID: UUID?
-    private let libraryColumns = [GridItem(.adaptive(minimum: 104, maximum: 150), spacing: 12)]
+
+    private let libraryColumns = [
+        GridItem(.adaptive(minimum: 105, maximum: 140), spacing: 14)
+    ]
 
     public init(serverInfo: SavedServerInfo) {
         self.serverInfo = serverInfo
@@ -25,25 +28,34 @@ public struct ServerDetailView: View {
 
     public var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 28) {
-                if !libraries.isEmpty { libraryPicker }
-                if !continueWatching.isEmpty {
-                    posterRow(title: "Continue Watching", items: continueWatching, showsProgress: true)
+            LazyVStack(alignment: .leading, spacing: 26) {
+                // 1. Library Filter Pills
+                if !libraries.isEmpty {
+                    libraryPicker
                 }
+
+                // 2. Continue Watching Horizontal Rail
+                if !continueWatching.isEmpty {
+                    posterRow(title: "继续观看", items: continueWatching, showsProgress: true)
+                }
+
+                // 3. Search Results or Selected Library Items
                 if !searchText.isEmpty {
                     if !searchResults.isEmpty {
-                        posterGrid(title: "Search Results", items: searchResults)
+                        posterGrid(title: "搜索结果", items: searchResults)
                     } else if !isLoading {
                         ContentUnavailableView.search(text: searchText)
+                            .padding(.top, 40)
                     }
                 } else {
                     mediaLibrary
                 }
+
                 if let error = errorMessage {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .font(.footnote)
                         .foregroundStyle(.red)
-                        .padding(.horizontal, 2)
+                        .padding(.horizontal)
                 }
             }
             .padding(.vertical, 12)
@@ -55,7 +67,7 @@ public struct ServerDetailView: View {
             loadLibraries()
             loadContinueWatching()
         }
-        .searchable(text: $searchText, prompt: "Search media")
+        .searchable(text: $searchText, prompt: "搜索影视、剧集")
         .onSubmit(of: .search) { search() }
         .fullScreenCover(isPresented: $isShowingPlayer) {
             PlayerView()
@@ -74,11 +86,11 @@ public struct ServerDetailView: View {
                         Label(library.name, systemImage: iconForCollection(library.collectionType))
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
-                            .padding(.horizontal, 14)
+                            .padding(.horizontal, 16)
                             .padding(.vertical, 9)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selectedLibrary?.id == library.id ? .cyan : .secondary)
+                    .tint(selectedLibrary?.id == library.id ? .orange : .secondary)
                     .buttonBorderShape(.capsule)
                 }
             }
@@ -91,13 +103,15 @@ public struct ServerDetailView: View {
         if isLoading && libraryItems.isEmpty {
             HStack {
                 Spacer()
-                ProgressView().padding(.top, 60)
+                ProgressView()
+                    .tint(.orange)
+                    .padding(.top, 60)
                 Spacer()
             }
         } else if let selectedLibrary, !libraryItems.isEmpty {
             posterGrid(title: selectedLibrary.name, items: libraryItems)
         } else if !isLoading && selectedLibrary != nil {
-            ContentUnavailableView("No videos found", systemImage: "film", description: Text("This library has no playable videos."))
+            ContentUnavailableView("暂无视频内容", systemImage: "film", description: Text("该分类媒体库下未检索到可播放的影视文件。"))
                 .padding(.top, 48)
         }
     }
@@ -106,29 +120,39 @@ public struct ServerDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             sectionTitle(title)
             ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(alignment: .top, spacing: 12) {
+                LazyHStack(alignment: .top, spacing: 14) {
                     ForEach(items) { item in
                         Button { play(item) } label: {
-                            VStack(alignment: .leading, spacing: 7) {
-                                PosterArtwork(item: item)
-                                    .frame(width: 128, height: 192)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    .overlay(alignment: .bottom) {
-                                        if showsProgress, let progress = progress(for: item) {
-                                            ProgressView(value: progress).tint(.cyan).padding(8)
-                                        }
+                            VStack(alignment: .leading, spacing: 6) {
+                                ZStack(alignment: .bottom) {
+                                    PosterArtwork(item: item)
+                                        .frame(width: 125, height: 187)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
+
+                                    if showsProgress, let progress = progress(for: item) {
+                                        ProgressView(value: progress)
+                                            .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                            .scaleEffect(x: 1, y: 2, anchor: .center)
+                                            .clipShape(RoundedRectangle(cornerRadius: 2))
+                                            .padding(.horizontal, 8)
+                                            .padding(.bottom, 6)
                                     }
+                                }
+
                                 Text(item.title)
-                                    .font(.footnote.weight(.medium))
+                                    .font(.caption.weight(.semibold))
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
+                                    .frame(width: 125, alignment: .leading)
+
                                 if showsProgress, let remaining = remainingTime(for: item) {
-                                    Text("\(SOAPParser.formatUPnPTime(remaining)) left")
+                                    Text("剩余 \(SOAPParser.formatUPnPTime(remaining))")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .frame(width: 128, alignment: .leading)
+                            .frame(width: 125, alignment: .leading)
                         }
                         .buttonStyle(.plain)
                     }
@@ -139,18 +163,34 @@ public struct ServerDetailView: View {
     }
 
     private func posterGrid(title: String, items: [MediaItem]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             sectionTitle(title)
-            LazyVGrid(columns: libraryColumns, spacing: 18) {
+            LazyVGrid(columns: libraryColumns, spacing: 16) {
                 ForEach(items) { item in
                     Button { play(item) } label: {
-                        VStack(alignment: .leading, spacing: 7) {
-                            PosterArtwork(item: item)
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(2 / 3, contentMode: .fit)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        VStack(alignment: .leading, spacing: 6) {
+                            ZStack(alignment: .topTrailing) {
+                                PosterArtwork(item: item)
+                                    .frame(maxWidth: .infinity)
+                                    .aspectRatio(2 / 3, contentMode: .fit)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .shadow(color: .black.opacity(0.15), radius: 5, x: 0, y: 3)
+
+                                // Quality or container badge if available
+                                if let hint = item.videoCodecHint ?? item.containerHint {
+                                    Text(hint.uppercased())
+                                        .font(.system(size: 8, weight: .bold))
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(Color.black.opacity(0.75))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(4)
+                                        .padding(6)
+                                }
+                            }
+
                             Text(item.title)
-                                .font(.footnote.weight(.medium))
+                                .font(.caption.weight(.medium))
                                 .foregroundStyle(.primary)
                                 .lineLimit(2, reservesSpace: true)
                         }
@@ -158,8 +198,8 @@ public struct ServerDetailView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .padding(.horizontal)
         }
-        .padding(.horizontal)
     }
 
     private func sectionTitle(_ title: String) -> some View {
@@ -297,9 +337,11 @@ private struct PosterArtwork: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Image(systemName: "film")
-                    .font(.title2)
-                    .foregroundStyle(.tertiary)
+                VStack(spacing: 4) {
+                    Image(systemName: "film")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .clipped()
