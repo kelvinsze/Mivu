@@ -122,7 +122,9 @@ public struct ServerDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(alignment: .top, spacing: 14) {
                     ForEach(items) { item in
-                        Button { play(item) } label: {
+                        NavigationLink {
+                            VideoDetailView(item: item)
+                        } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 ZStack(alignment: .bottom) {
                                     PosterArtwork(item: item)
@@ -167,7 +169,9 @@ public struct ServerDetailView: View {
             sectionTitle(title)
             LazyVGrid(columns: libraryColumns, spacing: 16) {
                 ForEach(items) { item in
-                    Button { play(item) } label: {
+                    NavigationLink {
+                        VideoDetailView(item: item)
+                    } label: {
                         VStack(alignment: .leading, spacing: 6) {
                             ZStack(alignment: .topTrailing) {
                                 PosterArtwork(item: item)
