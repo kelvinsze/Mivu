@@ -90,17 +90,24 @@ export class MDBListProvider implements RatingProvider<MDBListNormalizedResult> 
       };
     }
 
-    // Determine request URL and parameters
-    let url: string;
+    // `imdb/any` is the preferred MDBList lookup, but it currently returns
+    // 404 for some known titles. Retry the type-specific endpoints before
+    // treating the title as genuinely absent.
+    let urls: string[];
     const mediaType = identity.mediaType === 'tv' ? 'show' : 'movie';
 
     if (identity.imdbId) {
-      // Direct IMDb query via MDBList API endpoint
-      url = `${this.baseUrl}/imdb/any/${encodeURIComponent(identity.imdbId)}/?apikey=${encodeURIComponent(this.apiKey)}`;
+      const id = encodeURIComponent(identity.imdbId);
+      const alternateMediaType = mediaType === 'movie' ? 'show' : 'movie';
+      urls = [
+        `${this.baseUrl}/imdb/any/${id}/?apikey=${encodeURIComponent(this.apiKey)}`,
+        `${this.baseUrl}/imdb/${mediaType}/${id}/?apikey=${encodeURIComponent(this.apiKey)}`,
+        `${this.baseUrl}/imdb/${alternateMediaType}/${id}/?apikey=${encodeURIComponent(this.apiKey)}`,
+      ];
     } else if (identity.tmdbId) {
-      url = `${this.baseUrl}/tmdb/${mediaType}/${encodeURIComponent(identity.tmdbId)}/?apikey=${encodeURIComponent(this.apiKey)}`;
+      urls = [`${this.baseUrl}/tmdb/${mediaType}/${encodeURIComponent(identity.tmdbId)}/?apikey=${encodeURIComponent(this.apiKey)}`];
     } else if (identity.tvdbId) {
-      url = `${this.baseUrl}/tvdb/show/${encodeURIComponent(identity.tvdbId)}/?apikey=${encodeURIComponent(this.apiKey)}`;
+      urls = [`${this.baseUrl}/tvdb/show/${encodeURIComponent(identity.tvdbId)}/?apikey=${encodeURIComponent(this.apiKey)}`];
     } else {
       return {
         success: false,
@@ -112,55 +119,20 @@ export class MDBListProvider implements RatingProvider<MDBListNormalizedResult> 
     }
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'MivuRatingsAPI/1.0',
-          Accept: 'application/json',
-        },
-        signal: AbortSignal.timeout(5000),
-      });
+      for (const [index, url] of urls.entries()) {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'MivuRatingsAPI/1.0',
+            Accept: 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+        });
 
-      if (response.status === 404) {
-        return {
-          success: false,
-          data: null,
-          provider: this.name,
-          source: 'network',
-          statusCode: 404,
-          isNotFound: true,
-          error: 'Media not found on MDBList',
-        };
-      }
+        const shouldRetryTypedIMDbLookup =
+          !!identity.imdbId && index === 0 && response.status === 400;
+        if ((response.status === 404 && index < urls.length - 1) || shouldRetryTypedIMDbLookup) continue;
 
-      if (response.status === 429) {
-        globalCircuitBreaker.recordFailure(this.name);
-        return {
-          success: false,
-          data: null,
-          provider: this.name,
-          source: 'network',
-          statusCode: 429,
-          error: 'MDBList API rate limit reached',
-        };
-      }
-
-      if (!response.ok) {
-        globalCircuitBreaker.recordFailure(this.name);
-        return {
-          success: false,
-          data: null,
-          provider: this.name,
-          source: 'network',
-          statusCode: response.status,
-          error: `MDBList HTTP error: ${response.status}`,
-        };
-      }
-
-      const raw = (await response.json()) as MDBListRawResponse;
-
-      // Handle MDBList error payload
-      if (raw.response === 'False' || raw.error) {
-        if (raw.error?.toLowerCase().includes('not found')) {
+        if (response.status === 404) {
           return {
             success: false,
             data: null,
@@ -168,28 +140,80 @@ export class MDBListProvider implements RatingProvider<MDBListNormalizedResult> 
             source: 'network',
             statusCode: 404,
             isNotFound: true,
-            error: raw.error,
+            error: 'Media not found on MDBList',
           };
         }
-        globalCircuitBreaker.recordFailure(this.name);
+
+        if (response.status === 429) {
+          globalCircuitBreaker.recordFailure(this.name);
+          return {
+            success: false,
+            data: null,
+            provider: this.name,
+            source: 'network',
+            statusCode: 429,
+            error: 'MDBList API rate limit reached',
+          };
+        }
+
+        if (!response.ok) {
+          globalCircuitBreaker.recordFailure(this.name);
+          return {
+            success: false,
+            data: null,
+            provider: this.name,
+            source: 'network',
+            statusCode: response.status,
+            error: `MDBList HTTP error: ${response.status}`,
+          };
+        }
+
+        const raw = (await response.json()) as MDBListRawResponse;
+
+        // Handle MDBList error payload
+        if (raw.response === 'False' || raw.error) {
+          if (raw.error?.toLowerCase().includes('not found') && index < urls.length - 1) continue;
+          if (raw.error?.toLowerCase().includes('not found')) {
+            return {
+              success: false,
+              data: null,
+              provider: this.name,
+              source: 'network',
+              statusCode: 404,
+              isNotFound: true,
+              error: raw.error,
+            };
+          }
+          globalCircuitBreaker.recordFailure(this.name);
+          return {
+            success: false,
+            data: null,
+            provider: this.name,
+            source: 'network',
+            error: raw.error || 'Unknown MDBList error',
+          };
+        }
+
+        const normalized = this.normalizeMDBListResponse(raw);
+        globalCircuitBreaker.recordSuccess(this.name);
+
         return {
-          success: false,
-          data: null,
+          success: true,
+          data: normalized,
           provider: this.name,
           source: 'network',
-          error: raw.error || 'Unknown MDBList error',
+          statusCode: 200,
         };
       }
 
-      const normalized = this.normalizeMDBListResponse(raw);
-      globalCircuitBreaker.recordSuccess(this.name);
-
       return {
-        success: true,
-        data: normalized,
+        success: false,
+        data: null,
         provider: this.name,
         source: 'network',
-        statusCode: 200,
+        statusCode: 404,
+        isNotFound: true,
+        error: 'Media not found on MDBList',
       };
     } catch (err: unknown) {
       globalCircuitBreaker.recordFailure(this.name);

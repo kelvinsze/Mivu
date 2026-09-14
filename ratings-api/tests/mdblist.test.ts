@@ -86,6 +86,28 @@ describe('MDBListProvider Unit Tests', () => {
     expect(result.statusCode).toBe(404);
   });
 
+  it('falls back to the type-specific IMDb endpoint when the any endpoint rejects the lookup', async () => {
+    const mockPayload = {
+      title: 'The Matrix',
+      ratings: [{ source: 'imdb', value: 8.7 }],
+    };
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/imdb/any/')) return Promise.resolve(new Response('', { status: 400 }));
+      if (url.includes('/imdb/movie/')) return Promise.resolve(new Response(JSON.stringify(mockPayload), { status: 200 }));
+      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    });
+
+    const provider = new MDBListProvider('test-key');
+    const result = await provider.fetchRatings({
+      mediaType: 'movie',
+      imdbId: 'tt0133093',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data?.imdb?.score).toBe(8.7);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+  });
+
   it('handles 429 rate limit response', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ response: 'False', error: 'Rate limit reached' }), {
