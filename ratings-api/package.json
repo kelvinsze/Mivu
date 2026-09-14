@@ -1,0 +1,34 @@
+{
+  "name": "ratings-api",
+  "version": "1.0.0",
+  "description": "Unified media ratings API for Mivu running on Cloudflare Workers",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "deploy": "wrangler deploy",
+    "d1:migrate:local": "wrangler d1 migrations apply DB --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "hono",
+    "ratings",
+    "mdblist",
+    "douban",
+    "mivu"
+  ],
+  "author": "Mivu Team",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^4.7.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250214.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5",
+    "wrangler": "^3.111.0"
+  }
+}

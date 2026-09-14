@@ -1,0 +1,20 @@
+name = "ratings-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-14"
+
+[vars]
+ENVIRONMENT = "development"
+DOUBAN_ENABLED = "true"
+MDBLIST_ENABLED = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ratings-db"
+# Replace with the real D1 database ID before staging/production deployment.
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+# Optional KV can be added for cross-isolate rate limiting in a future version.
+# [[kv_namespaces]]
+# binding = "RATINGS_KV"
+# id = "..."
