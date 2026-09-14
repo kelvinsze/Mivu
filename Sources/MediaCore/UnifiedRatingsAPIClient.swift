@@ -6,7 +6,7 @@ public enum UnifiedRatingsAPIClient {
     private static let cacheTTL: TimeInterval = 24 * 60 * 60
 
     public static func enrich(_ item: MediaItem) async -> MediaItem? {
-        guard let lookup = Lookup(item: item), let apiKey = configuredAPIKey else { return nil }
+        guard let lookup = Lookup(item: item) else { return nil }
 
         if let cached = cachedResponse(for: lookup) {
             return cached.applying(to: item)
@@ -16,7 +16,6 @@ public enum UnifiedRatingsAPIClient {
         var request = URLRequest(url: url)
         // A cold request may need both MDBList metadata and a Douban lookup.
         request.timeoutInterval = 15
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
@@ -28,13 +27,6 @@ public enum UnifiedRatingsAPIClient {
 
         cache(ratings, for: lookup)
         return ratings.applying(to: item)
-    }
-
-    private static var configuredAPIKey: String? {
-        guard let key = Bundle.main.object(forInfoDictionaryKey: "RatingsAPIKey") as? String else { return nil }
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmed.contains("$(") else { return nil }
-        return trimmed
     }
 
     private static var endpoint: URL? {

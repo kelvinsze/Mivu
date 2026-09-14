@@ -50,8 +50,6 @@
 	<string>Mivu 需要保存视频高清截图至您的系统相册。</string>
 	<key>RatingsAPIBaseURL</key>
 	<string>https://mivu-rating-api.koldllc.com</string>
-	<key>RatingsAPIKey</key>
-	<string>$(RATINGS_API_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

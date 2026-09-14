@@ -23,6 +23,7 @@
 		4EA213CAF65320CCA8E7BC35 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */; };
 		4F34AE11601F64CEEF07191A /* SOAPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D927BAD78CBBFFFD3F9DEAE5 /* SOAPParser.swift */; };
 		56DFD7DD123D2B09622A605F /* SMBAssetResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */; };
+		61EAE9A7CE5FB88D488B684C /* subfont.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7EB11B61B4535D7FE6B9098C /* subfont.ttf */; };
 		6A2D64379E2FC927C6B673A8 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBD723FDFD184AD9E7AA0A9 /* MainTabView.swift */; };
 		6DA8B04D20CF864E63C61919 /* SSDPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADE3606E944B2EE920D9C0F /* SSDPService.swift */; };
 		79B77AFA7C2F558E76160A9D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9F68133D47D1518BB634A92 /* HomeView.swift */; };
@@ -32,7 +33,10 @@
 		829E174F11B73D464CF0D67F /* PlaybackCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D673EA9A7EAE22D49590863E /* PlaybackCoreTests.swift */; };
 		881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48F0DA8AF7F12BB7CA1570C /* WebDAVClient.swift */; };
 		8EF95EFA7831B6805B7B6C91 /* MPVBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 235BB513C85D77EB590C7A38 /* MPVBridge.m */; };
+		936244374F89AF0104D49572 /* PersonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23270BA9F9C311E1A7E3537F /* PersonDetailView.swift */; };
+		94946EE1B87F3DFB142A704B /* AddServiceMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73AC6ACEE60F6DF96899C9B /* AddServiceMenuView.swift */; };
 		9B60D72C6FC2BCC55F630677 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C889A778633FF9D4D7590B /* DiagnosticsView.swift */; };
+		9DB3FE8796F363BDEA1CDD89 /* VideoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30C1FF950B980824BFF5F42 /* VideoDetailView.swift */; };
 		9E780E2BAF1106905E539A6B /* ServersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B35711D9836A29F122885BE7 /* ServersView.swift */; };
 		A2A01B3586F3FB9FD6810727 /* DLNASource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47BCF5BC8AFED357491270F9 /* DLNASource.swift */; };
 		AD08CA0D31BC8A304A7D3143 /* libmpv.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69D821A8E48FA5536B51DD0D /* libmpv.xcframework */; };
@@ -45,6 +49,7 @@
 		CB8EDFDDAA48CE6C63C50D90 /* PlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D62DF33021F9BF985B2DDB /* PlayerService.swift */; };
 		CBC155672B840A6EAE8D3A79 /* AVTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C4E68D964B70B61CE98789 /* AVTransportService.swift */; };
 		D4EED6F5E9F4C0494F77577D /* SMBMediaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8DA8A948A8C67371826710 /* SMBMediaClient.swift */; };
+		D530DBC958D989125C323437 /* UnifiedRatingsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */; };
 		D9E4FDFB053D897F9E01791A /* CarPlayVideoPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2F70DD8884B2AAD1077E2D /* CarPlayVideoPresentation.swift */; };
 		DDCF58BCEF8762CF98D527E9 /* SOAPParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4257C4863B2449DDC203A2 /* SOAPParserTests.swift */; };
 		DDD8EAAADA25B10C23E966D0 /* ServerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C7638366F3FE4BBC890C64 /* ServerDetailView.swift */; };
@@ -72,12 +77,13 @@
 		135C58AAB571C7251CA0CF26 /* MediaServerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServerProtocol.swift; sourceTree = "<group>"; };
 		18EF5AAF3D3D0692C051180B /* UPnPDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UPnPDevice.swift; sourceTree = "<group>"; };
 		1E720BA21B0E1EAEE35FC5C8 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		23270BA9F9C311E1A7E3537F /* PersonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonDetailView.swift; sourceTree = "<group>"; };
 		235BB513C85D77EB590C7A38 /* MPVBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MPVBridge.m; sourceTree = "<group>"; };
 		2659BC7F2CF719BC16457DE0 /* MivuTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MivuTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		27D1BF82DE8B1D7EBD86A6FE /* URLSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSource.swift; sourceTree = "<group>"; };
 		28D62DF33021F9BF985B2DDB /* PlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerService.swift; sourceTree = "<group>"; };
 		29C7638366F3FE4BBC890C64 /* ServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailView.swift; sourceTree = "<group>"; };
-		2BFD4272CC2791F07C2BED39 /* Mivu.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mivu.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BFD4272CC2791F07C2BED39 /* Mivu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mivu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D8DAD3E2C5CA2A845F13D1E /* JellyfinClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JellyfinClient.swift; sourceTree = "<group>"; };
 		3D90DE5A69B57FC399065E0D /* ReceiverStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiverStatusView.swift; sourceTree = "<group>"; };
 		47BCF5BC8AFED357491270F9 /* DLNASource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNASource.swift; sourceTree = "<group>"; };
@@ -91,10 +97,13 @@
 		755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMBAssetResourceLoader.swift; sourceTree = "<group>"; };
 		78C4E68D964B70B61CE98789 /* AVTransportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVTransportService.swift; sourceTree = "<group>"; };
 		79DE2826965C1D69602443EC /* MediaServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServerManager.swift; sourceTree = "<group>"; };
+		7EB11B61B4535D7FE6B9098C /* subfont.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = subfont.ttf; sourceTree = "<group>"; };
 		8A0D166AEE34812DFDF14EA3 /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
+		9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedRatingsAPIClient.swift; sourceTree = "<group>"; };
 		9B4257C4863B2449DDC203A2 /* SOAPParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOAPParserTests.swift; sourceTree = "<group>"; };
 		9D95DEE150C0992DAC39C04E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A6BC2202DD3AEDC5445B648E /* MPVBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MPVBridge.h; sourceTree = "<group>"; };
+		A73AC6ACEE60F6DF96899C9B /* AddServiceMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddServiceMenuView.swift; sourceTree = "<group>"; };
 		A9F68133D47D1518BB634A92 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		AC2F70DD8884B2AAD1077E2D /* CarPlayVideoPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayVideoPresentation.swift; sourceTree = "<group>"; };
 		B35711D9836A29F122885BE7 /* ServersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServersView.swift; sourceTree = "<group>"; };
@@ -113,6 +122,7 @@
 		DCA2351A1444F82B795E7A15 /* HTTPServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPServer.swift; sourceTree = "<group>"; };
 		DF0AAC7AA4CE0E40B63D26F2 /* PlaybackRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackRouter.swift; sourceTree = "<group>"; };
 		E308EDFF7E3D8D5060751D6F /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		E30C1FF950B980824BFF5F42 /* VideoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDetailView.swift; sourceTree = "<group>"; };
 		E53F2115543AC50B694798D8 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		F2C1A2C1479CAA66881A6286 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -138,6 +148,7 @@
 				042A4A51D1B57A2966D6DC60 /* PlaybackHistory.swift */,
 				57BFC9747064979AFA051932 /* PlaybackSession.swift */,
 				28D62DF33021F9BF985B2DDB /* PlayerService.swift */,
+				9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */,
 				DE7B974ACBA0E0CB57319590 /* PlaybackCore */,
 			);
 			path = MediaCore;
@@ -237,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				E53F2115543AC50B694798D8 /* LaunchScreen.storyboard */,
+				7EB11B61B4535D7FE6B9098C /* subfont.ttf */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -292,15 +304,18 @@
 		FD9EF9D06FA181DE3DBE1BEE /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				A73AC6ACEE60F6DF96899C9B /* AddServiceMenuView.swift */,
 				50511C184EAAFD64A57FC5B6 /* DeveloperLabView.swift */,
 				CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */,
 				A9F68133D47D1518BB634A92 /* HomeView.swift */,
 				CEBD723FDFD184AD9E7AA0A9 /* MainTabView.swift */,
+				23270BA9F9C311E1A7E3537F /* PersonDetailView.swift */,
 				E308EDFF7E3D8D5060751D6F /* PlayerView.swift */,
 				3D90DE5A69B57FC399065E0D /* ReceiverStatusView.swift */,
 				29C7638366F3FE4BBC890C64 /* ServerDetailView.swift */,
 				B35711D9836A29F122885BE7 /* ServersView.swift */,
 				F2C1A2C1479CAA66881A6286 /* SettingsView.swift */,
+				E30C1FF950B980824BFF5F42 /* VideoDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -395,6 +410,7 @@
 			files = (
 				BCFC1C93222AD2E764BB2BDA /* Assets.xcassets in Resources */,
 				7AB58271875F8BCE9D37B5C2 /* LaunchScreen.storyboard in Resources */,
+				61EAE9A7CE5FB88D488B684C /* subfont.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,7 +434,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PROJECT_DIR}/scripts/verify-carplay-entitlements.sh\"\\n";
+			shellScript = "\"${PROJECT_DIR}/scripts/verify-carplay-entitlements.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -438,6 +454,7 @@
 			files = (
 				273D43254AF1B78F73D50C9C /* AVPlayerEngine.swift in Sources */,
 				CBC155672B840A6EAE8D3A79 /* AVTransportService.swift in Sources */,
+				94946EE1B87F3DFB142A704B /* AddServiceMenuView.swift in Sources */,
 				B0945693970E7A899C740CC0 /* CarPlaySceneDelegate.swift in Sources */,
 				1A176E5815F1E36B584945EA /* CarPlayTemplateBuilder.swift in Sources */,
 				D9E4FDFB053D897F9E01791A /* CarPlayVideoPresentation.swift in Sources */,
@@ -457,6 +474,7 @@
 				C2366BC1D139429CE9C15ACC /* MediaServerProtocol.swift in Sources */,
 				3FB53F5CC4296D466EF92E09 /* MivuApp.swift in Sources */,
 				36436C5DF492C43FFD76C4E4 /* NetworkSpeedMonitor.swift in Sources */,
+				936244374F89AF0104D49572 /* PersonDetailView.swift in Sources */,
 				3B0C3F58792CD6E3A802DB28 /* PhoneSceneDelegate.swift in Sources */,
 				BDAA1CA065A53D5C9F848B9D /* PlaybackHistory.swift in Sources */,
 				46C79B1C0251D09C85459E0D /* PlaybackRouter.swift in Sources */,
@@ -475,6 +493,8 @@
 				46C7F8F5470B4213D2EA45A7 /* SettingsView.swift in Sources */,
 				360783D98894D9018D8F4F31 /* UPnPDevice.swift in Sources */,
 				E00B02082CD4C101A335DB09 /* URLSource.swift in Sources */,
+				D530DBC958D989125C323437 /* UnifiedRatingsAPIClient.swift in Sources */,
+				9DB3FE8796F363BDEA1CDD89 /* VideoDetailView.swift in Sources */,
 				881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -503,7 +523,8 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited) $(PROJECT_DIR)/Frameworks/MPV",
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks/MPV",
 					"\"Frameworks/MPV\"",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -546,11 +567,7 @@
 					"-liconv",
 					"-lc++",
 				);
-				OTHER_SWIFT_FLAGS = (
-					"$(inherited)",
-					"-Xcc",
-					"-DGLES_SILENCE_DEPRECATION=1",
-				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -DGLES_SILENCE_DEPRECATION=1";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kold.mivu;
 				PRODUCT_MODULE_NAME = Mivu;
 				PRODUCT_NAME = Mivu;
@@ -637,7 +654,8 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited) $(PROJECT_DIR)/Frameworks/MPV",
+					"$(inherited)",
+					"$(PROJECT_DIR)/Frameworks/MPV",
 					"\"Frameworks/MPV\"",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -680,11 +698,7 @@
 					"-liconv",
 					"-lc++",
 				);
-				OTHER_SWIFT_FLAGS = (
-					"$(inherited)",
-					"-Xcc",
-					"-DGLES_SILENCE_DEPRECATION=1",
-				);
+				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -DGLES_SILENCE_DEPRECATION=1";
 				PRODUCT_BUNDLE_IDENTIFIER = com.kold.mivu;
 				PRODUCT_MODULE_NAME = Mivu;
 				PRODUCT_NAME = Mivu;
