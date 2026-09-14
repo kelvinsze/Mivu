@@ -79,14 +79,17 @@ describe('DoubanProvider Unit Tests', () => {
     expect(identity.doubanId).toBe('1292052');
   });
 
-  it('does not accept an arbitrary first IMDb search result', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('<a href="/movie/subject/1292052/">unrelated result</a>', { status: 200 })
-    );
+  it('uses the first mobile-search result for an IMDb lookup', async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/search/?query=')) {
+        return Promise.resolve(new Response('<a href="/movie/subject/1292052/">肖申克的救赎</a>', { status: 200 }));
+      }
+      return Promise.resolve(new Response('<meta itemprop="ratingValue" content="9.7">', { status: 200 }));
+    });
     const provider = new DoubanProvider(true);
     const result = await provider.fetchRatings({ mediaType: 'movie', imdbId: 'tt0111161' });
-    expect(result.success).toBe(false);
-    expect(result.isNotFound).toBe(true);
+    expect(result.success).toBe(true);
+    expect(result.data?.subjectId).toBe('1292052');
   });
 
   it('handles item with no rating gracefully', async () => {

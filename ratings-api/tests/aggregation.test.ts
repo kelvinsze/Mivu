@@ -72,6 +72,35 @@ describe('Ratings Aggregation & Resilience Tests', () => {
     expect(identityRow.douban_match_source).toBe('auto');
   });
 
+  it('retries a Douban miss after MDBList enriches the identity metadata', async () => {
+    let imdbSearches = 0;
+    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('api.mdblist.com')) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ title: 'The Matrix', year: 1999, ratings: [{ source: 'imdb', value: 8.7 }] }), {
+            status: 200,
+          })
+        );
+      }
+      if (url.includes('m.douban.com/search')) {
+        imdbSearches += 1;
+        const html = imdbSearches === 1
+          ? '<p>no result</p>'
+          : '<a href="/movie/subject/1292052/" data-imdb-id="tt0133093">The Matrix</a>';
+        return Promise.resolve(new Response(html, { status: 200 }));
+      }
+      return Promise.resolve(
+        new Response('<meta itemprop="ratingValue" content="9.1"><meta itemprop="reviewCount" content="1000">', { status: 200 })
+      );
+    });
+
+    const result = await RatingsService.getRatings(env, { imdb: 'tt0133093' });
+
+    expect(result.status).toBe(200);
+    expect(result.response.ratings.douban?.score).toBe(9.1);
+    expect(imdbSearches).toBe(2);
+  });
+
   it('returns partial data when Douban fails but MDBList succeeds', async () => {
     const mockMdb = {
       title: 'Breaking Bad',

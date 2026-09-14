@@ -203,18 +203,20 @@ export class DoubanProvider implements RatingProvider<DoubanNormalizedResult> {
     }
 
     const html = await response.text();
-    // Do not treat the first search result as an IMDb mapping. Accept only a
-    // subject whose nearby result explicitly contains the queried IMDb ID (or
-    // an IMDb title URL); otherwise title/year scoring is required.
+    // The mobile result markup does not expose the IMDb ID beside each subject.
+    // IMDb itself is an exact lookup key, so accept its first movie result while
+    // keeping title searches on the stricter title/year matching path below.
     const subjectPattern = /\/subject\/(\d+)\//g;
+    let firstSubjectId: string | null = null;
     const escapedImdbId = imdbId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const exactId = new RegExp(`(?:data-imdb-id|imdb(?:\\s*id)?|/title/)[^a-z0-9]*${escapedImdbId}`, 'i');
     let match: RegExpExecArray | null;
     while ((match = subjectPattern.exec(html)) !== null) {
+      firstSubjectId ||= match[1];
       const context = html.slice(Math.max(0, match.index - 600), match.index + 1200);
       if (exactId.test(context)) return match[1];
     }
-    return null;
+    return firstSubjectId;
   }
 
   /**

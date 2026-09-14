@@ -197,11 +197,10 @@ export class RatingsService {
         : Promise.resolve({ success: true, data: doubanCached?.data ?? null }),
     ];
 
-    const [mdblistSettled, doubanSettled] = await Promise.allSettled(promises);
-
-    // Douban resolution mutates the in-flight identity. Capture it before the
-    // MDBList enrichment below can replace that object with a D1 snapshot.
-    const resolvedDoubanMapping =
+    const settled = await Promise.allSettled(promises);
+    const mdblistSettled = settled[0];
+    let doubanSettled = settled[1];
+    const initialDoubanMapping =
       !hadDoubanMapping && identity.doubanId
         ? {
             doubanId: identity.doubanId,
@@ -250,6 +249,29 @@ export class RatingsService {
         mdblistData = mdblistCached.data;
       }
     }
+
+    // The first Douban lookup runs in parallel for latency. When it cannot
+    // identify the item, retry once after MDBList has supplied title/year.
+    if (
+      mdblistData &&
+      doubanSettled.status === 'fulfilled' &&
+      !doubanSettled.value.success &&
+      doubanSettled.value.isNotFound &&
+      (identity.title || identity.originalTitle)
+    ) {
+      const [retry] = await Promise.allSettled([doubanProvider.fetchRatings(identity)]);
+      doubanSettled = retry;
+    }
+
+    const resolvedDoubanMapping =
+      initialDoubanMapping ??
+      (!hadDoubanMapping && identity.doubanId
+        ? {
+            doubanId: identity.doubanId,
+            confidence: identity.doubanMatchConfidence ?? 0,
+            source: identity.doubanMatchSource ?? 'auto',
+          }
+        : null);
 
     if (resolvedDoubanMapping) {
       identity = await IdentityService.persistDoubanMapping(env.DB, identity, resolvedDoubanMapping);
