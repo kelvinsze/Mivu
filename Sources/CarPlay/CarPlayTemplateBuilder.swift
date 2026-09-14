@@ -61,7 +61,7 @@ public final class CarPlayTemplateBuilder {
                             playItem = (try? await client.resolvePlaybackItem(historyItem)) ?? historyItem
                         }
                         await MainActor.run {
-                            PlayerService.shared.loadAndPlay(item: playItem)
+                            PlayerService.shared.loadAndPlay(item: playItem, requiresNativePlayback: true)
                         }
                     }
                     completion()
@@ -97,7 +97,7 @@ public final class CarPlayTemplateBuilder {
                 image: UIImage(systemName: "film.fill")
             )
             item.handler = { _, completion in
-                PlayerService.shared.loadAndPlay(item: sample)
+                PlayerService.shared.loadAndPlay(item: sample, requiresNativePlayback: true)
                 completion()
             }
             return item
@@ -220,7 +220,7 @@ public final class CarPlayTemplateBuilder {
                     item.handler = { _, completion in
                         Task {
                             let resolved = (try? await client.resolvePlaybackItem(video)) ?? video
-                            await MainActor.run { PlayerService.shared.loadAndPlay(item: resolved) }
+                            await MainActor.run { PlayerService.shared.loadAndPlay(item: resolved, requiresNativePlayback: true) }
                         }
                         completion()
                     }

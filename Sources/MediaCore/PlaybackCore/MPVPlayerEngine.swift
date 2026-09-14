@@ -34,6 +34,22 @@ private func mivuMPVCurrentHWDec(_ player: UnsafeMutableRawPointer?) -> UnsafePo
 private func mivuMPVSetSubtitleID(_ player: UnsafeMutableRawPointer?, _ id: Int32) -> Int32
 @_silgen_name("mivu_mpv_add_subtitle")
 private func mivuMPVAddSubtitle(_ player: UnsafeMutableRawPointer?, _ url: UnsafePointer<CChar>) -> Int32
+@_silgen_name("mivu_mpv_set_subtitle_scale")
+private func mivuMPVSetSubtitleScale(_ player: UnsafeMutableRawPointer?, _ scale: Double) -> Int32
+@_silgen_name("mivu_mpv_set_subtitle_delay")
+private func mivuMPVSetSubtitleDelay(_ player: UnsafeMutableRawPointer?, _ delay: Double) -> Int32
+@_silgen_name("mivu_mpv_set_subtitle_position")
+private func mivuMPVSetSubtitlePosition(_ player: UnsafeMutableRawPointer?, _ position: Int32) -> Int32
+@_silgen_name("mivu_mpv_set_secondary_subtitle_id")
+private func mivuMPVSetSecondarySubtitleID(_ player: UnsafeMutableRawPointer?, _ id: Int32) -> Int32
+@_silgen_name("mivu_mpv_set_voice_boost")
+private func mivuMPVSetVoiceBoost(_ player: UnsafeMutableRawPointer?, _ enabled: Int32) -> Int32
+@_silgen_name("mivu_mpv_frame_step")
+private func mivuMPVFrameStep(_ player: UnsafeMutableRawPointer?, _ forward: Int32) -> Int32
+@_silgen_name("mivu_mpv_screenshot")
+private func mivuMPVScreenshot(_ player: UnsafeMutableRawPointer?, _ filepath: UnsafePointer<CChar>, _ includeSubtitles: Int32) -> Int32
+@_silgen_name("mivu_mpv_set_resource_limits")
+private func mivuMPVSetResourceLimits(_ player: UnsafeMutableRawPointer?, _ maximumBitrateBps: Int32, _ cacheLimitBytes: Int64) -> Int32
 
 // Plan B: CoreVideo + AVSampleBufferDisplayLayer APIs
 @_silgen_name("mivu_mpv_init_renderer")
@@ -169,6 +185,13 @@ public final class MPVPlayerEngine: PlayerEngine {
     private var renderedFrameCount = 0
     private var webmSurfaceDiagnosticMilestones = Set<Int>()
     private var lastSurfaceAttachmentState: Bool?
+    private var isPortraitOrientation = false
+    private var currentUserScale: Double = 1.0
+    private var autoPortraitScaleEnabled: Bool = true
+    private var maximumBitrate: Double?
+    private var cacheLimitBytes: Int64 = 128 * 1024 * 1024
+    private var currentVolume: Float = 1.0
+    private var currentVolumeBoost: Float = 1.0
 
     public init() {
         var continuation: AsyncStream<PlaybackEngineEvent>.Continuation?
@@ -259,6 +282,9 @@ public final class MPVPlayerEngine: PlayerEngine {
     fileprivate func onFrameRendered() {
         renderedFrameCount += 1
         recordSurfaceDiagnostic("frames rendered=\(renderedFrameCount)")
+        if renderedFrameCount == 1 {
+            applySubtitleScale()
+        }
         if [1, 30, 90, 150].contains(renderedFrameCount) {
             recordWebMSurfaceDiagnostic("frame \(renderedFrameCount)", milestone: renderedFrameCount)
         }
@@ -364,6 +390,7 @@ public final class MPVPlayerEngine: PlayerEngine {
         webmSurfaceDiagnosticMilestones.removeAll()
         lastSurfaceAttachmentState = nil
         let startPaused: Int32 = 0
+        applySubtitleScale()
         startRenderTimer()
         updateSnapshot {
             $0.status = .loading
@@ -456,8 +483,8 @@ public final class MPVPlayerEngine: PlayerEngine {
 
     public func setVolume(_ volume: Float) {
         let clamped = max(0, min(volume, 1))
-        let handle = MPVControlHandle(handle)
-        controlQueue.async { _ = mivuMPVSetVolume(handle.rawValue, Double(clamped)) }
+        currentVolume = clamped
+        applyEffectiveVolume()
         updateSnapshot { $0.volume = clamped }
     }
 
@@ -474,6 +501,22 @@ public final class MPVPlayerEngine: PlayerEngine {
             return
         }
         applySubtitleTrack(track)
+    }
+
+    public func updatePlaybackResourceLimits(maximumBitrate: Double?, cacheLimitBytes: Int64) {
+        self.maximumBitrate = maximumBitrate
+        self.cacheLimitBytes = max(16 * 1024 * 1024, cacheLimitBytes)
+        applyResourceLimits()
+    }
+
+    private func applyResourceLimits() {
+        guard isOperational, let handle else { return }
+        let bitrateBps = maximumBitrate.map { Int32(min($0, Double(Int32.max))) } ?? 0
+        let cacheLimitBytes = cacheLimitBytes
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetResourceLimits(controlHandle.rawValue, bitrateBps, cacheLimitBytes)
+        }
     }
 
     private func applySubtitleTrack(_ track: SubtitleTrack?) {
@@ -502,6 +545,135 @@ public final class MPVPlayerEngine: PlayerEngine {
                 }
             }
         }
+    }
+
+    public func updateSubtitlePresentation(isPortrait: Bool) {
+        updateSubtitlePresentation(
+            isPortrait: isPortrait,
+            userScale: currentUserScale,
+            autoPortraitScale: autoPortraitScaleEnabled
+        )
+    }
+
+    public func updateSubtitlePresentation(isPortrait: Bool, userScale: Double, autoPortraitScale: Bool) {
+        let changed = isPortraitOrientation != isPortrait
+            || abs(currentUserScale - userScale) > 0.001
+            || autoPortraitScaleEnabled != autoPortraitScale
+        guard changed else { return }
+        isPortraitOrientation = isPortrait
+        currentUserScale = userScale
+        autoPortraitScaleEnabled = autoPortraitScale
+        applySubtitleScale()
+    }
+
+    private func applySubtitleScale() {
+        guard isOperational, let handle else { return }
+        var width: Int32 = 0
+        var height: Int32 = 0
+        _ = mivuMPVGetVideoSize(handle, &width, &height)
+        let scale = Self.calculateSubtitleScale(
+            userScale: currentUserScale,
+            isPortrait: isPortraitOrientation,
+            autoPortraitScale: autoPortraitScaleEnabled,
+            videoWidth: Int(width),
+            videoHeight: Int(height)
+        )
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetSubtitleScale(controlHandle.rawValue, scale)
+        }
+    }
+
+    public func setSubtitleDelay(_ delay: Double) {
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetSubtitleDelay(controlHandle.rawValue, delay)
+        }
+    }
+
+    public func setSubtitleVerticalPosition(_ pos: Int) {
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetSubtitlePosition(controlHandle.rawValue, Int32(pos))
+        }
+    }
+
+    public func setSecondarySubtitleTrack(_ track: SubtitleTrack?) {
+        guard let track = track, let trackID = Int32(track.id) else {
+            let controlHandle = MPVControlHandle(handle)
+            controlQueue.async {
+                _ = mivuMPVSetSecondarySubtitleID(controlHandle.rawValue, 0)
+            }
+            return
+        }
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetSecondarySubtitleID(controlHandle.rawValue, trackID)
+        }
+    }
+
+    public func setVoiceBoost(_ enabled: Bool) {
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetVoiceBoost(controlHandle.rawValue, enabled ? 1 : 0)
+        }
+    }
+
+    public func setVolumeBoost(_ boost: Float) {
+        let clamped = max(1.0, min(2.0, boost))
+        currentVolumeBoost = clamped
+        applyEffectiveVolume()
+    }
+
+    private func applyEffectiveVolume() {
+        let effective = Double(currentVolume * currentVolumeBoost)
+        let handle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVSetVolume(handle.rawValue, effective)
+        }
+    }
+
+    public func stepFrame(forward: Bool) {
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.async {
+            _ = mivuMPVFrameStep(controlHandle.rawValue, forward ? 1 : 0)
+        }
+    }
+
+    public func takeSnapshot(toFile path: String, includeSubtitles: Bool) -> Bool {
+        guard isOperational, let handle else { return false }
+        var result: Int32 = -1
+        let controlHandle = MPVControlHandle(handle)
+        controlQueue.sync {
+            result = mivuMPVScreenshot(controlHandle.rawValue, path, includeSubtitles ? 1 : 0)
+        }
+        return result == 0
+    }
+
+    nonisolated static func calculateSubtitleScale(
+        userScale: Double,
+        isPortrait: Bool,
+        autoPortraitScale: Bool,
+        videoWidth: Int,
+        videoHeight: Int
+    ) -> Double {
+        let clampedUserScale = max(0.50, min(2.50, userScale))
+        // When in portrait and auto-adaptation is on, gently adjust by 0.85x so text stays legible
+        // while preventing excessive vertical blockage on small portrait frames.
+        let portraitFactor: Double = (isPortrait && autoPortraitScale) ? 0.85 : 1.0
+        var scale = clampedUserScale * portraitFactor
+
+        if videoWidth > 0 && videoHeight > 0 && videoHeight > videoWidth {
+            // Vertical video (e.g. 9:16): mpv calculates font size relative to video height (height / 720),
+            // which severely over-scales text on narrow width screens.
+            // Scale down to normalize font width relative to video width.
+            let aspect = Double(videoWidth) / Double(videoHeight)
+            let referenceAspect = 16.0 / 9.0
+            let ratio = aspect / referenceAspect
+            let verticalCorrection = max(0.50, min(1.0, sqrt(ratio) * 1.15))
+            scale *= verticalCorrection
+        }
+        return max(0.30, min(3.0, scale))
     }
 
     private func pollEventsOnControlQueue() async {
@@ -552,6 +724,7 @@ public final class MPVPlayerEngine: PlayerEngine {
                 SSDPService.shared.recordPlaybackDebug("MPV_HWDEC active=\(hwdec)")
                 recordWebMSurfaceDiagnostic("loaded", milestone: -1)
                 applySubtitleTrack(pendingSubtitleTrack)
+                applySubtitleScale()
                 updateSnapshot {
                     $0.status = .playing
                     $0.errorMessage = nil

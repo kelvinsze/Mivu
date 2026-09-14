@@ -33,6 +33,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         logger.info("CarPlay connected to vehicle multimedia unit.")
         self.interfaceController = interfaceController
         self.isConnected = true
+        PlayerService.shared.requireNativePlaybackForExternalPresentation(origin: "CarPlay.didConnect")
 
         // CarPlay needs a root template before this callback returns.
         presentInitialRootTemplate(using: interfaceController)

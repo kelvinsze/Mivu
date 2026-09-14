@@ -24,6 +24,8 @@ public final class AVPlayerEngine: PlayerEngine {
     private var notificationTokens: [NSObjectProtocol] = []
     private var pendingSubtitleTrack: SubtitleTrack?
     private var smbResourceLoader: SMBAssetResourceLoader?
+    private var maximumBitrate: Double?
+    private var cacheLimitBytes: Int64 = 128 * 1024 * 1024
 
     public init(player: AVPlayer = AVPlayer()) {
         var continuation: AsyncStream<PlaybackEngineEvent>.Continuation?
@@ -66,6 +68,7 @@ public final class AVPlayerEngine: PlayerEngine {
         }
 
         let playerItem = AVPlayerItem(asset: asset)
+        applyResourceLimits(to: playerItem)
         playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         installItemObservers(for: playerItem)
 
@@ -75,6 +78,9 @@ public final class AVPlayerEngine: PlayerEngine {
             $0.duration = 0
             $0.bufferedTime = 0
             $0.errorMessage = nil
+            $0.audioTracks = []
+            $0.selectedAudioTrackID = nil
+            $0.chapters = []
         }
 
         player.replaceCurrentItem(with: playerItem)
@@ -114,6 +120,9 @@ public final class AVPlayerEngine: PlayerEngine {
             $0.duration = 0
             $0.bufferedTime = 0
             $0.errorMessage = nil
+            $0.audioTracks = []
+            $0.selectedAudioTrackID = nil
+            $0.chapters = []
         }
     }
 
@@ -167,6 +176,42 @@ public final class AVPlayerEngine: PlayerEngine {
                   self.pendingSubtitleTrack == track else { return }
             self.applySubtitleTrack(track, to: item, in: group)
         }
+    }
+
+    public func setAudioTrack(_ track: AudioTrack?) {
+        guard let track, let item = player.currentItem else { return }
+        let asset = item.asset
+        Task { @MainActor [weak self, weak item] in
+            guard let self, let item, self.player.currentItem === item else { return }
+            guard let group = try? await asset.loadMediaSelectionGroup(for: .audible) else { return }
+            let index = Int(track.id) ?? -1
+            if (0..<group.options.count).contains(index) {
+                let option = group.options[index]
+                item.select(option, in: group)
+                self.updateSnapshot {
+                    $0.selectedAudioTrackID = track.id
+                }
+            }
+        }
+    }
+
+    public func updatePlaybackResourceLimits(maximumBitrate: Double?, cacheLimitBytes: Int64) {
+        self.maximumBitrate = maximumBitrate
+        self.cacheLimitBytes = max(16 * 1024 * 1024, cacheLimitBytes)
+        if let item = player.currentItem {
+            applyResourceLimits(to: item)
+        }
+    }
+
+    private func applyResourceLimits(to item: AVPlayerItem) {
+        item.preferredPeakBitRate = maximumBitrate ?? 0
+
+        // AVFoundation exposes a duration rather than a byte-exact cache cap.
+        // Convert the selected byte budget using the selected rate, or a
+        // conservative 10 Mbps baseline when no rate is selected.
+        let referenceBitrate = maximumBitrate ?? 10_000_000
+        let seconds = Double(cacheLimitBytes) * 8 / referenceBitrate
+        item.preferredForwardBufferDuration = min(max(seconds, 5), 180)
     }
 
     private func applySubtitleTrack(_ track: SubtitleTrack?, to item: AVPlayerItem, in group: AVMediaSelectionGroup) {
@@ -342,6 +387,50 @@ public final class AVPlayerEngine: PlayerEngine {
         switch item.status {
         case .readyToPlay:
             if let pendingSubtitleTrack { setSubtitleTrack(pendingSubtitleTrack) }
+            let asset = item.asset
+            Task { @MainActor [weak self, weak item] in
+                guard let self, let item, self.player.currentItem === item else { return }
+                var tracks: [AudioTrack] = []
+                var selectedID: String?
+                if let group = try? await asset.loadMediaSelectionGroup(for: .audible) {
+                    let selectedOption = item.currentMediaSelection.selectedMediaOption(in: group)
+                    for (idx, option) in group.options.enumerated() {
+                        let id = "\(idx)"
+                        let lang = option.extendedLanguageTag ?? option.locale?.identifier
+                        let title = option.displayName
+                        if option == selectedOption {
+                            selectedID = id
+                        }
+                        tracks.append(AudioTrack(id: id, language: lang, title: title, format: option.mediaType.rawValue, isDefault: idx == 0))
+                    }
+                    if selectedID == nil, let first = tracks.first {
+                        selectedID = first.id
+                    }
+                }
+
+                var parsedChapters: [PlaybackChapter] = []
+                if let chapterGroups = try? await asset.loadChapterMetadataGroups(bestMatchingPreferredLanguages: Locale.preferredLanguages) {
+                    for (idx, group) in chapterGroups.enumerated() {
+                        let start = CMTimeGetSeconds(group.timeRange.start)
+                        let dur = CMTimeGetSeconds(group.timeRange.duration)
+                        guard start.isFinite && !start.isNaN else { continue }
+                        var name = "第 \(idx + 1) 章"
+                        for metaItem in group.items {
+                            if let stringVal = try? await metaItem.load(.stringValue), !stringVal.isEmpty {
+                                name = stringVal
+                                break
+                            }
+                        }
+                        parsedChapters.append(PlaybackChapter(id: "\(idx)", title: name, startTime: max(0, start), duration: max(0, dur.isFinite ? dur : 0)))
+                    }
+                }
+
+                self.updateSnapshot {
+                    $0.audioTracks = tracks
+                    $0.selectedAudioTrackID = selectedID
+                    $0.chapters = parsedChapters
+                }
+            }
             updateSnapshot {
                 $0.status = .playing
                 if safeDuration > 0 {

@@ -18,6 +18,7 @@ repository by default.
 | FriBidi | v1.0.16 (`9123b467f080c7ea15509bd7cbd457817544a7e1`) | <https://github.com/fribidi/fribidi> | `5a1d187a33daa58fcee2ad77f0eb9d136dd6fa4096239199ba31e850d397e8a8` |
 | fast_float (libplacebo submodule) | commit `2b2395f9ac836ffca6404424bcc252bff7aa80e4` | <https://github.com/fastfloat/fast_float> | `230d20e4e4ac1f6a9df92c4d746c6ec536cdb0c085bc8635d4b88cead5dc22cb` |
 | Vulkan-Headers (libplacebo submodule) | commit `d732b2de303ce505169011d438178191136bfb00` | <https://github.com/KhronosGroup/Vulkan-Headers> | `570f9ae1e65466dbaf5fcab667abd079dd0a61c4ab86cf535efd492bf70a5b74` |
+| WenQuanYi Micro Hei | bundled `subfont.ttf` | <http://wenq.org/> | `e4bca8df123ce01b104780f576ea1a58b9a5ff1662a91124b6d3180cb6c88212` |
 
 The source archives are the tagged upstream GitHub/VideoLAN archives. No source
 patch is currently applied. The mpv v0.40.0 release is LGPL when configured with
@@ -65,3 +66,18 @@ backend, and the OpenGL ES Render API surface remains enabled.
 A successful archive build does not establish decoder coverage, render
 correctness, AirPlay/PiP/CarPlay compatibility, or App Store license
 compliance; those remain device and distribution acceptance work.
+
+## Distribution gate
+
+The generated XCFramework is a single **static** archive that combines mpv,
+FFmpeg, libass, and their dependencies. It must not be distributed until the
+release owner completes the checklist in
+[`docs/MPV_DISTRIBUTION_REVIEW.md`](docs/MPV_DISTRIBUTION_REVIEW.md). In
+particular, `-Dgpl=false` and `--disable-gpl --disable-nonfree` are build
+inputs, not a legal conclusion: the exact archives, source offer, notices,
+relinking analysis, and all transitive licenses must be reviewed against the
+release binary.
+
+The bundled WenQuanYi Micro Hei font identifies itself as Apache-2.0. Its
+copyright and license text must be included in the shipped third-party notices
+before release.

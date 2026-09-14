@@ -20,6 +20,73 @@ public protocol PlayerEngine: AnyObject {
     func setVolume(_ volume: Float)
     func setMuted(_ isMuted: Bool)
     func setSubtitleTrack(_ track: SubtitleTrack?)
+    func setSubtitleDelay(_ delay: Double)
+    func setSubtitleVerticalPosition(_ pos: Int)
+    func setSecondarySubtitleTrack(_ track: SubtitleTrack?)
+    func setAudioTrack(_ track: AudioTrack?)
+    func setVoiceBoost(_ enabled: Bool)
+    func setVolumeBoost(_ boost: Float)
+    func stepFrame(forward: Bool)
+    func updateSubtitlePresentation(isPortrait: Bool)
+    func updateSubtitlePresentation(isPortrait: Bool, userScale: Double, autoPortraitScale: Bool)
+    func updatePlaybackResourceLimits(maximumBitrate: Double?, cacheLimitBytes: Int64)
+    func takeSnapshot(toFile path: String, includeSubtitles: Bool) -> Bool
+}
+
+public extension PlayerEngine {
+    func setSubtitleDelay(_ delay: Double) {}
+
+    func setSubtitleVerticalPosition(_ pos: Int) {}
+
+    func setSecondarySubtitleTrack(_ track: SubtitleTrack?) {}
+
+    func setAudioTrack(_ track: AudioTrack?) {}
+
+    func setVoiceBoost(_ enabled: Bool) {}
+
+    func setVolumeBoost(_ boost: Float) {}
+
+    func stepFrame(forward: Bool) {}
+
+    func updateSubtitlePresentation(isPortrait: Bool) {
+        updateSubtitlePresentation(isPortrait: isPortrait, userScale: 1.0, autoPortraitScale: true)
+    }
+
+    func updateSubtitlePresentation(isPortrait: Bool, userScale: Double, autoPortraitScale: Bool) {}
+
+    func updatePlaybackResourceLimits(maximumBitrate: Double?, cacheLimitBytes: Int64) {}
+
+    func takeSnapshot(toFile path: String, includeSubtitles: Bool) -> Bool { false }
+}
+
+public struct AudioTrack: Identifiable, Codable, Equatable, Sendable {
+    public let id: String
+    public let language: String?
+    public let title: String?
+    public let format: String?
+    public let isDefault: Bool
+
+    public init(id: String, language: String? = nil, title: String? = nil, format: String? = nil, isDefault: Bool = false) {
+        self.id = id
+        self.language = language
+        self.title = title
+        self.format = format
+        self.isDefault = isDefault
+    }
+}
+
+public struct PlaybackChapter: Identifiable, Codable, Equatable, Sendable {
+    public let id: String
+    public let title: String
+    public let startTime: TimeInterval
+    public let duration: TimeInterval
+
+    public init(id: String, title: String, startTime: TimeInterval, duration: TimeInterval) {
+        self.id = id
+        self.title = title
+        self.startTime = startTime
+        self.duration = duration
+    }
 }
 
 public enum PlaybackRenderSurfaceKind: String, Equatable, Sendable {
@@ -38,6 +105,9 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
     public var isMuted: Bool
     public var volume: Float
     public var errorMessage: String?
+    public var audioTracks: [AudioTrack]
+    public var selectedAudioTrackID: String?
+    public var chapters: [PlaybackChapter]
 
     public init(
         status: PlaybackStatus = .idle,
@@ -47,7 +117,10 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
         playbackRate: Float = 1.0,
         isMuted: Bool = false,
         volume: Float = 1.0,
-        errorMessage: String? = nil
+        errorMessage: String? = nil,
+        audioTracks: [AudioTrack] = [],
+        selectedAudioTrackID: String? = nil,
+        chapters: [PlaybackChapter] = []
     ) {
         self.status = status
         self.currentTime = currentTime
@@ -57,6 +130,9 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
         self.isMuted = isMuted
         self.volume = volume
         self.errorMessage = errorMessage
+        self.audioTracks = audioTracks
+        self.selectedAudioTrackID = selectedAudioTrackID
+        self.chapters = chapters
     }
 }
 

@@ -42,14 +42,14 @@ final class PlaybackCoreTests: XCTestCase {
         XCTAssertEqual(PlaybackRouter.route(for: request, mpvAvailable: false), .native)
     }
 
-    func testPlaybackRouterUsesMPVForHEVCInsideMP4() {
+    func testPlaybackRouterKeepsNativeContainerOnAVPlayerEvenWithNonNativeCodec() {
         let request = PlaybackRequest(
             url: URL(string: "https://media.test/video.mp4")!,
             containerHint: "mp4",
             videoCodecHint: "hevc"
         )
 
-        XCTAssertEqual(PlaybackRouter.route(for: request, mpvAvailable: true), .mpv)
+        XCTAssertEqual(PlaybackRouter.route(for: request, mpvAvailable: true), .native)
         XCTAssertEqual(PlaybackRouter.route(for: request, mpvAvailable: false), .native)
     }
 

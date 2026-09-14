@@ -36,7 +36,11 @@ public final class AVTransportService: @unchecked Sendable {
             )
 
             await MainActor.run {
-                PlayerService.shared.loadAndPlay(item: item, origin: "SOAP.SetAVTransportURI")
+                PlayerService.shared.loadAndPlay(
+                    item: item,
+                    origin: "SOAP.SetAVTransportURI",
+                    requiresNativePlayback: CarPlaySceneDelegate.shared?.isConnected == true
+                )
                 CarPlaySceneDelegate.shared?.presentIncomingPlayback()
             }
 

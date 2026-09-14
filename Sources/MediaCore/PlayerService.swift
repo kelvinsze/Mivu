@@ -3,6 +3,7 @@ import AVFoundation
 import MediaPlayer
 import OSLog
 import Combine
+import UIKit
 
 private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "PlayerService")
 
@@ -17,9 +18,47 @@ public final class PlayerService: ObservableObject {
     @Published public private(set) var renderSurfaceKind: PlaybackRenderSurfaceKind = .nativeAVPlayer
     @Published public var videoGravity: AVLayerVideoGravity = .resizeAspect
     @Published public var selectedSpeed: Float = 1.0
+    public static let subtitleUserScaleKey = "mivu_subtitle_user_scale"
+    public static let subtitleAutoPortraitKey = "mivu_subtitle_auto_portrait"
+    public static let subtitleDelayKey = "mivu_subtitle_delay"
+    public static let subtitleVerticalOffsetKey = "mivu_subtitle_vertical_offset"
+    public static let playbackRateLimitMbpsKey = "mivu_playback_rate_limit_mbps"
+    public static let playbackCacheLimitMBKey = "mivu_playback_cache_limit_mb"
+    public static let rewindOnResumeSecondsKey = "mivu_rewind_on_resume_seconds"
+    public static let skipIntroSecondsKey = "mivu_skip_intro_seconds"
+    public static let skipOutroSecondsKey = "mivu_skip_outro_seconds"
+    public static let voiceBoostKey = "mivu_voice_boost_enabled"
+    public static let volumeBoostKey = "mivu_volume_boost"
+
     @Published public private(set) var subtitleTracks: [SubtitleTrack] = []
     @Published public private(set) var selectedSubtitleTrack: SubtitleTrack?
+    @Published public private(set) var secondarySubtitleTrack: SubtitleTrack?
+    @Published public private(set) var audioTracks: [AudioTrack] = []
+    @Published public private(set) var selectedAudioTrack: AudioTrack?
+    @Published public private(set) var subtitleUserScale: Double
+    @Published public private(set) var subtitleAutoPortraitScale: Bool
+    @Published public private(set) var subtitleDelay: Double = 0.0
+    @Published public private(set) var subtitleVerticalOffset: Int = 100
+    @Published public private(set) var chapters: [PlaybackChapter] = []
+    @Published public private(set) var currentPlaylist: [MediaItem] = []
+    @Published public private(set) var playbackRateLimitMbps: Int
+    @Published public private(set) var playbackCacheLimitMB: Int
     @Published public private(set) var downloadSpeed: Double = 0
+    @Published public private(set) var rewindOnResumeSeconds: Double
+    @Published public private(set) var skipIntroSeconds: Double
+    @Published public private(set) var skipOutroSeconds: Double
+    @Published public private(set) var isVoiceBoostEnabled: Bool
+    @Published public private(set) var volumeBoost: Float
+    @Published public private(set) var isAudioOnlyMode: Bool = false
+    @Published public private(set) var showSkipOutroPrompt: Bool = false
+
+    // AB Repeat
+    @Published public private(set) var repeatPointA: TimeInterval? = nil
+    @Published public private(set) var repeatPointB: TimeInterval? = nil
+    @Published public private(set) var isABRepeatActive: Bool = false
+
+    private var lastPauseTimestamp: Date?
+    private var hasSkippedIntroForCurrentItem = false
 
     private var telemetryTask: Task<Void, Never>?
 
@@ -39,20 +78,65 @@ public final class PlayerService: ObservableObject {
     private var castPlaybackStartedAt: Date?
     private var mpvFallbackAttempted = false
     private var mpvInitialLoadRetryAttempted = false
+    private var requiresNativePlayback = false
+    private var isPortraitOrientation = false
 
     public init() {
+        let savedScale = UserDefaults.standard.double(forKey: Self.subtitleUserScaleKey)
+        let initialScale = savedScale > 0 ? savedScale : 1.0
+        self.subtitleUserScale = initialScale
+        if let savedAutoPortrait = UserDefaults.standard.object(forKey: Self.subtitleAutoPortraitKey) as? Bool {
+            self.subtitleAutoPortraitScale = savedAutoPortrait
+        } else {
+            self.subtitleAutoPortraitScale = true
+        }
+        self.subtitleDelay = UserDefaults.standard.double(forKey: Self.subtitleDelayKey)
+        let savedSubPos = UserDefaults.standard.integer(forKey: Self.subtitleVerticalOffsetKey)
+        self.subtitleVerticalOffset = (savedSubPos >= 50 && savedSubPos <= 100) ? savedSubPos : 100
+
+        let savedRateLimit = UserDefaults.standard.integer(forKey: Self.playbackRateLimitMbpsKey)
+        self.playbackRateLimitMbps = [0, 5, 10, 20, 50].contains(savedRateLimit) ? savedRateLimit : 0
+        let savedCacheLimit = UserDefaults.standard.integer(forKey: Self.playbackCacheLimitMBKey)
+        self.playbackCacheLimitMB = [32, 64, 128, 256, 512].contains(savedCacheLimit) ? savedCacheLimit : 128
+
+        let savedRewind = UserDefaults.standard.object(forKey: Self.rewindOnResumeSecondsKey) as? Double ?? 3.0
+        self.rewindOnResumeSeconds = savedRewind
+        self.skipIntroSeconds = UserDefaults.standard.double(forKey: Self.skipIntroSecondsKey)
+        self.skipOutroSeconds = UserDefaults.standard.double(forKey: Self.skipOutroSecondsKey)
+        self.isVoiceBoostEnabled = UserDefaults.standard.bool(forKey: Self.voiceBoostKey)
+        let savedVolBoost = UserDefaults.standard.float(forKey: Self.volumeBoostKey)
+        self.volumeBoost = savedVolBoost >= 1.0 && savedVolBoost <= 2.0 ? savedVolBoost : 1.0
+
         let avEngine = AVPlayerEngine()
         let candidateMPV = MPVPlayerEngine()
         self.nativeEngine = avEngine
         self.mpvEngine = candidateMPV.isOperational ? candidateMPV : nil
         self.engine = avEngine
         self.player = avEngine.player
+        applyEnginePreferences(to: self.engine)
 
         setupAudioSession()
         setupRemoteCommands()
         setupNotifications()
         observeEngineEvents()
         startTelemetryLoop()
+    }
+
+    private func applyEnginePreferences(to targetEngine: PlayerEngine) {
+        targetEngine.updateSubtitlePresentation(
+            isPortrait: isPortraitOrientation,
+            userScale: subtitleUserScale,
+            autoPortraitScale: subtitleAutoPortraitScale
+        )
+        targetEngine.updatePlaybackResourceLimits(
+            maximumBitrate: playbackMaximumBitrate,
+            cacheLimitBytes: playbackCacheLimitBytes
+        )
+        targetEngine.setSubtitleDelay(subtitleDelay)
+        targetEngine.setSubtitleVerticalPosition(subtitleVerticalOffset)
+        targetEngine.setVoiceBoost(isVoiceBoostEnabled)
+        targetEngine.setVolumeBoost(volumeBoost)
+        targetEngine.setSecondarySubtitleTrack(secondarySubtitleTrack)
     }
 
     /// The active MPV adapter is exposed only for the MPV surface view. All
@@ -84,10 +168,18 @@ public final class PlayerService: ObservableObject {
 
     // MARK: - Playback Control
 
-    public func loadAndPlay(item: MediaItem, origin: String = #function, recordHistory: Bool = true) {
+    /// Routes external-display paths through AVPlayer until their MPV compatibility
+    /// has been proven on device (currently AirPlay, PiP and CarPlay).
+    public func loadAndPlay(
+        item: MediaItem,
+        origin: String = #function,
+        recordHistory: Bool = true,
+        requiresNativePlayback: Bool = false
+    ) {
         setupAudioSession()
         mpvFallbackAttempted = false
         mpvInitialLoadRetryAttempted = false
+        self.requiresNativePlayback = requiresNativePlayback
         subtitleTracks = item.subtitleTracks ?? []
         let subtitleKey = subtitlePreferenceKey(for: item)
         let savedSubtitleID = UserDefaults.standard.string(forKey: subtitleKey)
@@ -96,10 +188,7 @@ public final class PlayerService: ObservableObject {
         selectedSubtitleTrack = savedSubtitleID == ""
             ? nil
             : subtitleTracks.first { $0.id == savedSubtitleID } ?? subtitleTracks.first(where: \.isDefault)
-        // Start through MPV when the initial selection is an external subtitle.
-        // This avoids loading Native first, then immediately replacing it and
-        // producing a visible playback hitch.
-        selectEngine(for: item, forceMPV: selectedSubtitleTrack?.isEmbedded == false)
+        selectEngine(for: item, requiresNativePlayback: requiresNativePlayback)
         if let mpvEngine = engine as? MPVPlayerEngine {
             _ = mpvEngine.prepareSurfaceForLoading()
         }
@@ -121,8 +210,21 @@ public final class PlayerService: ObservableObject {
         lastProgressReportDate = .distantPast
         lastHistoryUpdateDate = .distantPast
         session.status = .loading
+        lastPauseTimestamp = nil
+        hasSkippedIntroForCurrentItem = false
+        showSkipOutroPrompt = false
+        clearABRepeat()
+
         let resumePosition = max(0, item.resumePosition ?? 0)
-        session.currentTime = resumePosition
+        let effectiveStartPosition: TimeInterval
+        if skipIntroSeconds > 0 && resumePosition < 5.0 {
+            effectiveStartPosition = skipIntroSeconds
+            hasSkippedIntroForCurrentItem = true
+        } else {
+            effectiveStartPosition = resumePosition
+        }
+
+        session.currentTime = effectiveStartPosition
         session.duration = item.duration ?? 0
         session.bufferedTime = 0
         session.errorMessage = nil
@@ -132,7 +234,18 @@ public final class PlayerService: ObservableObject {
         // The AVFoundation lifecycle and item observers now live behind the engine seam.
         traceCast("REPLACE_ITEM")
         engine.setPlaybackRate(selectedSpeed)
-        engine.load(item.playbackRequest)
+        var request = item.playbackRequest
+        if effectiveStartPosition > 0 {
+            request = PlaybackRequest(
+                url: request.url,
+                headers: request.headers,
+                startPosition: effectiveStartPosition,
+                containerHint: request.containerHint,
+                videoCodecHint: request.videoCodecHint,
+                subtitleTracks: request.subtitleTracks
+            )
+        }
+        engine.load(request)
         engine.setSubtitleTrack(selectedSubtitleTrack)
 
         // Record into history
@@ -145,6 +258,11 @@ public final class PlayerService: ObservableObject {
     public func play() {
         guard session.currentItem != nil else { return }
         traceCast("PLAY")
+        if let pauseTime = lastPauseTimestamp, Date().timeIntervalSince(pauseTime) >= 5.0, rewindOnResumeSeconds > 0 {
+            let target = max(0, session.currentTime - rewindOnResumeSeconds)
+            seek(to: target)
+        }
+        lastPauseTimestamp = nil
         engine.setPlaybackRate(selectedSpeed)
         engine.play()
         session.status = .playing
@@ -153,6 +271,7 @@ public final class PlayerService: ObservableObject {
 
     public func pause() {
         traceCast("PAUSE")
+        lastPauseTimestamp = Date()
         updateHistoryProgress(force: true)
         engine.pause()
         session.status = .paused
@@ -171,6 +290,12 @@ public final class PlayerService: ObservableObject {
         session.currentTime = 0
         session.duration = 0
         session.bufferedTime = 0
+        audioTracks = []
+        selectedAudioTrack = nil
+        chapters = []
+        clearABRepeat()
+        showSkipOutroPrompt = false
+        lastPauseTimestamp = nil
         stopTelemetryLoop()
         updateNowPlayingInfo()
     }
@@ -181,6 +306,22 @@ public final class PlayerService: ObservableObject {
         } else {
             play()
         }
+    }
+
+    /// MPV has no accepted AirPlay/PiP/CarPlay compatibility result yet. When
+    /// an external presentation route is requested, restart through AVPlayer
+    /// at the current position instead of exposing an untested MPV surface.
+    public func requireNativePlaybackForExternalPresentation(origin: String) {
+        guard engine is MPVPlayerEngine, let item = session.currentItem else { return }
+        SSDPService.shared.recordPlaybackDebug(
+            "EXTERNAL_PRESENTATION native_required origin=\(origin) position=\(traceTime(session.currentTime))"
+        )
+        loadAndPlay(
+            item: item,
+            origin: origin,
+            recordHistory: false,
+            requiresNativePlayback: true
+        )
     }
 
     public func seek(to seconds: TimeInterval, origin: String = #function) {
@@ -219,6 +360,140 @@ public final class PlayerService: ObservableObject {
         engine.setPlaybackRate(rate)
     }
 
+    public func setPlaybackRateTemporary(_ rate: Float) {
+        engine.setPlaybackRate(rate)
+    }
+
+    public func restorePlaybackRate() {
+        engine.setPlaybackRate(selectedSpeed)
+    }
+
+    public func setAudioTrack(_ track: AudioTrack?) {
+        selectedAudioTrack = track
+        engine.setAudioTrack(track)
+    }
+
+    public func setSubtitleDelay(_ delay: Double) {
+        let clamped = max(-30.0, min(30.0, delay))
+        subtitleDelay = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.subtitleDelayKey)
+        engine.setSubtitleDelay(clamped)
+    }
+
+    public func setSubtitleVerticalOffset(_ pos: Int) {
+        let clamped = max(50, min(100, pos))
+        subtitleVerticalOffset = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.subtitleVerticalOffsetKey)
+        engine.setSubtitleVerticalPosition(clamped)
+    }
+
+    public func setSecondarySubtitleTrack(_ track: SubtitleTrack?) {
+        secondarySubtitleTrack = track
+        engine.setSecondarySubtitleTrack(track)
+    }
+
+    public func setRewindOnResumeSeconds(_ seconds: Double) {
+        rewindOnResumeSeconds = seconds
+        UserDefaults.standard.set(seconds, forKey: Self.rewindOnResumeSecondsKey)
+    }
+
+    public func setSkipIntroSeconds(_ seconds: Double) {
+        skipIntroSeconds = max(0, seconds)
+        UserDefaults.standard.set(skipIntroSeconds, forKey: Self.skipIntroSecondsKey)
+    }
+
+    public func setSkipOutroSeconds(_ seconds: Double) {
+        skipOutroSeconds = max(0, seconds)
+        UserDefaults.standard.set(skipOutroSeconds, forKey: Self.skipOutroSecondsKey)
+    }
+
+    public func setVoiceBoost(_ enabled: Bool) {
+        isVoiceBoostEnabled = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.voiceBoostKey)
+        engine.setVoiceBoost(enabled)
+    }
+
+    public func setVolumeBoost(_ boost: Float) {
+        let clamped = max(1.0, min(2.0, boost))
+        volumeBoost = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.volumeBoostKey)
+        engine.setVolumeBoost(clamped)
+    }
+
+    public func setAudioOnlyMode(_ enabled: Bool) {
+        isAudioOnlyMode = enabled
+    }
+
+    // AB Repeat
+    public func setRepeatPointA() {
+        repeatPointA = session.currentTime
+        if let b = repeatPointB, b <= session.currentTime {
+            repeatPointB = nil
+            isABRepeatActive = false
+        }
+    }
+
+    public func setRepeatPointB() {
+        guard let a = repeatPointA, session.currentTime > a else { return }
+        repeatPointB = session.currentTime
+        isABRepeatActive = true
+    }
+
+    public func clearABRepeat() {
+        repeatPointA = nil
+        repeatPointB = nil
+        isABRepeatActive = false
+    }
+
+    // Step Frame
+    public func stepFrame(forward: Bool) {
+        if session.status == .playing {
+            pause()
+        }
+        engine.stepFrame(forward: forward)
+        if engine === nativeEngine {
+            player.currentItem?.step(byCount: forward ? 1 : -1)
+        }
+    }
+
+    public func takeSnapshot(toFile path: String, includeSubtitles: Bool = false) -> Bool {
+        engine.takeSnapshot(toFile: path, includeSubtitles: includeSubtitles)
+    }
+
+    public var hasNextInPlaylist: Bool {
+        guard let currentItem = session.currentItem,
+              let index = currentPlaylist.firstIndex(where: { $0.id == currentItem.id }),
+              index + 1 < currentPlaylist.count else { return false }
+        return true
+    }
+
+    public var hasPreviousInPlaylist: Bool {
+        guard let currentItem = session.currentItem,
+              let index = currentPlaylist.firstIndex(where: { $0.id == currentItem.id }),
+              index > 0 else { return false }
+        return true
+    }
+
+    public func setPlaylist(_ items: [MediaItem]) {
+        self.currentPlaylist = items
+    }
+
+    public func playNextInPlaylist() {
+        guard let currentItem = session.currentItem,
+              let index = currentPlaylist.firstIndex(where: { $0.id == currentItem.id }),
+              index + 1 < currentPlaylist.count else { return }
+        let nextItem = currentPlaylist[index + 1]
+        loadAndPlay(item: nextItem)
+    }
+
+    public func playPreviousInPlaylist() {
+        guard let currentItem = session.currentItem,
+              let index = currentPlaylist.firstIndex(where: { $0.id == currentItem.id }),
+              index > 0 else { return }
+        let prevItem = currentPlaylist[index - 1]
+        loadAndPlay(item: prevItem)
+    }
+
     public func toggleVideoGravity() {
         if videoGravity == .resizeAspect {
             videoGravity = .resizeAspectFill
@@ -245,25 +520,13 @@ public final class PlayerService: ObservableObject {
         SSDPService.shared.recordPlaybackDebug(
             "[DEBUG-subtitle] REQUEST engine=\(engineName) from=\(previousID) to=\(nextID) external=\(track?.isEmbedded == false) position=\(traceTime(session.currentTime))"
         )
-        if let track,
-           !track.isEmbedded,
-           engine !== mpvEngine,
-           let item = session.currentItem,
-           mpvEngine?.isOperational == true {
-            // AVPlayer cannot attach a standalone, authenticated subtitle URL.
-            // Reopen through MPV so its HTTP headers and libass path apply.
-            selectEngine(for: item, forceMPV: true)
-            let request = PlaybackRequest(
-                url: item.url,
-                headers: item.headers ?? [:],
-                startPosition: session.currentTime,
-                containerHint: item.containerHint,
-                videoCodecHint: item.videoCodecHint,
-                subtitleTracks: item.subtitleTracks ?? []
+        if let track, !track.isEmbedded, engine === nativeEngine {
+            // Do not broaden MPV routing merely to attach an external subtitle.
+            // AVPlayer is retained for this native route until the complete
+            // authenticated external-subtitle flow is verified on device.
+            SSDPService.shared.recordPlaybackDebug(
+                "[DEBUG-subtitle] NATIVE_ROUTE_RETAINED external_id=\(track.id)"
             )
-            engine.setPlaybackRate(selectedSpeed)
-            SSDPService.shared.recordPlaybackDebug("[DEBUG-subtitle] FORCE_MPV_RELOAD position=\(traceTime(session.currentTime))")
-            engine.load(request)
         }
         selectedSubtitleTrack = track
         engine.setSubtitleTrack(track)
@@ -273,6 +536,65 @@ public final class PlayerService: ObservableObject {
             if let track { UserDefaults.standard.set(track.id, forKey: key) }
             else { UserDefaults.standard.set("", forKey: key) }
         }
+    }
+
+    public func setSubtitleUserScale(_ scale: Double) {
+        let clamped = max(0.5, min(2.5, scale))
+        subtitleUserScale = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.subtitleUserScaleKey)
+        engine.updateSubtitlePresentation(
+            isPortrait: isPortraitOrientation,
+            userScale: clamped,
+            autoPortraitScale: subtitleAutoPortraitScale
+        )
+    }
+
+    public func setSubtitleAutoPortraitScale(_ enabled: Bool) {
+        subtitleAutoPortraitScale = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.subtitleAutoPortraitKey)
+        engine.updateSubtitlePresentation(
+            isPortrait: isPortraitOrientation,
+            userScale: subtitleUserScale,
+            autoPortraitScale: enabled
+        )
+    }
+
+    public func updateSubtitlePresentation(isPortrait: Bool) {
+        isPortraitOrientation = isPortrait
+        engine.updateSubtitlePresentation(
+            isPortrait: isPortrait,
+            userScale: subtitleUserScale,
+            autoPortraitScale: subtitleAutoPortraitScale
+        )
+    }
+
+    public func setPlaybackRateLimitMbps(_ megabitsPerSecond: Int) {
+        let value = [0, 5, 10, 20, 50].contains(megabitsPerSecond) ? megabitsPerSecond : 0
+        playbackRateLimitMbps = value
+        UserDefaults.standard.set(value, forKey: Self.playbackRateLimitMbpsKey)
+        applyPlaybackResourceLimits()
+    }
+
+    public func setPlaybackCacheLimitMB(_ megabytes: Int) {
+        let value = [32, 64, 128, 256, 512].contains(megabytes) ? megabytes : 128
+        playbackCacheLimitMB = value
+        UserDefaults.standard.set(value, forKey: Self.playbackCacheLimitMBKey)
+        applyPlaybackResourceLimits()
+    }
+
+    private var playbackMaximumBitrate: Double? {
+        playbackRateLimitMbps > 0 ? Double(playbackRateLimitMbps) * 1_000_000 : nil
+    }
+
+    private var playbackCacheLimitBytes: Int64 {
+        Int64(playbackCacheLimitMB) * 1024 * 1024
+    }
+
+    private func applyPlaybackResourceLimits() {
+        engine.updatePlaybackResourceLimits(
+            maximumBitrate: playbackMaximumBitrate,
+            cacheLimitBytes: playbackCacheLimitBytes
+        )
     }
 
     private func subtitlePreferenceKey(for item: MediaItem) -> String {
@@ -294,9 +616,9 @@ public final class PlayerService: ObservableObject {
         }
     }
 
-    private func selectEngine(for item: MediaItem, forceMPV: Bool = false) {
-        let route: PlaybackRoute = forceMPV && mpvEngine?.isOperational == true
-            ? .mpv
+    private func selectEngine(for item: MediaItem, requiresNativePlayback: Bool = false) {
+        let route: PlaybackRoute = requiresNativePlayback
+            ? .native
             : PlaybackRouter.route(
                 for: item.playbackRequest,
                 mpvAvailable: mpvEngine?.isOperational == true
@@ -318,6 +640,7 @@ public final class PlayerService: ObservableObject {
         engineTask?.cancel()
         engine.stop()
         engine = selected
+        applyEnginePreferences(to: selected)
         renderSurfaceKind = selected.renderSurfaceKind
         observeEngineEvents()
     }
@@ -325,6 +648,12 @@ public final class PlayerService: ObservableObject {
     private func handleEngineEvent(_ event: PlaybackEngineEvent) {
         switch event {
         case .snapshot(let snapshot):
+            // A transient initial MPV HTTPS failure is retried once. Keep the
+            // session in its loading state so the UI never flashes an error
+            // overlay for a retry that has not actually failed yet.
+            if snapshot.status == .failed, retryInitialMPVLoadIfEligible() {
+                return
+            }
             if session.currentItem?.sourceType == .dlna {
                 let current = snapshot.currentTime
                 if let previous = lastTracePlayerTime, current < previous - 0.5 {
@@ -355,6 +684,13 @@ public final class PlayerService: ObservableObject {
             nextSession.errorMessage = snapshot.errorMessage
             if nextSession != session {
                 session = nextSession
+            }
+            if !snapshot.audioTracks.isEmpty || !self.audioTracks.isEmpty {
+                self.audioTracks = snapshot.audioTracks
+                self.selectedAudioTrack = snapshot.audioTracks.first { $0.id == snapshot.selectedAudioTrackID }
+            }
+            if !snapshot.chapters.isEmpty || !self.chapters.isEmpty {
+                self.chapters = snapshot.chapters
             }
             updateHistoryProgress(force: false)
             pollTelemetryTick()
@@ -432,25 +768,10 @@ public final class PlayerService: ObservableObject {
     }
 
     private func handlePlaybackFailure() {
-        let hasServerAlternative = session.currentItem?.playbackAlternatives?.isEmpty == false
-        if engine is MPVPlayerEngine,
-           !mpvInitialLoadRetryAttempted,
-           session.currentTime < 0.5,
-           session.duration == 0,
-           session.currentItem?.url.scheme?.lowercased() == "https",
-           let item = session.currentItem {
-            // FFmpeg's SecureTransport backend can transiently abort the first
-            // TLS handshake. Retry once before surfacing a failure to the UI.
-            mpvInitialLoadRetryAttempted = true
-            session.status = .loading
-            session.currentTime = max(0, item.resumePosition ?? 0)
-            session.errorMessage = nil
-            SSDPService.shared.recordPlaybackDebug("RETRY mpv_initial_https_load url=\(SSDPService.sanitizedPlaybackURL(item.url))")
-            engine.load(item.playbackRequest)
-            engine.setSubtitleTrack(selectedSubtitleTrack)
-            updateNowPlayingInfo()
+        if retryInitialMPVLoadIfEligible() {
             return
         }
+        let hasServerAlternative = session.currentItem?.playbackAlternatives?.isEmpty == false
         if engine is MPVPlayerEngine, !mpvFallbackAttempted, !hasServerAlternative {
             // Skip the AVPlayer fallback for containers that AVPlayer definitely
             // cannot decode (WebM, MKV, etc.). Falling back would just produce a
@@ -482,7 +803,12 @@ public final class PlayerService: ObservableObject {
         }
         logger.error("Playback failed; trying the next server-provided stream.")
         SSDPService.shared.recordPlaybackDebug("FALLBACK next url=\(SSDPService.sanitizedPlaybackURL(nextItem.url)) remaining=\(nextItem.playbackAlternatives?.count ?? 0)")
-        loadAndPlay(item: nextItem, origin: "playbackFallback", recordHistory: false)
+        loadAndPlay(
+            item: nextItem,
+            origin: "playbackFallback",
+            recordHistory: false,
+            requiresNativePlayback: requiresNativePlayback
+        )
     }
 
     private func fallbackToNativeAfterMPVFailure() {
@@ -555,6 +881,36 @@ public final class PlayerService: ObservableObject {
     }
 
     private func setupNotifications() {
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.recordLifecycleDiagnostic("background")
+                }
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.recordLifecycleDiagnostic("foreground")
+                }
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: AVAudioSession.routeChangeNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let isAirPlay = AVAudioSession.sharedInstance().currentRoute.outputs.contains {
+                        $0.portType == .airPlay
+                    }
+                    if isAirPlay {
+                        self.requireNativePlaybackForExternalPresentation(origin: "AVAudioSession.AirPlay")
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)
             .sink { [weak self] notification in
                 Task { @MainActor [weak self] in
@@ -562,6 +918,12 @@ public final class PlayerService: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    private func recordLifecycleDiagnostic(_ state: String) {
+        SSDPService.shared.recordPlaybackDebug(
+            "LIFECYCLE state=\(state) engine=\(engineName) status=\(session.status.rawValue) position=\(traceTime(session.currentTime))"
+        )
     }
 
     private func reportPlaybackProgress(force: Bool, isPaused: Bool, isStopped: Bool) {
@@ -586,6 +948,29 @@ public final class PlayerService: ObservableObject {
                 logger.debug("Playback progress report failed: \(error.localizedDescription)")
             }
         }
+    }
+
+    private func retryInitialMPVLoadIfEligible() -> Bool {
+        guard engine is MPVPlayerEngine,
+              !mpvInitialLoadRetryAttempted,
+              session.currentTime < 0.5,
+              session.duration == 0,
+              session.currentItem?.url.scheme?.lowercased() == "https",
+              let item = session.currentItem else {
+            return false
+        }
+
+        // FFmpeg's SecureTransport backend can transiently abort the first
+        // TLS handshake. Retry once before surfacing a failure to the UI.
+        mpvInitialLoadRetryAttempted = true
+        session.status = .loading
+        session.currentTime = max(0, item.resumePosition ?? 0)
+        session.errorMessage = nil
+        SSDPService.shared.recordPlaybackDebug("RETRY mpv_initial_https_load url=\(SSDPService.sanitizedPlaybackURL(item.url))")
+        engine.load(item.playbackRequest)
+        engine.setSubtitleTrack(selectedSubtitleTrack)
+        updateNowPlayingInfo()
+        return true
     }
 
     private func updateHistoryProgress(force: Bool) {
@@ -690,6 +1075,27 @@ public final class PlayerService: ObservableObject {
                     session.duration = dur
                 }
             }
+        }
+
+        // 4. AB Repeat check
+        if isABRepeatActive, let b = repeatPointB, let a = repeatPointA, session.currentTime >= b {
+            seek(to: a)
+        }
+
+        // 5. Auto skip outro check
+        if skipOutroSeconds > 0, session.duration > 0, hasNextInPlaylist {
+            let remaining = session.duration - session.currentTime
+            if remaining > 0 && remaining <= skipOutroSeconds {
+                if !showSkipOutroPrompt {
+                    showSkipOutroPrompt = true
+                }
+            } else {
+                if showSkipOutroPrompt {
+                    showSkipOutroPrompt = false
+                }
+            }
+        } else if showSkipOutroPrompt {
+            showSkipOutroPrompt = false
         }
     }
 

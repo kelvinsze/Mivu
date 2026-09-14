@@ -19,6 +19,14 @@ const char *mivu_mpv_last_error(MivuMPV *player);
 const char *mivu_mpv_current_hwdec(MivuMPV *player);
 int mivu_mpv_set_subtitle_id(MivuMPV *player, int subtitle_id);
 int mivu_mpv_add_subtitle(MivuMPV *player, const char *url);
+int mivu_mpv_set_subtitle_scale(MivuMPV *player, double scale);
+int mivu_mpv_set_subtitle_delay(MivuMPV *player, double delay);
+int mivu_mpv_set_subtitle_position(MivuMPV *player, int position);
+int mivu_mpv_set_secondary_subtitle_id(MivuMPV *player, int subtitle_id);
+int mivu_mpv_set_voice_boost(MivuMPV *player, int enabled);
+int mivu_mpv_frame_step(MivuMPV *player, int forward);
+int mivu_mpv_screenshot(MivuMPV *player, const char *filepath, int include_subtitles);
+int mivu_mpv_set_resource_limits(MivuMPV *player, int maximum_bitrate_bps, int64_t cache_limit_bytes);
 
 // Plan B: CoreVideo + AVSampleBufferDisplayLayer APIs
 int mivu_mpv_init_renderer(MivuMPV *player);

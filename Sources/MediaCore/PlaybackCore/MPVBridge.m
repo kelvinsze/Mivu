@@ -280,13 +280,30 @@ MivuMPV *mivu_mpv_create(void) {
     mpv_set_option_string(player->handle, "hwdec", "videotoolbox-copy");
 #endif
     mpv_set_option_string(player->handle, "framedrop", "no");
-    // Disable blocking in mpv_render_context_render so the main thread never blocks
-    mpv_set_option_string(player->handle, "video-timing-offset", "0");
-    // libass is built with CoreText. Pin its provider and a CJK-capable system
-    // family so Chinese glyph fallback does not depend on Fontconfig (disabled
-    // in the iOS build).
-    mpv_set_option_string(player->handle, "sub-font-provider", "coretext");
-    mpv_set_option_string(player->handle, "sub-font", "PingFang SC");
+    mpv_set_option_string(player->handle, "volume-max", "200");
+    // Configure subtitle font rendering.
+    // On iOS 18+, CoreText fallback for Chinese returns PingFangUI.ttc containing
+    // proprietary hvgl tables that FreeType cannot parse, resulting in tofu boxes.
+    // We bundle WenQuanYi Micro Hei as subfont.ttf in the app bundle. Setting config-dir
+    // enables mpv to supply subfont.ttf as the default font to libass.
+    NSString *bundlePath = [[NSBundle mainBundle] resourcePath];
+    NSString *fontPath = bundlePath ? [bundlePath stringByAppendingPathComponent:@"subfont.ttf"] : nil;
+    if (fontPath && ![[NSFileManager defaultManager] fileExistsAtPath:fontPath]) {
+        NSString *found = [[NSBundle mainBundle] pathForResource:@"subfont" ofType:@"ttf"];
+        if (found) {
+            fontPath = found;
+            bundlePath = [found stringByDeletingLastPathComponent];
+        }
+    }
+    if (fontPath && [[NSFileManager defaultManager] fileExistsAtPath:fontPath]) {
+        mpv_set_option_string(player->handle, "config-dir", [bundlePath UTF8String]);
+        mpv_set_option_string(player->handle, "sub-fonts-dir", [bundlePath UTF8String]);
+        mpv_set_option_string(player->handle, "sub-font", "WenQuanYi Micro Hei");
+    } else {
+        mpv_set_option_string(player->handle, "sub-font", "PingFang SC");
+    }
+    mpv_set_option_string(player->handle, "sub-font-provider", "auto");
+    mpv_set_option_string(player->handle, "sub-ass-override", "scale");
     if (mpv_initialize(player->handle) < 0) {
         set_error(player, "mpv_initialize failed");
         mpv_terminate_destroy(player->handle);
@@ -454,6 +471,76 @@ int mivu_mpv_add_subtitle(MivuMPV *player, const char *url) {
     // Fetching a remote subtitle must not block the main actor or interrupt
     // video rendering while a subtitle is switched.
     return mpv_command_async(player->handle, 0, args);
+}
+
+int mivu_mpv_set_subtitle_scale(MivuMPV *player, double scale) {
+    if (!player || !player->handle) return -1;
+    if (scale <= 0.0) scale = 1.0;
+    char value[64];
+    snprintf(value, sizeof(value), "%.3f", scale);
+    return mpv_set_property_string(player->handle, "sub-scale", value);
+}
+
+int mivu_mpv_set_subtitle_delay(MivuMPV *player, double delay) {
+    if (!player || !player->handle) return -1;
+    char value[64];
+    snprintf(value, sizeof(value), "%.3f", delay);
+    return mpv_set_property_string(player->handle, "sub-delay", value);
+}
+
+int mivu_mpv_set_subtitle_position(MivuMPV *player, int position) {
+    if (!player || !player->handle) return -1;
+    char value[32];
+    snprintf(value, sizeof(value), "%d", position);
+    return mpv_set_property_string(player->handle, "sub-pos", value);
+}
+
+int mivu_mpv_set_secondary_subtitle_id(MivuMPV *player, int subtitle_id) {
+    if (!player || !player->handle) return -1;
+    if (subtitle_id <= 0) {
+        return mpv_set_property_string(player->handle, "secondary-sid", "no");
+    }
+    char value[32];
+    snprintf(value, sizeof(value), "%d", subtitle_id);
+    return mpv_set_property_string(player->handle, "secondary-sid", value);
+}
+
+int mivu_mpv_set_voice_boost(MivuMPV *player, int enabled) {
+    if (!player || !player->handle) return -1;
+    return mpv_set_property_string(player->handle, "af", enabled ? "dynaudnorm=f=75:g=15:p=0.95" : "");
+}
+
+int mivu_mpv_frame_step(MivuMPV *player, int forward) {
+    if (!player || !player->handle) return -1;
+    const char *cmd[] = { forward ? "frame-step" : "frame-back-step", NULL };
+    return mpv_command(player->handle, cmd);
+}
+
+int mivu_mpv_screenshot(MivuMPV *player, const char *filepath, int include_subtitles) {
+    if (!player || !player->handle || !filepath) return -1;
+    const char *mode = include_subtitles ? "subtitles" : "video";
+    const char *args[] = { "screenshot-to-file", filepath, mode, NULL };
+    return mpv_command(player->handle, args);
+}
+
+int mivu_mpv_set_resource_limits(MivuMPV *player, int maximum_bitrate_bps, int64_t cache_limit_bytes) {
+    if (!player || !player->handle) return -1;
+
+    char bitrate[32];
+    if (maximum_bitrate_bps > 0) {
+        snprintf(bitrate, sizeof(bitrate), "%d", maximum_bitrate_bps);
+    } else {
+        snprintf(bitrate, sizeof(bitrate), "max");
+    }
+
+    int64_t total_cache = MAX(32LL * 1024 * 1024, cache_limit_bytes);
+    int64_t forward_cache = total_cache * 2 / 3;
+    int64_t back_cache = total_cache - forward_cache;
+    int result = mpv_set_property_string(player->handle, "hls-bitrate", bitrate);
+    if (result < 0) return result;
+    result = mpv_set_property(player->handle, "demuxer-max-bytes", MPV_FORMAT_INT64, &forward_cache);
+    if (result < 0) return result;
+    return mpv_set_property(player->handle, "demuxer-max-back-bytes", MPV_FORMAT_INT64, &back_cache);
 }
 
 int mivu_mpv_set_paused(MivuMPV *player, int paused) {

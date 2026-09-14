@@ -12,7 +12,6 @@ public enum PlaybackRoute: String, Equatable, Sendable {
 /// hint and the framework is operational.
 public enum PlaybackRouter {
     private static let mpvContainers: Set<String> = ["mkv", "webm", "avi", "flv", "ts", "m2ts", "ogv"]
-    private static let mpvVideoCodecs: Set<String> = ["hevc", "h265", "av1", "vp9"]
 
     public static func route(for request: PlaybackRequest, mpvAvailable: Bool) -> PlaybackRoute {
         if request.url.scheme?.lowercased() == "mivu-smb" {
@@ -24,7 +23,6 @@ public enum PlaybackRouter {
             return .native
         }
         let container = request.containerHint?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let codec = request.videoCodecHint?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return mpvContainers.contains(container ?? "") || mpvVideoCodecs.contains(codec ?? "") ? .mpv : .native
+        return mpvContainers.contains(container ?? "") ? .mpv : .native
     }
 }
