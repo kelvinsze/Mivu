@@ -3,15 +3,14 @@ main = "src/index.ts"
 compatibility_date = "2026-09-14"
 
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 DOUBAN_ENABLED = "true"
 MDBLIST_ENABLED = "true"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "ratings-db"
-# Replace with the real D1 database ID before staging/production deployment.
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "8633e6e9-c52d-4424-878c-39c835aa8a9e"
 migrations_dir = "migrations"
 
 # Optional KV can be added for cross-isolate rate limiting in a future version.
