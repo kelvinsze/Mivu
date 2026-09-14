@@ -404,6 +404,7 @@
 		F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
+			basedOnDependencyAnalysis = 0;
 			files = (
 			);
 			inputFileListPaths = (
