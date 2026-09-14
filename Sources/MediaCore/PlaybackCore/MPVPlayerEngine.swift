@@ -567,12 +567,12 @@ public final class MPVPlayerEngine: PlayerEngine {
                     SSDPService.shared.recordPlaybackDebug("MPV_END_FILE reason=\(reason) error=\(error) message=\(errorMessage)")
                     fail(errorMessage)
                 } else if !hasLoadedFile {
-                    // mpv may emit END_FILE before FILE_LOADED when it cannot
-                    // find a suitable decoder or demuxer. Treat this as an
-                    // error so the fallback path can trigger.
-                    let errorMessage = message ?? "MPV failed to load the file (reason=\(reason))"
-                    SSDPService.shared.recordPlaybackDebug("MPV_END_FILE before_load reason=\(reason) error=\(error) message=\(errorMessage)")
-                    fail(errorMessage)
+                    // `loadfile replace` can report the previous item's normal
+                    // END_FILE before the new file reaches FILE_LOADED. It is
+                    // not a playback failure unless mpv marks it as one above.
+                    // Otherwise HEVC/MKV briefly shows the error overlay before
+                    // the pending load starts normally.
+                    SSDPService.shared.recordPlaybackDebug("MPV_END_FILE ignored_before_load reason=\(reason) error=\(error)")
                 } else {
                     updateSnapshot { $0.status = .stopped }
                     eventContinuation?.yield(.ended)
