@@ -24,6 +24,10 @@ targets:
       - path: Sources
     entitlements:
       path: Mivu.entitlements
+      properties:
+        com.apple.developer.carplay-audio: true
+        com.apple.developer.carplay-video: true
+        com.apple.developer.networking.multicast: true
     preBuildScripts:
       - name: Verify CarPlay Entitlements
         script: |
