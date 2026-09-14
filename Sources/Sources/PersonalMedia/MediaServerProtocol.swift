@@ -17,10 +17,23 @@ public protocol MediaServerProtocol: Sendable {
     func reportPlaybackProgress(itemId: String, position: TimeInterval, isPaused: Bool, isStopped: Bool, playSessionId: String?, mediaSourceId: String?) async throws
 
     func resolvePlaybackItem(_ item: MediaItem) async throws -> MediaItem
+    func fetchItemDetail(itemId: String) async throws -> MediaItem?
+    func fetchSimilarItems(itemId: String, limit: Int) async throws -> [MediaItem]
+    func fetchPersonDetail(personId: String) async throws -> MediaPerson?
+    func fetchPersonWorks(personId: String, personName: String) async throws -> [MediaItem]
+    func toggleFavorite(itemId: String, isFavorite: Bool) async throws
+    func markPlayed(itemId: String, isPlayed: Bool) async throws
 }
 
 public extension MediaServerProtocol {
     var playbackRequestHeaders: [String: String]? { nil }
+
+    func fetchItemDetail(itemId: String) async throws -> MediaItem? { nil }
+    func fetchSimilarItems(itemId: String, limit: Int) async throws -> [MediaItem] { [] }
+    func fetchPersonDetail(personId: String) async throws -> MediaPerson? { nil }
+    func fetchPersonWorks(personId: String, personName: String) async throws -> [MediaItem] { [] }
+    func toggleFavorite(itemId: String, isFavorite: Bool) async throws {}
+    func markPlayed(itemId: String, isPlayed: Bool) async throws {}
 
     func resolvePlaybackItem(_ item: MediaItem) async throws -> MediaItem {
         guard let itemId = item.serverItemID else { return item }
