@@ -24,6 +24,11 @@ targets:
       - path: Sources
     entitlements:
       path: Mivu.entitlements
+    preBuildScripts:
+      - name: Verify CarPlay Entitlements
+        script: |
+          "${PROJECT_DIR}/scripts/verify-carplay-entitlements.sh"
+        basedOnDependencyAnalysis: false
     dependencies:
       - framework: Frameworks/MPV/libmpv.xcframework
         embed: false

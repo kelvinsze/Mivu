@@ -312,6 +312,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 248E5A4F3F85F7D04C2212F1 /* Build configuration list for PBXNativeTarget "Mivu" */;
 			buildPhases = (
+				F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */,
 				E8344F4B2044EBEEAC3E436B /* Sources */,
 				ED1230FDDA36B62D5AD9DC8B /* Resources */,
 				DEEC08FB464191B94B3061C3 /* Frameworks */,
@@ -398,6 +399,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Verify CarPlay Entitlements";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PROJECT_DIR}/scripts/verify-carplay-entitlements.sh\"\\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		874B8D68665007778A64D3CD /* Sources */ = {
