@@ -51,6 +51,11 @@ public struct DeveloperLabView: View {
                         .disabled(inputUrlText.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
 
+                    Button("从剪贴板读取", systemImage: "doc.on.clipboard") {
+                        clipboardURL = URLSource.detectPlayableURLInClipboard()
+                    }
+                    .buttonStyle(.bordered)
+
                     if let detected = clipboardURL {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
@@ -83,10 +88,7 @@ public struct DeveloperLabView: View {
             // MARK: - 3. Sample Benchmark Streams
             Section {
                 ForEach(MediaItem.sampleStreams) { sample in
-                    Button {
-                        playerService.loadAndPlay(item: sample)
-                        isShowingPlayerSheet = true
-                    } label: {
+                    NavigationLink(destination: VideoDetailView(item: sample)) {
                         HStack(spacing: 12) {
                             Image(systemName: sample.mimeType?.contains("mpegURL") == true ? "antenna.radiowaves.left.and.right" : "film")
                                 .font(.headline)
@@ -102,11 +104,6 @@ public struct DeveloperLabView: View {
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
                             }
-
-                            Spacer()
-
-                            Image(systemName: "play.circle")
-                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 4)
                     }
@@ -145,9 +142,6 @@ public struct DeveloperLabView: View {
         }
         .navigationTitle("开发者与实验室")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            clipboardURL = URLSource.detectPlayableURLInClipboard()
-        }
         .fullScreenCover(isPresented: $isShowingPlayerSheet) {
             PlayerView()
         }

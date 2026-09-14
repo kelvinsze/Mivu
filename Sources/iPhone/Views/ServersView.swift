@@ -1,9 +1,11 @@
 import SwiftUI
 
-/// View for managing personal media servers and network shares.
+/// View for managing personal media servers, network shares, and cloud drives.
 public struct ServersView: View {
     @ObservedObject var serverManager = MediaServerManager.shared
     @State private var isShowingAddServerSheet = false
+    @State private var isShowingAddMenu = false
+    @State private var selectedServiceForAdd: ServiceMenuOption = .jellyfin
 
     public init() {}
 
@@ -26,16 +28,18 @@ public struct ServersView: View {
                             Text("尚未连接媒体服务器")
                                 .font(.title3.bold())
 
-                            Text("支持连接 Emby、Jellyfin、WebDAV、SMB 局域网共享与飞牛私有云，在 iPhone 和 CarPlay 上流畅播放海量个人影视。")
+                            Text("支持连接 Emby、Jellyfin、WebDAV、SMB 局域网共享、飞牛私有云及各大主流网盘，畅享高清视频串流。")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 16)
 
                             Button {
-                                isShowingAddServerSheet = true
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                    isShowingAddMenu.toggle()
+                                }
                             } label: {
-                                Label("添加媒体源", systemImage: "plus.circle.fill")
+                                Label("添加服务", systemImage: "plus.circle.fill")
                                     .font(.subheadline.bold())
                                     .padding(.horizontal, 8)
                             }
@@ -48,23 +52,33 @@ public struct ServersView: View {
                 } else {
                     Section("已连接的服务器") {
                         ForEach(serverManager.savedServers) { server in
+                            let brand = ServiceMenuOption.detect(name: server.name, type: server.serverType)
                             NavigationLink {
                                 ServerDetailView(serverInfo: server)
                             } label: {
                                 HStack(spacing: 14) {
                                     ZStack {
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(Color.orange.opacity(0.12))
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color(white: 0.15).opacity(0.08))
                                             .frame(width: 44, height: 44)
-                                        Image(systemName: icon(for: server.serverType))
-                                            .font(.title3)
-                                            .foregroundColor(.orange)
+                                        ServiceBrandIconView(service: brand)
+                                            .frame(width: 28, height: 28)
                                     }
 
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(server.name)
-                                            .font(.headline)
-                                            .foregroundColor(.primary)
+                                        HStack(spacing: 6) {
+                                            Text(server.name)
+                                                .font(.headline)
+                                                .foregroundColor(.primary)
+
+                                            Text(brand.title)
+                                                .font(.system(size: 10, weight: .semibold))
+                                                .foregroundColor(.secondary)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Capsule().fill(Color.secondary.opacity(0.12)))
+                                        }
+
                                         Text(server.url.absoluteString)
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
@@ -83,31 +97,60 @@ public struct ServersView: View {
                     }
                 }
             }
-            .navigationTitle("媒体库")
+            .navigationTitle("资源库")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        isShowingAddServerSheet = true
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                            isShowingAddMenu.toggle()
+                        }
                     } label: {
                         Image(systemName: "plus")
-                            .font(.headline)
-                            .foregroundColor(.orange)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(isShowingAddMenu ? .white : .orange)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle()
+                                    .fill(isShowingAddMenu ? Color.orange : Color.orange.opacity(0.12))
+                            )
                     }
                 }
             }
             .sheet(isPresented: $isShowingAddServerSheet) {
-                AddServerView()
+                AddServerView(initialService: selectedServiceForAdd)
             }
         }
-    }
+        .overlay {
+            if isShowingAddMenu {
+                ZStack(alignment: .topTrailing) {
+                    Color.black.opacity(0.38)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                                isShowingAddMenu = false
+                            }
+                        }
 
-    private func icon(for type: MediaServerType) -> String {
-        switch type {
-        case .emby: return "tv.fill"
-        case .jellyfin, .fnos: return "play.square.stack.fill"
-        case .webDAV: return "externaldrive.connected.to.line.below"
-        case .smb: return "folder.badge.gearshape"
+                    AddServiceDropdownMenuView { service in
+                        withAnimation(.spring(response: 0.22, dampingFraction: 0.82)) {
+                            isShowingAddMenu = false
+                        }
+                        selectedServiceForAdd = service
+                        isShowingAddServerSheet = true
+                    }
+                    .padding(.top, 54)
+                    .padding(.trailing, 16)
+                    .transition(
+                        .asymmetric(
+                            insertion: .scale(scale: 0.86, anchor: .topTrailing).combined(with: .opacity),
+                            removal: .scale(scale: 0.88, anchor: .topTrailing).combined(with: .opacity)
+                        )
+                    )
+                }
+                .transition(.opacity)
+            }
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isShowingAddMenu)
     }
 }
 
@@ -115,29 +158,67 @@ public struct ServersView: View {
 
 struct AddServerView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var serverName = ""
-    @State private var serverUrlStr = ""
-    @State private var serverType: MediaServerType = .jellyfin
+
+    @State private var selectedService: ServiceMenuOption
+    @State private var serverName: String
+    @State private var serverUrlStr: String
+    @State private var serverType: MediaServerType
     @State private var username = ""
     @State private var password = ""
     @State private var isAuthenticating = false
     @State private var errorMessage: String?
 
+    init(initialService: ServiceMenuOption = .jellyfin) {
+        _selectedService = State(initialValue: initialService)
+        _serverType = State(initialValue: initialService.targetServerType)
+        _serverName = State(initialValue: initialService.defaultServerName)
+        _serverUrlStr = State(initialValue: initialService.defaultURLPlaceholder)
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section("服务器类型与连接") {
-                    Picker("服务器类型", selection: $serverType) {
-                        Text("Jellyfin").tag(MediaServerType.jellyfin)
-                        Text("Emby").tag(MediaServerType.emby)
-                        Text("WebDAV").tag(MediaServerType.webDAV)
-                        Text("SMB (局域网共享)").tag(MediaServerType.smb)
-                        Text("fnOS (飞牛 WebDAV)").tag(MediaServerType.fnos)
+                Section {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color(white: 0.15).opacity(0.1))
+                                .frame(width: 48, height: 48)
+                            ServiceBrandIconView(service: selectedService)
+                                .frame(width: 32, height: 32)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(selectedService.title)
+                                .font(.headline.bold())
+                            Text(selectedService.category.rawValue)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Picker("", selection: $selectedService) {
+                            ForEach(ServiceMenuOption.allCases) { opt in
+                                Text(opt.title).tag(opt)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
                     }
+                    .padding(.vertical, 4)
 
-                    TextField("名称 (如: 客厅 NAS)", text: $serverName)
+                    if let hint = selectedService.guidanceHint {
+                        Text(hint)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                }
 
-                    TextField(serverType == .smb ? "smb://192.168.1.100/video" : "http://192.168.1.100:8096", text: $serverUrlStr)
+                Section("连接信息") {
+                    TextField("服务器名称 (如: \(selectedService.defaultServerName))", text: $serverName)
+
+                    TextField(selectedService.defaultURLPlaceholder, text: $serverUrlStr)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .keyboardType(.URL)
@@ -148,7 +229,7 @@ struct AddServerView: View {
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
 
-                    SecureField("密码", text: $password)
+                    SecureField("密码 / 访问令牌", text: $password)
                 }
 
                 if let error = errorMessage {
@@ -178,7 +259,16 @@ struct AddServerView: View {
                     .tint(.orange)
                 }
             }
-            .navigationTitle("添加媒体源")
+            .onChange(of: selectedService) { _, newService in
+                serverType = newService.targetServerType
+                if serverName.isEmpty || ServiceMenuOption.allCases.contains(where: { $0.defaultServerName == serverName }) {
+                    serverName = newService.defaultServerName
+                }
+                if serverUrlStr.isEmpty || ServiceMenuOption.allCases.contains(where: { $0.defaultURLPlaceholder == serverUrlStr }) {
+                    serverUrlStr = newService.defaultURLPlaceholder
+                }
+            }
+            .navigationTitle("添加 \(selectedService.title)")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -198,7 +288,7 @@ struct AddServerView: View {
         isAuthenticating = true
         errorMessage = nil
 
-        let name = serverName.isEmpty ? (url.host ?? "Media Server") : serverName
+        let name = serverName.isEmpty ? (url.host ?? selectedService.title) : serverName
 
         Task {
             do {

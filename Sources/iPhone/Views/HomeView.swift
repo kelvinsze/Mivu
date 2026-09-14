@@ -50,6 +50,13 @@ public struct HomeView: View {
             .background(Color(.systemBackground))
             .navigationTitle("Mivu")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        checkClipboard()
+                    } label: {
+                        Label("从剪贴板读取", systemImage: "doc.on.clipboard")
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     // DLNA Casting Status Indicator Pill
                     Button {
@@ -72,9 +79,6 @@ public struct HomeView: View {
                         .clipShape(Capsule())
                     }
                 }
-            }
-            .onAppear {
-                checkClipboard()
             }
             .onReceive(playerService.$session.map { $0.currentItem?.id }.removeDuplicates()) { itemID in
                 if itemID != nil, playerService.session.currentItem?.sourceType != .personalMedia {
@@ -109,6 +113,9 @@ public struct HomeView: View {
                 }
                 .presentationDetents([.medium, .large])
             }
+            .navigationDestination(for: MediaItem.self) { item in
+                VideoDetailView(item: item)
+            }
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
@@ -126,12 +133,10 @@ public struct HomeView: View {
                 .font(.title3.bold())
                 .foregroundColor(.primary)
 
-            Button {
-                playMediaItem(item)
-            } label: {
+            NavigationLink(value: item) {
                 ZStack(alignment: .bottomLeading) {
                     // Backdrop Image or Gradient
-                    if let poster = item.posterUrl {
+                    if let poster = item.backdropUrl ?? item.posterUrl {
                         AsyncImage(url: poster) { phase in
                             switch phase {
                             case .success(let img):
@@ -313,9 +318,7 @@ public struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(history.items.prefix(8)) { item in
-                        Button {
-                            playMediaItem(item)
-                        } label: {
+                        NavigationLink(value: item) {
                             VStack(alignment: .leading, spacing: 6) {
                                 ZStack(alignment: .bottom) {
                                     if let poster = item.posterUrl {

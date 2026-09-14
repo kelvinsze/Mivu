@@ -68,7 +68,6 @@ public struct ServerDetailView: View {
             loadContinueWatching()
         }
         .searchable(text: $searchText, prompt: "搜索影视、剧集")
-        .onSubmit(of: .search) { search() }
         .fullScreenCover(isPresented: $isShowingPlayer) {
             PlayerView()
         }

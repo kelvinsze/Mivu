@@ -14,7 +14,7 @@ public struct MainTabView: View {
 
             ServersView()
                 .tabItem {
-                    Label("媒体库", systemImage: "film.stack.fill")
+                    Label("资源库", systemImage: "externaldrive.fill")
                 }
 
             HistoryView()

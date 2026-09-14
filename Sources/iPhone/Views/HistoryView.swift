@@ -62,6 +62,9 @@ public struct HistoryView: View {
                     }
                 }
             }
+            .navigationDestination(for: MediaItem.self) { item in
+                VideoDetailView(item: item)
+            }
             .fullScreenCover(isPresented: $isShowingPlayer) {
                 PlayerView()
             }
@@ -98,9 +101,7 @@ public struct HistoryView: View {
     }
 
     private func historyRow(_ item: MediaItem) -> some View {
-        Button {
-            playHistoryItem(item)
-        } label: {
+        NavigationLink(value: item) {
             HStack(spacing: 14) {
                 // Video thumbnail or placeholder
                 ZStack {
