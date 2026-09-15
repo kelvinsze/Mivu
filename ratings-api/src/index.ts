@@ -25,8 +25,8 @@ app.use('/v1/*', rateLimitMiddleware(60, 60000));
 // Mount Routes
 app.route('/', healthRoutes);
 app.route('/', ratingsRoutes);
-app.route('/', adminRoutes);
 app.route('/', appAttestRoutes);
+app.route('/', adminRoutes);
 
 // 404 Handler
 app.notFound((c) => {

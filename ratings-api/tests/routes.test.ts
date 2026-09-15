@@ -33,6 +33,31 @@ describe('App Routes End-to-End Tests', () => {
     expect(json.error.code).toBe('UNAUTHORIZED');
   });
 
+  it('POST /v1/app-attest/challenge bypasses admin authentication', async () => {
+    const challengeDB = {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => ({ meta: { last_row_id: 1, changes: 1 } }),
+        }),
+      }),
+    };
+    const res = await app.request(
+      '/v1/app-attest/challenge',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purpose: 'assertion' }),
+      },
+      { DB: challengeDB as unknown as D1Database }
+    );
+
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { challengeId: string; challenge: string; expiresIn: number };
+    expect(json.challengeId).toBeTruthy();
+    expect(json.challenge).toBeTruthy();
+    expect(json.expiresIn).toBe(300);
+  });
+
   it('GET /v1/ratings returns normalized response for valid query', async () => {
     const mockMdb = {
       title: 'Breaking Bad',
