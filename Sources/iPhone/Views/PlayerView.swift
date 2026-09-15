@@ -683,37 +683,9 @@ public struct PlayerView: View {
     }
 
     private var loadingBufferingOverlay: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .orange))
-                .scaleEffect(1.3)
-
-            HStack(spacing: 8) {
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.caption2)
-                        .foregroundColor(.orange)
-                    Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
-                        .font(.caption.monospacedDigit().bold())
-                        .foregroundColor(.white)
-                }
-
-                if playerService.session.duration > 0 {
-                    Text("·")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.4))
-                    let bufferRatio = min(max(playerService.session.bufferedTime / playerService.session.duration, 0), 1.0)
-                    Text("已缓冲 \(Int(bufferRatio * 100))%")
-                        .font(.caption.monospacedDigit())
-                        .foregroundColor(.white.opacity(0.9))
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(.ultraThinMaterial)
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.3), radius: 6)
-        }
+        ProgressView()
+            .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+            .scaleEffect(1.3)
     }
 
     private func playbackErrorOverlay(_ message: String) -> some View {
@@ -1007,27 +979,15 @@ public struct PlayerView: View {
 
                     Spacer()
 
-                    // Real-time Buffer & Speed Status
+                    // Real-time Speed Status
                     if !playerService.session.isLiveStream {
-                        HStack(spacing: 6) {
-                            if playerService.session.duration > 0 {
-                                Text("已缓冲 \(Int(bufferProgress * 100))%")
-                                    .font(.caption2.monospacedDigit())
-                                    .foregroundColor(.white.opacity(0.7))
-
-                                Text("·")
-                                    .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.4))
-                            }
-
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.down")
-                                    .font(.system(size: 9, weight: .bold))
-                                Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
-                                    .font(.caption2.monospacedDigit())
-                            }
-                            .foregroundColor(.orange.opacity(0.95))
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
+                                .font(.caption2.monospacedDigit())
                         }
+                        .foregroundColor(.orange.opacity(0.95))
                     }
 
                     Spacer()

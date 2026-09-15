@@ -11,7 +11,6 @@ public struct HomeView: View {
 
     @State private var clipboardURL: URL?
     @State private var isShowingPlayerSheet = false
-    @State private var isShowingCastingSheet = false
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var playbackResolveTask: Task<Void, Never>?
@@ -49,37 +48,6 @@ public struct HomeView: View {
             }
             .background(Color(.systemBackground))
             .navigationTitle("Mivu")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        checkClipboard()
-                    } label: {
-                        Label("从剪贴板读取", systemImage: "doc.on.clipboard")
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    // DLNA Casting Status Indicator Pill
-                    Button {
-                        isShowingCastingSheet = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color.orange)
-                                .frame(width: 8, height: 8)
-                            Text("投送状态")
-                                .font(.caption.bold())
-                                .foregroundColor(.primary)
-                            Image(systemName: "antenna.radiowaves.left.and.right")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                    }
-                }
-            }
             .onReceive(playerService.$session.map { $0.currentItem?.id }.removeDuplicates()) { itemID in
                 if itemID != nil, playerService.session.currentItem?.sourceType != .personalMedia {
                     isShowingPlayerSheet = true
@@ -93,25 +61,6 @@ public struct HomeView: View {
             }
             .fullScreenCover(isPresented: $isShowingPlayerSheet) {
                 PlayerView()
-            }
-            .sheet(isPresented: $isShowingCastingSheet) {
-                NavigationStack {
-                    List {
-                        Section {
-                            ReceiverStatusView()
-                                .listRowInsets(EdgeInsets())
-                                .listRowBackground(Color.clear)
-                        }
-                    }
-                    .navigationTitle("投送接收端状态")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("关闭") { isShowingCastingSheet = false }
-                        }
-                    }
-                }
-                .presentationDetents([.medium, .large])
             }
             .navigationDestination(for: MediaItem.self) { item in
                 VideoDetailView(item: item)
