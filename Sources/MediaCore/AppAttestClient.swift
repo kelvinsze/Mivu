@@ -60,9 +60,9 @@ public actor AppAttestClient {
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
         return try JSONDecoder().decode(T.self, from: data)
     }
-    private func generateKey() async throws -> String { try await withCheckedThrowingContinuation { service.generateKey { key, error in if let error { $0.resume(throwing: error) } else if let key { $0.resume(returning: key) } else { $0.resume(throwing: URLError(.cannotCreateFile)) } } } }
-    private func attestKey(keyID: String, clientDataHash: Data) async throws -> Data { try await withCheckedThrowingContinuation { service.attestKey(keyID, clientDataHash: clientDataHash) { data, error in if let error { $0.resume(throwing: error) } else if let data { $0.resume(returning: data) } else { $0.resume(throwing: URLError(.cannotDecodeContentData)) } } } }
-    private func generateAssertion(keyID: String, clientDataHash: Data) async throws -> Data { try await withCheckedThrowingContinuation { service.generateAssertion(keyID, clientDataHash: clientDataHash) { data, error in if let error { $0.resume(throwing: error) } else if let data { $0.resume(returning: data) } else { $0.resume(throwing: URLError(.cannotDecodeContentData)) } } } }
+    private func generateKey() async throws -> String { try await withCheckedThrowingContinuation { continuation in service.generateKey { key, error in if let error { continuation.resume(throwing: error) } else if let key { continuation.resume(returning: key) } else { continuation.resume(throwing: URLError(.cannotCreateFile)) } } } }
+    private func attestKey(keyID: String, clientDataHash: Data) async throws -> Data { try await withCheckedThrowingContinuation { continuation in service.attestKey(keyID, clientDataHash: clientDataHash) { data, error in if let error { continuation.resume(throwing: error) } else if let data { continuation.resume(returning: data) } else { continuation.resume(throwing: URLError(.cannotDecodeContentData)) } } } }
+    private func generateAssertion(keyID: String, clientDataHash: Data) async throws -> Data { try await withCheckedThrowingContinuation { continuation in service.generateAssertion(keyID, clientDataHash: clientDataHash) { data, error in if let error { continuation.resume(throwing: error) } else if let data { continuation.resume(returning: data) } else { continuation.resume(throwing: URLError(.cannotDecodeContentData)) } } } }
 }
 
 private extension Data {
