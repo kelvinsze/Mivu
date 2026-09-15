@@ -3,6 +3,7 @@ import app from '../src/index';
 import { createMockD1Database } from './mock-d1';
 import { CacheService } from '../src/services/cache';
 import { clearRateLimits } from '../src/middleware/rate-limit';
+import { issueSessionToken } from '../src/app-attest/session';
 
 describe('App Routes End-to-End Tests', () => {
   let db: D1Database;
@@ -25,11 +26,11 @@ describe('App Routes End-to-End Tests', () => {
     expect(json).toEqual({ status: 'ok' });
   });
 
-  it('GET /v1/ratings rejects missing identifier with 400', async () => {
+  it('GET /v1/ratings rejects a missing App Attest session with 401', async () => {
     const res = await app.request('/v1/ratings', {}, { DB: db });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(401);
     const json = (await res.json()) as { error: { code: string; message: string } };
-    expect(json.error.code).toBe('MISSING_IDENTIFIER');
+    expect(json.error.code).toBe('UNAUTHORIZED');
   });
 
   it('GET /v1/ratings returns normalized response for valid query', async () => {
@@ -47,18 +48,21 @@ describe('App Routes End-to-End Tests', () => {
       return Promise.resolve(new Response('', { status: 404 }));
     });
 
+    const env = {
+      DB: db,
+      MDBLIST_API_KEY: 'test-key',
+      APP_API_KEY: 'test-secret',
+      APP_ATTEST_JWT_SECRET: 'test-session-secret-with-at-least-32-characters',
+      DOUBAN_ENABLED: 'false',
+      MDBLIST_ENABLED: 'true',
+    };
+    const token = await issueSessionToken(env, 'test-key-id', 'dev');
     const res = await app.request(
       '/v1/ratings?imdb=tt0903747',
       {
-        headers: { Authorization: 'Bearer test-secret' },
+        headers: { Authorization: `Bearer ${token}` },
       },
-      {
-        DB: db,
-        MDBLIST_API_KEY: 'test-key',
-        APP_API_KEY: 'test-secret',
-        DOUBAN_ENABLED: 'false',
-        MDBLIST_ENABLED: 'true',
-      }
+      env
     );
 
     expect(res.status).toBe(200);
@@ -67,9 +71,9 @@ describe('App Routes End-to-End Tests', () => {
     expect(json.ratings.imdb.score).toBe(9.5);
   });
 
-  it('GET /v1/ratings is public when APP_API_KEY is unset', async () => {
+  it('GET /v1/ratings requires App Attest even when APP_API_KEY is unset', async () => {
     const res = await app.request('/v1/ratings?imdb=tt0903747', {}, { DB: db, DOUBAN_ENABLED: 'false' });
-    expect(res.status).not.toBe(401);
+    expect(res.status).toBe(401);
   });
 
   it('GET /v1/ratings requires Bearer authorization when APP_API_KEY is set', async () => {

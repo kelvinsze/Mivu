@@ -5,6 +5,7 @@ import { createErrorResponse, createJsonResponse } from '../utils/response';
 import { RatingsService } from '../services/ratings';
 import { authMiddleware } from '../middleware/auth';
 import { logger } from '../utils/logger';
+import { verifySessionToken } from '../app-attest/session';
 
 export const ratingsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -24,7 +25,11 @@ function getExecutionContext(c: { executionCtx?: unknown }): { waitUntil?: (prom
 }
 
 // Public when APP_API_KEY is unset; private/test deployments require Bearer.
-ratingsRoutes.get('/v1/ratings', authMiddleware(false), async (c) => {
+ratingsRoutes.get('/v1/ratings', async (c) => {
+  const header = c.req.header('Authorization');
+  if (!header?.match(/^Bearer\s+\S+$/i)) return createErrorResponse('UNAUTHORIZED', 'App Attest session token required', 401);
+  try { await verifySessionToken(c.env, header.replace(/^Bearer\s+/i, '')); }
+  catch { return createErrorResponse('UNAUTHORIZED', 'Invalid or expired App Attest session token', 401); }
   const query = c.req.query();
   const validation = validateRatingsQuery({
     imdb: query.imdb,

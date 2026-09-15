@@ -8,6 +8,9 @@ export interface Env {
   ENVIRONMENT?: string;
   DOUBAN_ENABLED?: string;
   MDBLIST_ENABLED?: string;
+  APP_ATTEST_TEAM_ID?: string;
+  APP_ATTEST_BUNDLE_ID?: string;
+  APP_ATTEST_JWT_SECRET?: string;
 }
 
 export interface MediaIdentity {

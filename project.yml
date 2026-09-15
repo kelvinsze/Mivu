@@ -27,6 +27,7 @@ targets:
       properties:
         com.apple.developer.carplay-audio: true
         com.apple.developer.carplay-video: true
+        com.apple.developer.devicecheck.appattest-environment: development
         com.apple.developer.networking.multicast: true
     preBuildScripts:
       - name: Verify CarPlay Entitlements

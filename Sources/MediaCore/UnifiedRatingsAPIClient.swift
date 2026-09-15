@@ -12,11 +12,14 @@ public enum UnifiedRatingsAPIClient {
             return cached.applying(to: item)
         }
 
-        guard let url = lookup.url else { return nil }
+        guard let url = lookup.url, let endpoint = UnifiedRatingsAPIClient.endpoint else { return nil }
         var request = URLRequest(url: url)
         // A cold request may need both MDBList metadata and a Douban lookup.
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        guard let token = await AppAttestClient.shared.sessionToken(baseURL: endpoint) else { return nil }
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let httpResponse = response as? HTTPURLResponse,

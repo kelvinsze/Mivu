@@ -7,6 +7,7 @@ import { adminRoutes } from './routes/admin';
 import { rateLimitMiddleware } from './middleware/rate-limit';
 import { createErrorResponse } from './utils/response';
 import { logger } from './utils/logger';
+import { appAttestRoutes } from './routes/app-attest';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -25,6 +26,7 @@ app.use('/v1/*', rateLimitMiddleware(60, 60000));
 app.route('/', healthRoutes);
 app.route('/', ratingsRoutes);
 app.route('/', adminRoutes);
+app.route('/', appAttestRoutes);
 
 // 404 Handler
 app.notFound((c) => {
