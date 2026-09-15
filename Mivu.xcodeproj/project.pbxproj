@@ -50,6 +50,7 @@
 		CBC155672B840A6EAE8D3A79 /* AVTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C4E68D964B70B61CE98789 /* AVTransportService.swift */; };
 		D4EED6F5E9F4C0494F77577D /* SMBMediaClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C8DA8A948A8C67371826710 /* SMBMediaClient.swift */; };
 		D530DBC958D989125C323437 /* UnifiedRatingsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */; };
+		A7E11E5707E94731B1C0A001 /* AppAttestClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */; };
 		D9E4FDFB053D897F9E01791A /* CarPlayVideoPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2F70DD8884B2AAD1077E2D /* CarPlayVideoPresentation.swift */; };
 		DDCF58BCEF8762CF98D527E9 /* SOAPParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4257C4863B2449DDC203A2 /* SOAPParserTests.swift */; };
 		DDD8EAAADA25B10C23E966D0 /* ServerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29C7638366F3FE4BBC890C64 /* ServerDetailView.swift */; };
@@ -100,6 +101,7 @@
 		7EB11B61B4535D7FE6B9098C /* subfont.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = subfont.ttf; sourceTree = "<group>"; };
 		8A0D166AEE34812DFDF14EA3 /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
 		9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedRatingsAPIClient.swift; sourceTree = "<group>"; };
+		A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttestClient.swift; sourceTree = "<group>"; };
 		9B4257C4863B2449DDC203A2 /* SOAPParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOAPParserTests.swift; sourceTree = "<group>"; };
 		9D95DEE150C0992DAC39C04E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A6BC2202DD3AEDC5445B648E /* MPVBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MPVBridge.h; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 				57BFC9747064979AFA051932 /* PlaybackSession.swift */,
 				28D62DF33021F9BF985B2DDB /* PlayerService.swift */,
 				9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */,
+				A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */,
 				DE7B974ACBA0E0CB57319590 /* PlaybackCore */,
 			);
 			path = MediaCore;
@@ -419,8 +422,8 @@
 /* Begin PBXShellScriptBuildPhase section */
 		F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
 			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
@@ -494,6 +497,7 @@
 				360783D98894D9018D8F4F31 /* UPnPDevice.swift in Sources */,
 				E00B02082CD4C101A335DB09 /* URLSource.swift in Sources */,
 				D530DBC958D989125C323437 /* UnifiedRatingsAPIClient.swift in Sources */,
+				A7E11E5707E94731B1C0A001 /* AppAttestClient.swift in Sources */,
 				9DB3FE8796F363BDEA1CDD89 /* VideoDetailView.swift in Sources */,
 				881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */,
 			);
@@ -533,12 +537,14 @@
 				);
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mivu;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -664,12 +670,14 @@
 				);
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Mivu;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
