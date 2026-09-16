@@ -164,12 +164,14 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             .store(in: &cancellables)
 
         // 2. Observe playback history changes (continue watching / recent items)
+        // 优化：播放进行中避免因 15 秒定时保存进度而高频刷新 CarPlay 模板树，防止打断车机系统播放器的空闲检测与控制条自隐计时器
         PlaybackHistory.shared.$items
-            .map { items in items.map { "\($0.id.uuidString)|\(Int($0.resumePosition ?? 0))" }.joined(separator: ",") }
+            .map { items in items.map(\.id.uuidString).joined(separator: ",") }
             .removeDuplicates()
             .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
+                guard PlayerService.shared.session.status != .playing else { return }
                 self?.refreshCarPlayUI()
             }
             .store(in: &cancellables)

@@ -40,6 +40,7 @@ public struct PlayerView: View {
 
     @State private var isControlsVisible = true
     @State private var hideControlsTask: Task<Void, Never>?
+    @State private var loadingDebounceTask: Task<Void, Never>?
     @State private var isScrubbing = false
     @State private var scrubTime: TimeInterval = 0
     @State private var showDiagnosticsHUD = false
@@ -378,16 +379,27 @@ public struct PlayerView: View {
             }
         }
         .onDisappear {
+            hideControlsTask?.cancel()
+            loadingDebounceTask?.cancel()
             PlaybackOrientation.restoreAppOrientations()
         }
         .onChange(of: playerService.session.status) { _, newStatus in
-            if newStatus == .playing {
+            switch newStatus {
+            case .playing:
+                loadingDebounceTask?.cancel()
                 scheduleHideControls()
-            } else {
+            case .paused, .stopped, .failed:
+                loadingDebounceTask?.cancel()
                 hideControlsTask?.cancel()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isControlsVisible = true
                 }
+            case .loading:
+                // 短暂的网络卡顿或切片微小缓冲不打断当前的自隐流程，
+                // 仅当卡顿缓冲持续超过 1.5 秒时才显示控制条。
+                debounceLoadingControls()
+            case .idle:
+                break
             }
         }
         .sheet(isPresented: $showSubtitleSettingsSheet) {
@@ -464,8 +476,13 @@ public struct PlayerView: View {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         isControlsVisible.toggle()
                     }
-                    if isControlsVisible && playerService.session.status == .playing {
-                        scheduleHideControls()
+                    if isControlsVisible {
+                        if playerService.session.status == .playing {
+                            scheduleHideControls()
+                        }
+                    } else {
+                        hideControlsTask?.cancel()
+                        loadingDebounceTask?.cancel()
                     }
                 }
             }
@@ -1394,6 +1411,7 @@ public struct PlayerView: View {
 
     private func scheduleHideControls() {
         hideControlsTask?.cancel()
+        loadingDebounceTask?.cancel()
         // 未开始播放（如加载中、已暂停、已停止）时不隐藏播放控制元素
         guard playerService.session.status == .playing else {
             isControlsVisible = true
@@ -1405,6 +1423,21 @@ public struct PlayerView: View {
                 withAnimation(.easeInOut(duration: 0.25)) {
                     if playerService.session.status == .playing {
                         isControlsVisible = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func debounceLoadingControls() {
+        loadingDebounceTask?.cancel()
+        loadingDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if playerService.session.status == .loading {
+                        hideControlsTask?.cancel()
+                        isControlsVisible = true
                     }
                 }
             }

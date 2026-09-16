@@ -184,18 +184,23 @@ public final class CarPlayTemplateBuilder {
 
     private static func configureVideoPlayback(_ item: CPListItem, for media: MediaItem, isCurrentlyPlaying: Bool = false) {
         guard #available(iOS 26.4, *), CarPlaySceneDelegate.shared?.isVideoPlaybackAvailable == true else { return }
+        let session = PlayerService.shared.session
+        let isCurrentSessionItem = session.currentItem?.id == media.id
+        let durationSeconds = (isCurrentSessionItem && session.duration > 0) ? session.duration : (media.duration ?? 0)
+        let elapsedSeconds = (isCurrentSessionItem && session.currentTime > 0) ? session.currentTime : (media.resumePosition ?? 0)
+
         if media.sourceType == .dlna {
-            SSDPService.shared.recordCastDebug("CARPLAY configure elapsed=\(media.resumePosition ?? 0) duration=\(media.duration ?? 0) isPlaying=\(isCurrentlyPlaying)")
+            SSDPService.shared.recordCastDebug("CARPLAY configure elapsed=\(elapsedSeconds) duration=\(durationSeconds) isPlaying=\(isCurrentlyPlaying)")
         }
         let durationTime: CMTime
-        if let d = media.duration, d > 0, !d.isNaN, !d.isInfinite {
-            durationTime = CMTime(seconds: d, preferredTimescale: 600)
+        if durationSeconds > 0, !durationSeconds.isNaN, !durationSeconds.isInfinite {
+            durationTime = CMTime(seconds: durationSeconds, preferredTimescale: 600)
         } else {
             durationTime = .zero
         }
         let elapsedTime: CMTime
-        if let e = media.resumePosition, e > 0, !e.isNaN, !e.isInfinite {
-            elapsedTime = CMTime(seconds: e, preferredTimescale: 600)
+        if elapsedSeconds > 0, !elapsedSeconds.isNaN, !elapsedSeconds.isInfinite {
+            elapsedTime = CMTime(seconds: elapsedSeconds, preferredTimescale: 600)
         } else {
             elapsedTime = .zero
         }
