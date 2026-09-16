@@ -11,22 +11,71 @@ public actor AppAttestClient {
     private let tokenKey = "mivu.app-attest.session-token"
     private let tokenExpiryKey = "mivu.app-attest.session-expiry"
 
+    private var inFlightRefresh: Task<String?, Never>?
+
     public func sessionToken(baseURL: URL) async -> String? {
+        if let cached = cachedToken() { return cached }
+
+        if let existing = inFlightRefresh {
+            return await existing.value
+        }
+
+        let task = Task<String?, Never> { [weak self] in
+            guard let self else { return nil }
+            return await self.performTokenRefresh(baseURL: baseURL)
+        }
+        inFlightRefresh = task
+        defer { inFlightRefresh = nil }
+        return await task.value
+    }
+
+    public func invalidateSessionToken() {
+        UserDefaults.standard.removeObject(forKey: tokenKey)
+        UserDefaults.standard.removeObject(forKey: tokenExpiryKey)
+    }
+
+    public func resetAllAttestation() {
+        UserDefaults.standard.removeObject(forKey: keyIDKey)
+        invalidateSessionToken()
+    }
+
+    private func cachedToken() -> String? {
         if let token = UserDefaults.standard.string(forKey: tokenKey),
            let expiry = UserDefaults.standard.object(forKey: tokenExpiryKey) as? Date,
            expiry > Date().addingTimeInterval(30) { return token }
+        return nil
+    }
+
+    private func performTokenRefresh(baseURL: URL) async -> String? {
         guard service.isSupported else { return nil }
         do {
-            let keyID = try await ensureKeyID(baseURL: baseURL)
-            let challenge = try await challenge(baseURL: baseURL, purpose: "assertion")
-            let hash = Data(SHA256.hash(data: challenge.bytes))
-            let assertion = try await generateAssertion(keyID: keyID, clientDataHash: hash)
-            let request = try JSONEncoder().encode(AssertionRequest(challengeId: challenge.id, keyId: keyID, assertion: assertion.base64EncodedString()))
-            let result: TokenResponse = try await post(baseURL.appendingPathComponent("v1/app-attest/assert"), body: request)
-            UserDefaults.standard.set(result.token, forKey: tokenKey)
-            UserDefaults.standard.set(Date().addingTimeInterval(TimeInterval(result.expiresIn - 30)), forKey: tokenExpiryKey)
-            return result.token
-        } catch { return nil }
+            return try await executeAssertionFlow(baseURL: baseURL)
+        } catch {
+            if isKeyUnavailableError(error) {
+                resetAllAttestation()
+                return try? await executeAssertionFlow(baseURL: baseURL)
+            }
+            return nil
+        }
+    }
+
+    private func executeAssertionFlow(baseURL: URL) async throws -> String {
+        let keyID = try await ensureKeyID(baseURL: baseURL)
+        let challenge = try await challenge(baseURL: baseURL, purpose: "assertion")
+        let hash = Data(SHA256.hash(data: challenge.bytes))
+        let assertion = try await generateAssertion(keyID: keyID, clientDataHash: hash)
+        let request = try JSONEncoder().encode(AssertionRequest(challengeId: challenge.id, keyId: keyID, assertion: assertion.base64EncodedString()))
+        let result: TokenResponse = try await post(baseURL.appendingPathComponent("v1/app-attest/assert"), body: request)
+        UserDefaults.standard.set(result.token, forKey: tokenKey)
+        UserDefaults.standard.set(Date().addingTimeInterval(TimeInterval(result.expiresIn - 30)), forKey: tokenExpiryKey)
+        return result.token
+    }
+
+    private func isKeyUnavailableError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        return nsError.domain == "com.apple.devicecheck.error"
+            || nsError.domain == DCError.errorDomain
+            || nsError.domain == NSOSStatusErrorDomain
     }
 
     private func ensureKeyID(baseURL: URL) async throws -> String {

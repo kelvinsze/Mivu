@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "PlaybackHistory")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "PlaybackHistory")
 
 /// Manages locally persisted playback history.
 @MainActor

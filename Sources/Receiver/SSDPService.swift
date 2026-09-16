@@ -3,7 +3,7 @@ import Network
 import OSLog
 import Combine
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "SSDPService")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "SSDPService")
 
 /// Robust multi-tiered SSDP (Simple Service Discovery Protocol) & Bonjour broadcaster.
 /// Supports POSIX UDP Socket, NWConnectionGroup, Subnet Broadcasts, and mDNS announcements.
@@ -21,7 +21,7 @@ public final class SSDPService: NSObject, @unchecked Sendable, NetServiceDelegat
 
     private let multicastIP = "239.255.255.250"
     private let multicastPort: UInt16 = 1900
-    private let queue = DispatchQueue(label: "com.kelvinsze.mivu.ssdp", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.kold.mivu.ssdp", qos: .userInitiated)
 
     private var connectionGroup: NWConnectionGroup?
     private var isRunning = false

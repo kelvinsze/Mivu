@@ -2,7 +2,7 @@ import Foundation
 import OSLog
 import Security
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "MediaServerManager")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "MediaServerManager")
 
 public enum MediaServerType: String, Codable, Sendable, CaseIterable {
     case emby

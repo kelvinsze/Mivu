@@ -11,6 +11,7 @@ export interface Env {
   APP_ATTEST_TEAM_ID?: string;
   APP_ATTEST_BUNDLE_ID?: string;
   APP_ATTEST_JWT_SECRET?: string;
+  ADMIN_CORS_ORIGIN?: string;
 }
 
 export interface MediaIdentity {

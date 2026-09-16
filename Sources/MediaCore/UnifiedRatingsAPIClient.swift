@@ -1,9 +1,22 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.kold.mivu", category: "UnifiedRatingsAPIClient")
 
 /// Fetches normalized ratings exclusively from Mivu's Ratings API.
 public enum UnifiedRatingsAPIClient {
-    private static let cachePrefix = "mivu.unified-ratings."
     private static let cacheTTL: TimeInterval = 24 * 60 * 60
+
+    private static let memoryCache: NSCache<NSString, CacheBox> = {
+        let cache = NSCache<NSString, CacheBox>()
+        cache.countLimit = 500
+        return cache
+    }()
+
+    private final class CacheBox: NSObject {
+        let entry: CacheEntry
+        init(_ entry: CacheEntry) { self.entry = entry }
+    }
 
     public static func enrich(_ item: MediaItem) async -> MediaItem? {
         guard let lookup = Lookup(item: item) else { return nil }
@@ -21,15 +34,51 @@ public enum UnifiedRatingsAPIClient {
         guard let token = await AppAttestClient.shared.sessionToken(baseURL: endpoint) else { return nil }
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode),
-              let ratings = try? JSONDecoder().decode(Response.self, from: data) else {
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else { return nil }
+
+            if httpResponse.statusCode == 401 {
+                logger.warning("Ratings API returned 401 Unauthorized. Invalidating session token and retrying...")
+                await AppAttestClient.shared.invalidateSessionToken()
+                guard let newToken = await AppAttestClient.shared.sessionToken(baseURL: endpoint) else {
+                    logger.error("Failed to acquire new session token on retry.")
+                    return nil
+                }
+                var retryRequest = request
+                retryRequest.setValue("Bearer \(newToken)", forHTTPHeaderField: "Authorization")
+                let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+                guard let retryHTTP = retryResponse as? HTTPURLResponse else { return nil }
+                if !(200...299).contains(retryHTTP.statusCode) {
+                    let errBody = String(data: retryData, encoding: .utf8) ?? ""
+                    logger.error("Ratings API retry failed with status \(retryHTTP.statusCode): \(errBody, privacy: .public)")
+                    return nil
+                }
+                guard let ratings = try? JSONDecoder().decode(Response.self, from: retryData) else {
+                    logger.error("Failed to decode ratings JSON on retry.")
+                    return nil
+                }
+                cache(ratings, for: lookup)
+                return ratings.applying(to: item)
+            }
+
+            if !(200...299).contains(httpResponse.statusCode) {
+                let errBody = String(data: data, encoding: .utf8) ?? ""
+                logger.error("Ratings API failed with status \(httpResponse.statusCode): \(errBody, privacy: .public)")
+                return nil
+            }
+
+            guard let ratings = try? JSONDecoder().decode(Response.self, from: data) else {
+                logger.error("Failed to decode ratings JSON response.")
+                return nil
+            }
+
+            cache(ratings, for: lookup)
+            return ratings.applying(to: item)
+        } catch {
+            logger.error("Ratings API request error: \(error.localizedDescription, privacy: .public)")
             return nil
         }
-
-        cache(ratings, for: lookup)
-        return ratings.applying(to: item)
     }
 
     private static var endpoint: URL? {
@@ -39,18 +88,14 @@ public enum UnifiedRatingsAPIClient {
     }
 
     private static func cachedResponse(for lookup: Lookup) -> Response? {
-        guard let data = UserDefaults.standard.data(forKey: cachePrefix + lookup.cacheKey),
-              let entry = try? JSONDecoder().decode(CacheEntry.self, from: data),
-              entry.expiresAt > Date() else {
-            return nil
-        }
-        return entry.response
+        guard let box = memoryCache.object(forKey: lookup.cacheKey as NSString),
+              box.entry.expiresAt > Date() else { return nil }
+        return box.entry.response
     }
 
     private static func cache(_ response: Response, for lookup: Lookup) {
         let entry = CacheEntry(response: response, expiresAt: Date().addingTimeInterval(cacheTTL))
-        guard let data = try? JSONEncoder().encode(entry) else { return }
-        UserDefaults.standard.set(data, forKey: cachePrefix + lookup.cacheKey)
+        memoryCache.setObject(CacheBox(entry), forKey: lookup.cacheKey as NSString)
     }
 }
 

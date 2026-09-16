@@ -1,4 +1,4 @@
-# Mivu Design System v1.0
+# Mivu Design System v1.2
 
 > iOS / iPadOS / CarPlay · Emby Media Player\
 > Status: Implementation Specification\
@@ -34,7 +34,7 @@ application than a traditional Emby/Jellyfin client.
 
 ### Visual keywords
 
-**Black · Off-white · Indigo · SF Pro · SF Symbols · 8pt Grid · 2:3
+**Charcoal · Warm White · Amber · Symmetrical Folded M · SF Pro · SF Symbols · 8pt Grid · 2:3
 Posters · Minimal Chrome**
 
 Mivu should avoid the visual language of a technical media-server
@@ -67,27 +67,27 @@ semantic colors are insufficient.
   --------------------------------------------------------------------------
   Token                Light             Dark              Usage
   -------------------- ----------------- ----------------- -----------------
-  `Background`         `#F7F7F8`         `#000000`         Main page
+  `Background`         `#F5F4F1`         `#111113`         Main page
                                                            background
 
   `Surface`            `#FFFFFF`         `#1C1C1E`         Cards, sheets,
                                                            elevated surfaces
 
-  `SurfaceSecondary`   `#F0F0F2`         `#2C2C2E`         Secondary
+  `SurfaceSecondary`   `#ECEAE6`         `#29292C`         Secondary
                                                            containers
 
-  `PrimaryText`        `#111113`         `#F5F5F7`         Titles and
+  `PrimaryText`        `#171719`         `#F5F5F5`         Titles and
                                                            primary
                                                            information
 
-  `SecondaryText`      `#6E6E73`         `#98989D`         Metadata
+  `SecondaryText`      `#6F6E6A`         `#A1A1A6`         Metadata
 
   `TertiaryText`       `#AEAEB2`         `#636366`         Weak/supporting
                                                            information
 
   `Separator`          `#00000014`       `#FFFFFF18`       Dividers
 
-  `Accent`             `#5E6AD2`         `#7C83FF`         Mivu brand accent
+  `Accent`             `#E89A32`         `#F0A43A`         Mivu brand accent
 
   `Success`            System Green      System Green      Connected /
                                                            successful
@@ -1131,53 +1131,91 @@ instead of:
 
 ## 38. Mivu Logo Direction
 
-Avoid using a plain letter `M` as the only concept.
+The Mivu brand mark is the **Symmetrical Folded M**.
 
-Recommended concept:
+It is a standalone product symbol rather than a literal playback icon. Do not add a play triangle, screen outline, aperture, dot, or other media pictogram to the core mark. Media meaning should come from the product context and the folded, forward-moving geometry rather than an explicit ▶ symbol.
 
-**M / Screen / Play**
+### Geometry
 
-Combine:
+-   The mark is fully symmetrical on its vertical axis.
+-   Left and right peaks, legs and outer silhouette use matching geometry.
+-   The center valley remains centered.
+-   Preserve the same master vector geometry across app icon, launch/brand surfaces and marketing assets.
+-   Do not create asymmetric variants for individual screens.
+-   Avoid fine internal lines and fragile details.
 
--   media screen geometry;
--   subtle play triangle;
--   abstract M silhouette.
+### Fold treatment
 
-The mark should remain recognizable at:
+The full-color brand mark may use restrained tonal separation to communicate a folded ribbon:
 
--   16--20pt UI size;
--   App Icon size;
--   CarPlay display size;
--   monochrome rendering.
+``` text
+Primary Amber     #F0A43A
+Secondary Amber   #E89A32
+Fold Shadow       #C97D20
+Highlight         #FFD28A (sparingly)
+```
 
-Avoid fine internal lines.
+The fold treatment should remain subtle: approximately **70% geometric logo / 30% dimensional fold**. Avoid metallic reflections, glossy material effects or strong 3D rendering.
 
-------------------------------------------------------------------------
+The dimensional treatment is a **brand-asset exception**. It does not authorize gradient-heavy buttons, cards, navigation or other application UI.
+
+### Required variants
+
+1.  **Full Color** — Amber Folded M on charcoal; primary brand presentation.
+2.  **Monochrome** — single-color silhouette for small UI, CarPlay and constrained contexts.
+3.  **Tinted/System** — geometry adapted to platform icon tinting while preserving the Folded M silhouette.
+
+The mark must remain recognizable at App Icon size, approximately 16–20pt UI usage where appropriate, CarPlay display size, and monochrome rendering.
+
+--------------------------------------------------------------------------
 
 ## 39. App Icon
 
-Base concept:
+### Final concept
 
 ``` text
-Dark / charcoal field
+Neutral charcoal field
 +
-Mivu geometric media symbol
+Symmetrical Folded M
 +
-Indigo accent
+restrained Amber fold treatment
 ```
 
-Prepare platform-required appearances:
+Recommended background target:
 
--   Default
--   Dark
--   Tinted
--   Clear, if required by target OS/design workflow
+``` text
+#111113 → #080809
+```
 
-The underlying symbol geometry must remain consistent.
+Use only a very subtle neutral tonal transition if needed. Do not introduce a brown/orange glow behind the mark. The background should read as charcoal/near-black, not as a decorative gradient.
 
-Do not place the word `Mivu` inside the app icon.
+### Composition
 
-------------------------------------------------------------------------
+-   Center the Folded M optically and geometrically.
+-   Preserve generous negative space around the symbol.
+-   The M should not touch or visually crowd the icon boundary.
+-   Do not place the word `Mivu` inside the app icon.
+-   Do not add playback triangles, screens, rings or secondary symbols.
+-   Do not change the master M geometry between icon appearances.
+
+### Platform appearances
+
+Prepare and verify:
+
+-   Default;
+-   Dark;
+-   Tinted;
+-   Clear, if required by the target OS/design workflow.
+
+For Tinted/monochrome rendering, remove fold gradients when necessary and prioritize the clean Folded M silhouette.
+
+### Small-size behavior
+
+At small sizes, silhouette recognition takes priority over dimensional detail. Reduce or remove highlight/shadow separation before altering geometry.
+
+For CarPlay or other small monochrome placements, use the **single-color symmetrical Folded M**, not a miniature full-gradient app icon.
+
+--------------------------------------------------------------------------
 
 # SwiftUI Implementation Tokens
 
@@ -1383,8 +1421,9 @@ TECHNICAL INFORMATION
 The defining visual system is:
 
 ``` text
-True Black / Off-white
+Charcoal / Warm White
 + restrained Amber
++ Symmetrical Folded M
 + SF Pro
 + SF Symbols
 + 8pt-oriented spacing

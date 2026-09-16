@@ -2,7 +2,7 @@ import SwiftUI
 import CarPlay
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "MivuApp")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "MivuApp")
 
 @main
 struct MivuApp: App {
@@ -51,12 +51,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             let config = UISceneConfiguration(name: "CarPlay Configuration", sessionRole: connectingSceneSession.role)
             config.sceneClass = CPTemplateApplicationScene.self
             config.delegateClass = CarPlaySceneDelegate.self
-            return config
-        } else if sceneRole.rawValue == "UIWindowSceneSessionRoleCarPlay" {
-            logger.info("Connecting CarPlay window scene configuration.")
-            let config = UISceneConfiguration(name: "CarPlay Window Configuration", sessionRole: sceneRole)
-            config.sceneClass = UIWindowScene.self
-            config.delegateClass = PhoneSceneDelegate.self
             return config
         } else {
             logger.info("Connecting Phone UIWindowScene configuration...")

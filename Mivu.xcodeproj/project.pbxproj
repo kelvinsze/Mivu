@@ -32,6 +32,7 @@
 		80EC3F592A55DA87F2ED17A3 /* SMBClient in Frameworks */ = {isa = PBXBuildFile; productRef = 363E3E41D8FA4FEF8929AEBC /* SMBClient */; };
 		829E174F11B73D464CF0D67F /* PlaybackCoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D673EA9A7EAE22D49590863E /* PlaybackCoreTests.swift */; };
 		881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C48F0DA8AF7F12BB7CA1570C /* WebDAVClient.swift */; };
+		8C5C7EFB602A133E38398AFF /* AppAttestClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E448EB49167985562DE09E /* AppAttestClient.swift */; };
 		8EF95EFA7831B6805B7B6C91 /* MPVBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = 235BB513C85D77EB590C7A38 /* MPVBridge.m */; };
 		936244374F89AF0104D49572 /* PersonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23270BA9F9C311E1A7E3537F /* PersonDetailView.swift */; };
 		94946EE1B87F3DFB142A704B /* AddServiceMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73AC6ACEE60F6DF96899C9B /* AddServiceMenuView.swift */; };
@@ -39,7 +40,6 @@
 		9DB3FE8796F363BDEA1CDD89 /* VideoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30C1FF950B980824BFF5F42 /* VideoDetailView.swift */; };
 		9E780E2BAF1106905E539A6B /* ServersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B35711D9836A29F122885BE7 /* ServersView.swift */; };
 		A2A01B3586F3FB9FD6810727 /* DLNASource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47BCF5BC8AFED357491270F9 /* DLNASource.swift */; };
-		A7E11E5707E94731B1C0A001 /* AppAttestClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */; };
 		AD08CA0D31BC8A304A7D3143 /* libmpv.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69D821A8E48FA5536B51DD0D /* libmpv.xcframework */; };
 		AEF10D0C9CEF889B7E517B57 /* PlaybackSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BFC9747064979AFA051932 /* PlaybackSession.swift */; };
 		B0945693970E7A899C740CC0 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A64FA60D3B38DB93DFA095 /* CarPlaySceneDelegate.swift */; };
@@ -84,7 +84,7 @@
 		27D1BF82DE8B1D7EBD86A6FE /* URLSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLSource.swift; sourceTree = "<group>"; };
 		28D62DF33021F9BF985B2DDB /* PlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerService.swift; sourceTree = "<group>"; };
 		29C7638366F3FE4BBC890C64 /* ServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailView.swift; sourceTree = "<group>"; };
-		2BFD4272CC2791F07C2BED39 /* Mivu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mivu.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2BFD4272CC2791F07C2BED39 /* Mivu.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Mivu.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D8DAD3E2C5CA2A845F13D1E /* JellyfinClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JellyfinClient.swift; sourceTree = "<group>"; };
 		3D90DE5A69B57FC399065E0D /* ReceiverStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiverStatusView.swift; sourceTree = "<group>"; };
 		47BCF5BC8AFED357491270F9 /* DLNASource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DLNASource.swift; sourceTree = "<group>"; };
@@ -105,7 +105,6 @@
 		9D95DEE150C0992DAC39C04E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A6BC2202DD3AEDC5445B648E /* MPVBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MPVBridge.h; sourceTree = "<group>"; };
 		A73AC6ACEE60F6DF96899C9B /* AddServiceMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddServiceMenuView.swift; sourceTree = "<group>"; };
-		A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttestClient.swift; sourceTree = "<group>"; };
 		A9F68133D47D1518BB634A92 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		AC2F70DD8884B2AAD1077E2D /* CarPlayVideoPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlayVideoPresentation.swift; sourceTree = "<group>"; };
 		B35711D9836A29F122885BE7 /* ServersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServersView.swift; sourceTree = "<group>"; };
@@ -126,6 +125,7 @@
 		E308EDFF7E3D8D5060751D6F /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		E30C1FF950B980824BFF5F42 /* VideoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDetailView.swift; sourceTree = "<group>"; };
 		E53F2115543AC50B694798D8 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		F0E448EB49167985562DE09E /* AppAttestClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttestClient.swift; sourceTree = "<group>"; };
 		F2C1A2C1479CAA66881A6286 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -145,13 +145,13 @@
 		06E37634A079FC50FFFFFF13 /* MediaCore */ = {
 			isa = PBXGroup;
 			children = (
+				F0E448EB49167985562DE09E /* AppAttestClient.swift */,
 				8A0D166AEE34812DFDF14EA3 /* MediaItem.swift */,
 				628B96790260663C8722C14A /* NetworkSpeedMonitor.swift */,
 				042A4A51D1B57A2966D6DC60 /* PlaybackHistory.swift */,
 				57BFC9747064979AFA051932 /* PlaybackSession.swift */,
 				28D62DF33021F9BF985B2DDB /* PlayerService.swift */,
 				9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */,
-				A7E11E5707E94731B1C0A002 /* AppAttestClient.swift */,
 				DE7B974ACBA0E0CB57319590 /* PlaybackCore */,
 			);
 			path = MediaCore;
@@ -330,7 +330,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 248E5A4F3F85F7D04C2212F1 /* Build configuration list for PBXNativeTarget "Mivu" */;
 			buildPhases = (
-				F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */,
+				952EFD11B35389B12B199A8B /* Verify CarPlay Entitlements */,
 				E8344F4B2044EBEEAC3E436B /* Sources */,
 				ED1230FDDA36B62D5AD9DC8B /* Resources */,
 				DEEC08FB464191B94B3061C3 /* Frameworks */,
@@ -420,7 +420,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		F0A5C0A10E7A4D0D9C0A0001 /* Verify CarPlay Entitlements */ = {
+		952EFD11B35389B12B199A8B /* Verify CarPlay Entitlements */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -458,6 +458,7 @@
 				273D43254AF1B78F73D50C9C /* AVPlayerEngine.swift in Sources */,
 				CBC155672B840A6EAE8D3A79 /* AVTransportService.swift in Sources */,
 				94946EE1B87F3DFB142A704B /* AddServiceMenuView.swift in Sources */,
+				8C5C7EFB602A133E38398AFF /* AppAttestClient.swift in Sources */,
 				B0945693970E7A899C740CC0 /* CarPlaySceneDelegate.swift in Sources */,
 				1A176E5815F1E36B584945EA /* CarPlayTemplateBuilder.swift in Sources */,
 				D9E4FDFB053D897F9E01791A /* CarPlayVideoPresentation.swift in Sources */,
@@ -497,7 +498,6 @@
 				360783D98894D9018D8F4F31 /* UPnPDevice.swift in Sources */,
 				E00B02082CD4C101A335DB09 /* URLSource.swift in Sources */,
 				D530DBC958D989125C323437 /* UnifiedRatingsAPIClient.swift in Sources */,
-				A7E11E5707E94731B1C0A001 /* AppAttestClient.swift in Sources */,
 				9DB3FE8796F363BDEA1CDD89 /* VideoDetailView.swift in Sources */,
 				881C15192991FD645B647B33 /* WebDAVClient.swift in Sources */,
 			);
@@ -527,8 +527,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks/MPV",
+					"$(inherited) $(PROJECT_DIR)/Frameworks/MPV",
 					"\"Frameworks/MPV\"",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -537,14 +536,12 @@
 				);
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Mivu;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -573,7 +570,11 @@
 					"-liconv",
 					"-lc++",
 				);
-				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -DGLES_SILENCE_DEPRECATION=1";
+				OTHER_SWIFT_FLAGS = (
+					"$(inherited)",
+					"-Xcc",
+					"-DGLES_SILENCE_DEPRECATION=1",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.kold.mivu;
 				PRODUCT_MODULE_NAME = Mivu;
 				PRODUCT_NAME = Mivu;
@@ -660,8 +661,7 @@
 				ENABLE_PREVIEWS = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/Frameworks/MPV",
+					"$(inherited) $(PROJECT_DIR)/Frameworks/MPV",
 					"\"Frameworks/MPV\"",
 				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -670,14 +670,12 @@
 				);
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Mivu;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-framework",
@@ -706,7 +704,11 @@
 					"-liconv",
 					"-lc++",
 				);
-				OTHER_SWIFT_FLAGS = "$(inherited) -Xcc -DGLES_SILENCE_DEPRECATION=1";
+				OTHER_SWIFT_FLAGS = (
+					"$(inherited)",
+					"-Xcc",
+					"-DGLES_SILENCE_DEPRECATION=1",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.kold.mivu;
 				PRODUCT_MODULE_NAME = Mivu;
 				PRODUCT_NAME = Mivu;

@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "SOAPParser")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "SOAPParser")
 
 /// Represents a parsed UPnP SOAP action.
 public struct SOAPActionRequest {
@@ -46,12 +46,12 @@ public final class SOAPParser {
     /// Extracts video title from DIDL-Lite XML metadata string if present.
     public static func extractTitleFromDIDLLite(_ didlString: String) -> String? {
         guard !didlString.isEmpty else { return nil }
-        // Simple regex / tag extraction for <dc:title>
+        let unescaped = unescapeXML(didlString)
         let pattern = "<dc:title[^>]*>(.*?)</dc:title>"
         if let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive, .dotMatchesLineSeparators]),
-           let match = regex.firstMatch(in: didlString, options: [], range: NSRange(location: 0, length: didlString.utf16.count)),
-           let titleRange = Range(match.range(at: 1), in: didlString) {
-            let rawTitle = String(didlString[titleRange])
+           let match = regex.firstMatch(in: unescaped, options: [], range: NSRange(location: 0, length: unescaped.utf16.count)),
+           let titleRange = Range(match.range(at: 1), in: unescaped) {
+            let rawTitle = String(unescaped[titleRange])
             return unescapeXML(rawTitle).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return nil
@@ -137,13 +137,39 @@ public final class SOAPParser {
         """
     }
 
-    private static func unescapeXML(_ string: String) -> String {
-        return string
+    public static func unescapeXML(_ string: String) -> String {
+        var result = string
             .replacingOccurrences(of: "&lt;", with: "<")
             .replacingOccurrences(of: "&gt;", with: ">")
             .replacingOccurrences(of: "&amp;", with: "&")
             .replacingOccurrences(of: "&quot;", with: "\"")
             .replacingOccurrences(of: "&apos;", with: "'")
+
+        // Decode decimal numeric entities: &#(\d+);
+        if let decRegex = try? NSRegularExpression(pattern: "&#(\\d+);") {
+            let matches = decRegex.matches(in: result, range: NSRange(location: 0, length: result.utf16.count)).reversed()
+            for match in matches {
+                guard let fullRange = Range(match.range(at: 0), in: result),
+                      let numRange = Range(match.range(at: 1), in: result),
+                      let codePoint = UInt32(result[numRange]),
+                      let scalar = UnicodeScalar(codePoint) else { continue }
+                result.replaceSubrange(fullRange, with: String(Character(scalar)))
+            }
+        }
+
+        // Decode hexadecimal numeric entities: &#x([0-9a-fA-F]+);
+        if let hexRegex = try? NSRegularExpression(pattern: "&#x([0-9a-fA-F]+);", options: .caseInsensitive) {
+            let matches = hexRegex.matches(in: result, range: NSRange(location: 0, length: result.utf16.count)).reversed()
+            for match in matches {
+                guard let fullRange = Range(match.range(at: 0), in: result),
+                      let numRange = Range(match.range(at: 1), in: result),
+                      let codePoint = UInt32(result[numRange], radix: 16),
+                      let scalar = UnicodeScalar(codePoint) else { continue }
+                result.replaceSubrange(fullRange, with: String(Character(scalar)))
+            }
+        }
+
+        return result
     }
 }
 
@@ -157,6 +183,7 @@ private final class SOAPXMLHelper: NSObject, XMLParserDelegate {
     private var parameters: [String: String] = [:]
     private var depth = 0
     private var actionDepth = -1
+    private var parentElements: [String] = []
 
     init(data: Data) {
         self.parser = XMLParser(data: data)
@@ -171,12 +198,15 @@ private final class SOAPXMLHelper: NSObject, XMLParserDelegate {
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
         depth += 1
+        let strippedParent = parentElements.last?.components(separatedBy: ":").last ?? ""
+        parentElements.append(elementName)
         currentElement = elementName
         currentValue = ""
 
         // Elements inside Body are usually the action tag
         let strippedName = elementName.components(separatedBy: ":").last ?? elementName
-        if depth == 3 && actionName.isEmpty && strippedName != "Body" && strippedName != "Envelope" {
+        if depth == 3 && actionName.isEmpty && strippedParent == "Body"
+           && strippedName != "Body" && strippedName != "Envelope" {
             actionName = strippedName
             actionDepth = depth
         }
@@ -186,10 +216,19 @@ private final class SOAPXMLHelper: NSObject, XMLParserDelegate {
         currentValue += string
     }
 
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        if let string = String(data: CDATABlock, encoding: .utf8) {
+            currentValue += string
+        }
+    }
+
     func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
         let strippedName = elementName.components(separatedBy: ":").last ?? elementName
         if depth > actionDepth && actionDepth != -1 && !strippedName.isEmpty {
             parameters[strippedName] = currentValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if !parentElements.isEmpty {
+            parentElements.removeLast()
         }
         depth -= 1
     }

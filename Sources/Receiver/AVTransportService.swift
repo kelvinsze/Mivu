@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "AVTransportService")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "AVTransportService")
 
 /// Handles UPnP AVTransport and RenderingControl SOAP actions, bridging them to PlayerService.
 public final class AVTransportService: @unchecked Sendable {

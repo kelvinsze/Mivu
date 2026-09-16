@@ -38,7 +38,8 @@ function equal(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 async function sha256(data: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer));
+  const buf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
 }
 
 /**

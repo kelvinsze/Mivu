@@ -218,4 +218,73 @@ describe('App Routes End-to-End Tests', () => {
     const json = (await limitedRes.json()) as { error: { code: string } };
     expect(json.error.code).toBe('RATE_LIMIT_EXCEEDED');
   });
+
+  it('scheduled handler cleans up expired challenges', async () => {
+    let executedSQL = '';
+    const mockDB = {
+      prepare: (sql: string) => {
+        executedSQL = sql;
+        return {
+          run: async () => ({ meta: { changes: 3 } }),
+        };
+      },
+    };
+    await (app as unknown as { scheduled: (event: unknown, env: unknown, ctx: unknown) => Promise<void> }).scheduled(
+      { scheduledTime: Date.now() },
+      { DB: mockDB },
+      {}
+    );
+    expect(executedSQL).toContain('DELETE FROM app_attest_challenges WHERE expires_at < unixepoch()');
+  });
+
+  it('restricts CORS origin for /v1/admin/* routes', async () => {
+    const env = {
+      DB: db,
+      ADMIN_CORS_ORIGIN: 'https://admin.koldllc.com',
+    };
+
+    // Preflight from allowed admin origin
+    const allowedRes = await app.request(
+      '/v1/admin/cache',
+      {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://admin.koldllc.com',
+          'Access-Control-Request-Method': 'DELETE',
+        },
+      },
+      env
+    );
+    expect(allowedRes.headers.get('Access-Control-Allow-Origin')).toBe('https://admin.koldllc.com');
+
+    // Preflight from untrusted origin
+    const untrustedRes = await app.request(
+      '/v1/admin/cache',
+      {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'https://evil.com',
+          'Access-Control-Request-Method': 'DELETE',
+        },
+      },
+      env
+    );
+    expect(untrustedRes.headers.get('Access-Control-Allow-Origin')).toBeNull();
+  });
+
+  it('runs scheduled cron to clean up expired challenges', async () => {
+    const scheduledEvent = {
+      cron: '0 * * * *',
+      type: 'scheduled',
+      scheduledTime: Date.now(),
+    } as ScheduledEvent;
+    const ctx = {
+      waitUntil: vi.fn(),
+      passThroughOnException: vi.fn(),
+    } as unknown as ExecutionContext;
+    const env = { DB: db } as any;
+
+    await expect(app.scheduled(scheduledEvent, env, ctx)).resolves.toBeUndefined();
+  });
 });
+

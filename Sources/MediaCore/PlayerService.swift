@@ -5,7 +5,7 @@ import OSLog
 import Combine
 import UIKit
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "PlayerService")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "PlayerService")
 
 /// Core video playback service for Mivu, managing AVPlayer, audio session,
 /// Now Playing info, and remote control events.
@@ -152,17 +152,25 @@ public final class PlayerService: ObservableObject {
     // MARK: - Audio Session
 
     private func setupAudioSession() {
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            // moviePlayback mode handles AirPlay and Bluetooth routing automatically.
-            // Passing explicit options with moviePlayback triggers OSStatus error -50 (kAudio_ParamError).
-            try audioSession.setCategory(.playback, mode: .moviePlayback)
-            try audioSession.setActive(true)
-            logger.info("AVAudioSession configured for background video playback.")
-        } catch {
-            logger.error("Failed to configure AVAudioSession: \(error.localizedDescription)")
-            try? AVAudioSession.sharedInstance().setCategory(.playback)
-            try? AVAudioSession.sharedInstance().setActive(true)
+        Task.detached(priority: .userInitiated) {
+            do {
+                let audioSession = AVAudioSession.sharedInstance()
+                // moviePlayback mode handles AirPlay and Bluetooth routing automatically.
+                // Passing explicit options with moviePlayback triggers OSStatus error -50 (kAudio_ParamError).
+                try audioSession.setCategory(.playback, mode: .moviePlayback)
+                try audioSession.setActive(true)
+                logger.info("AVAudioSession configured for background video playback.")
+            } catch {
+                logger.error("Failed to configure AVAudioSession: \(error.localizedDescription)")
+                try? AVAudioSession.sharedInstance().setCategory(.playback)
+                try? AVAudioSession.sharedInstance().setActive(true)
+            }
+        }
+    }
+
+    private func deactivateAudioSession() {
+        Task.detached(priority: .utility) {
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
     }
 
@@ -298,6 +306,7 @@ public final class PlayerService: ObservableObject {
         lastPauseTimestamp = nil
         stopTelemetryLoop()
         updateNowPlayingInfo()
+        deactivateAudioSession()
     }
 
     public func togglePlayPause() {
@@ -713,6 +722,7 @@ public final class PlayerService: ObservableObject {
             session.status = .stopped
             reportPlaybackProgress(force: true, isPaused: true, isStopped: true)
             updateNowPlayingInfo()
+            deactivateAudioSession()
 
         case .diagnostic(let diagnostic):
             switch diagnostic {

@@ -26,6 +26,47 @@ final class SOAPParserTests: XCTestCase {
         XCTAssertEqual(title, "Sample Video Title")
     }
 
+    func testExtractTitleWithNumericEntities() {
+        let didl = """
+        &lt;DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/"&gt;
+          &lt;item id="1"&gt;
+            &lt;dc:title&gt;&#20013;&#25991; &amp;#x6d4b;&amp;#x8bd5;&lt;/dc:title&gt;
+          &lt;/item&gt;
+        &lt;/DIDL-Lite&gt;
+        """
+        let title = SOAPParser.extractTitleFromDIDLLite(didl)
+        XCTAssertEqual(title, "中文 测试")
+    }
+
+    func testParseSOAPActionWithHeaderAndCDATA() {
+        let soapXML = """
+        <?xml version="1.0" encoding="utf-8"?>
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+          <s:Header>
+            <custom:Auth xmlns:custom="urn:schemas-custom">SecretToken</custom:Auth>
+          </s:Header>
+          <s:Body>
+            <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <InstanceID>0</InstanceID>
+              <CurrentURI><![CDATA[http://192.168.1.50:8080/cdata-movie.mp4?token=1&auth=2]]></CurrentURI>
+              <CurrentURIMetaData><![CDATA[<DIDL-Lite><dc:title>CDATA Title</dc:title></DIDL-Lite>]]></CurrentURIMetaData>
+            </u:SetAVTransportURI>
+          </s:Body>
+        </s:Envelope>
+        """
+        guard let data = soapXML.data(using: .utf8) else {
+            XCTFail("Failed to convert string to data")
+            return
+        }
+
+        // Test without SOAPACTION header so actionName is extracted from XML
+        let action = SOAPParser.parseAction(bodyData: data, soapActionHeader: nil)
+        XCTAssertNotNil(action)
+        XCTAssertEqual(action?.actionName, "SetAVTransportURI")
+        XCTAssertEqual(action?.parameters["CurrentURI"], "http://192.168.1.50:8080/cdata-movie.mp4?token=1&auth=2")
+        XCTAssertEqual(action?.parameters["CurrentURIMetaData"], "<DIDL-Lite><dc:title>CDATA Title</dc:title></DIDL-Lite>")
+    }
+
     func testParseSOAPAction() {
         let soapXML = """
         <?xml version="1.0" encoding="utf-8"?>

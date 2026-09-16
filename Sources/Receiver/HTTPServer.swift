@@ -3,14 +3,14 @@ import Network
 import UIKit
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "HTTPServer")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "HTTPServer")
 
 /// Embedded lightweight HTTP & REST / Web Remote server using Network.framework.
 public final class HTTPServer: @unchecked Sendable {
     public static let shared = HTTPServer()
 
     private var listener: NWListener?
-    private let queue = DispatchQueue(label: "com.kelvinsze.mivu.httpserver", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.kold.mivu.httpserver", qos: .userInitiated)
     private var isRunning = false
     public private(set) var port: UInt16 = 7890
 

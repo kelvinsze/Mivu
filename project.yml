@@ -22,13 +22,6 @@ targets:
     deploymentTarget: "17.0"
     sources:
       - path: Sources
-    entitlements:
-      path: Mivu.entitlements
-      properties:
-        com.apple.developer.carplay-audio: true
-        com.apple.developer.carplay-video: true
-        com.apple.developer.devicecheck.appattest-environment: development
-        com.apple.developer.networking.multicast: true
     preBuildScripts:
       - name: Verify CarPlay Entitlements
         script: |
@@ -40,6 +33,7 @@ targets:
       - package: SMBClient
     settings:
       base:
+        CODE_SIGN_ENTITLEMENTS: Mivu.entitlements
         CLANG_WARN_DOCUMENTATION_COMMENTS: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.kold.mivu
         PRODUCT_NAME: Mivu

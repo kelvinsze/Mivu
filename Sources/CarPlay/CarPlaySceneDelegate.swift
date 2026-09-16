@@ -3,7 +3,7 @@ import CarPlay
 import Combine
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "CarPlaySceneDelegate")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "CarPlaySceneDelegate")
 
 /// CarPlay Application Scene Delegate managing automotive lifecycle, vehicle state, and interface controller.
 @MainActor

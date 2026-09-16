@@ -39,6 +39,9 @@ appAttestRoutes.post('/v1/app-attest/attest', async (c) => {
     const ids = config(c.env);
     const { verifyAttestation } = await import('../app-attest/attestation');
     const result = await verifyAttestation(body.attestation, body.keyId, challenge, ids.team, ids.bundle);
+    if (c.env.ENVIRONMENT === 'production' && result.env === 'dev') {
+      return createErrorResponse('FORBIDDEN', 'Development attestations are not permitted in production', 403);
+    }
     const now = Math.floor(Date.now() / 1000);
     await c.env.DB.prepare('INSERT INTO app_attest_keys (key_id, public_key_spki, assertion_counter, environment, created_at, last_used_at) VALUES (?, ?, 0, ?, ?, ?)').bind(body.keyId, result.pubkeySpki, result.env, now, now).run();
     return createJsonResponse({ registered: true });

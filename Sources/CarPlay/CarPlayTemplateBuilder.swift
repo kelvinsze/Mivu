@@ -3,7 +3,7 @@ import CarPlay
 import CoreMedia
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "CarPlayTemplateBuilder")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "CarPlayTemplateBuilder")
 
 /// Builds CPListTemplates and action sheets for CarPlay UI.
 @MainActor

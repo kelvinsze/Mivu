@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "JellyfinClient")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "JellyfinClient")
 
 /// Jellyfin API client conforming to MediaServerProtocol.
 public final class JellyfinClient: MediaServerProtocol, @unchecked Sendable {

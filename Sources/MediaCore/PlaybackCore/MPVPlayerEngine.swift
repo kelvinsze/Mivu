@@ -182,6 +182,7 @@ public final class MPVPlayerEngine: PlayerEngine {
     private var hardwareDecodingDiagnostic = "hwdec=pending"
     private var pendingSubtitleTrack: SubtitleTrack?
     private var hasLoadedFile = false
+    private let renderFrameCounter = RenderFrameCounter()
     private var renderedFrameCount = 0
     private var webmSurfaceDiagnosticMilestones = Set<Int>()
     private var lastSurfaceAttachmentState: Bool?
@@ -260,13 +261,17 @@ public final class MPVPlayerEngine: PlayerEngine {
         timer.schedule(deadline: .now(), repeating: .milliseconds(16), leeway: .milliseconds(2))
         let mpvHandle = MPVControlHandle(handle)
         let target = sampleBufferTarget
+        let counter = renderFrameCounter
         timer.setEventHandler { [weak self] in
             guard let rawHandle = mpvHandle.rawValue else { return }
             if let unmanaged = mivuMPVRenderSampleBuffer(rawHandle, 0, 0) {
                 let sampleBuffer = unmanaged.takeRetainedValue()
                 target.enqueue(sampleBuffer)
-                Task { @MainActor [weak self] in
-                    self?.onFrameRendered()
+                let count = counter.increment()
+                if [1, 30, 90, 150].contains(Int(count)) {
+                    Task { @MainActor [weak self] in
+                        self?.onFrameRendered(count: Int(count))
+                    }
                 }
             }
         }
@@ -279,8 +284,25 @@ public final class MPVPlayerEngine: PlayerEngine {
         renderTimer = nil
     }
 
-    fileprivate func onFrameRendered() {
-        renderedFrameCount += 1
+    private func renderSingleFrameIfPaused() {
+        guard renderTimer == nil, let handle else { return }
+        let mpvHandle = MPVControlHandle(handle)
+        let target = sampleBufferTarget
+        renderQueue.async {
+            guard let rawHandle = mpvHandle.rawValue else { return }
+            if let unmanaged = mivuMPVRenderSampleBuffer(rawHandle, 0, 0) {
+                let sampleBuffer = unmanaged.takeRetainedValue()
+                target.enqueue(sampleBuffer)
+            }
+        }
+    }
+
+    fileprivate func onFrameRendered(count: Int? = nil) {
+        if let count {
+            renderedFrameCount = count
+        } else {
+            renderedFrameCount += 1
+        }
         recordSurfaceDiagnostic("frames rendered=\(renderedFrameCount)")
         if renderedFrameCount == 1 {
             applySubtitleScale()
@@ -386,6 +408,7 @@ public final class MPVPlayerEngine: PlayerEngine {
         pendingSubtitleTrack = nil
         renderFailureReported = false
         renderDiagnosticReported = false
+        renderFrameCounter.reset()
         renderedFrameCount = 0
         webmSurfaceDiagnosticMilestones.removeAll()
         lastSurfaceAttachmentState = nil
@@ -438,6 +461,7 @@ public final class MPVPlayerEngine: PlayerEngine {
 
     public func pause() {
         guard isOperational else { return }
+        stopRenderTimer()
         let handle = MPVControlHandle(handle)
         controlQueue.async { _ = mivuMPVSetPaused(handle.rawValue, 1) }
         updateSnapshot { $0.status = .paused }
@@ -453,6 +477,7 @@ public final class MPVPlayerEngine: PlayerEngine {
         }
         hasLoadedFile = false
         pendingSubtitleTrack = nil
+        renderFrameCounter.reset()
         renderedFrameCount = 0
         updateSnapshot {
             $0.status = .stopped
@@ -469,6 +494,7 @@ public final class MPVPlayerEngine: PlayerEngine {
         controlQueue.async { [weak self] in
             let result = mivuMPVSeek(handle.rawValue, target)
             Task { @MainActor [weak self] in
+                self?.renderSingleFrameIfPaused()
                 self?.eventContinuation?.yield(.diagnostic(.seekCompleted(target: target, finished: result >= 0)))
             }
         }
@@ -635,8 +661,11 @@ public final class MPVPlayerEngine: PlayerEngine {
 
     public func stepFrame(forward: Bool) {
         let controlHandle = MPVControlHandle(handle)
-        controlQueue.async {
+        controlQueue.async { [weak self] in
             _ = mivuMPVFrameStep(controlHandle.rawValue, forward ? 1 : 0)
+            Task { @MainActor [weak self] in
+                self?.renderSingleFrameIfPaused()
+            }
         }
     }
 
@@ -828,3 +857,20 @@ public final class MPVPlayerEngine: PlayerEngine {
     @discardableResult public func prepareSurfaceForLoading() -> Bool { false }
 }
 #endif
+
+private final class RenderFrameCounter: @unchecked Sendable {
+    private var count: Int32 = 0
+    private var lock = os_unfair_lock()
+    func increment() -> Int32 {
+        os_unfair_lock_lock(&lock)
+        count += 1
+        let current = count
+        os_unfair_lock_unlock(&lock)
+        return current
+    }
+    func reset() {
+        os_unfair_lock_lock(&lock)
+        count = 0
+        os_unfair_lock_unlock(&lock)
+    }
+}

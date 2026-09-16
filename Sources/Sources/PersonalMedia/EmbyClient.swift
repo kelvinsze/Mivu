@@ -1,7 +1,7 @@
 import Foundation
 import OSLog
 
-private let logger = Logger(subsystem: "com.kelvinsze.mivu", category: "EmbyClient")
+private let logger = Logger(subsystem: "com.kold.mivu", category: "EmbyClient")
 
 /// Emby Server API client conforming to MediaServerProtocol.
 public final class EmbyClient: MediaServerProtocol, @unchecked Sendable {

@@ -55,8 +55,8 @@ export function fromBase64(s: string): Uint8Array {
 }
 
 async function sha256(data: Uint8Array): Promise<Uint8Array> {
-  const digest = await crypto.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
-  return new Uint8Array(digest);
+  const buf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
 }
 
 function concat(...arrays: Uint8Array[]): Uint8Array {
@@ -191,12 +191,16 @@ function extractNonceFromCert(cert: X509Certificate): Uint8Array {
 async function validateChain(x5c: Uint8Array[]): Promise<X509Certificate> {
   if (x5c.length < 2) throw new Error('x5c chain too short');
 
-  const certs = x5c.map(der => new X509Certificate(der.buffer as ArrayBuffer));
+  const certs = x5c.map(der => {
+    const buf = der.buffer.slice(der.byteOffset, der.byteOffset + der.byteLength) as ArrayBuffer;
+    return new X509Certificate(buf);
+  });
   const leaf = certs[0];
 
   // Build a chain ending at the embedded root
   const rootDer = pemToDer(APPLE_APP_ATTEST_ROOT_CA_PEM);
-  const root = new X509Certificate(rootDer.buffer as ArrayBuffer);
+  const rootBuf = rootDer.buffer.slice(rootDer.byteOffset, rootDer.byteOffset + rootDer.byteLength) as ArrayBuffer;
+  const root = new X509Certificate(rootBuf);
 
   const builder = new X509ChainBuilder({
     certificates: [...certs.slice(1), root],
@@ -205,6 +209,13 @@ async function validateChain(x5c: Uint8Array[]): Promise<X509Certificate> {
   const chain = await builder.build(leaf);
   // chain[last] should be self-signed root
   if (chain.length < 2) throw new Error('Could not build certificate chain to root');
+
+  const now = new Date();
+  for (const cert of chain) {
+    if (now < cert.notBefore || now > cert.notAfter) {
+      throw new Error(`Certificate expired or not yet valid: ${cert.subject}`);
+    }
+  }
 
   // Verify the chain terminates at our known root
   const chainRoot = chain[chain.length - 1];
@@ -277,9 +288,10 @@ export async function verifyAttestation(
   // Apple hashes the ANSI X9.63 uncompressed EC point (65 bytes: 0x04 || X || Y),
   // NOT the full SPKI DER. We still keep the SPKI for D1 storage + subtle.importKey.
   const spki = new Uint8Array(leafCert.publicKey.rawData);
+  const spkiBuf = spki.buffer.slice(spki.byteOffset, spki.byteOffset + spki.byteLength);
   const ecCryptoKey = await crypto.subtle.importKey(
     'spki',
-    spki.buffer as ArrayBuffer,
+    spkiBuf,
     { name: 'ECDSA', namedCurve: 'P-256' },
     true,
     ['verify'],

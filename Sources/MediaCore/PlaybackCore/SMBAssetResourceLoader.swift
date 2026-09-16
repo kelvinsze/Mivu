@@ -5,10 +5,12 @@ import UniformTypeIdentifiers
 
 /// Supplies AVPlayer with byte ranges from an SMB2 share. The asset URL is an
 /// opaque `mivu-smb://` URL, so SMB credentials never escape into a URL.
-final class SMBAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
+final class SMBAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate, @unchecked Sendable {
     private let reader: SMBRangeReader
     private let originalURL: URL
     let queue = DispatchQueue(label: "com.kold.mivu.smb-resource-loader")
+
+    private var activeTasks: [AVAssetResourceLoadingRequest: Task<Void, Never>] = [:]
 
     init?(url: URL) {
         guard let configuration = SMBPlaybackRegistry.shared.configuration(for: url),
@@ -26,9 +28,11 @@ final class SMBAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
     }
 
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
-        Task { [reader] in
+        let task = Task { [reader, weak self] in
+            defer { self?.removeActiveTask(for: loadingRequest) }
             do {
                 let metadata = try await reader.metadata()
+                guard !Task.isCancelled, !loadingRequest.isCancelled else { return }
                 if let content = loadingRequest.contentInformationRequest {
                     content.contentLength = Int64(metadata.length)
                     content.contentType = metadata.contentType
@@ -38,25 +42,35 @@ final class SMBAssetResourceLoader: NSObject, AVAssetResourceLoaderDelegate {
                     var offset = UInt64(max(dataRequest.currentOffset, dataRequest.requestedOffset))
                     var remaining = dataRequest.requestedLength
                     while remaining > 0, offset < metadata.length {
+                        guard !Task.isCancelled, !loadingRequest.isCancelled else { return }
                         let count = min(remaining, 512 * 1024)
                         let chunk = try await reader.read(offset: offset, length: UInt32(count))
                         guard !chunk.isEmpty else { break }
+                        guard !Task.isCancelled, !loadingRequest.isCancelled else { return }
                         dataRequest.respond(with: chunk)
                         offset += UInt64(chunk.count)
                         remaining -= chunk.count
                     }
                 }
+                guard !Task.isCancelled, !loadingRequest.isCancelled else { return }
                 loadingRequest.finishLoading()
             } catch {
+                guard !Task.isCancelled, !loadingRequest.isCancelled else { return }
                 loadingRequest.finishLoading(with: error)
             }
         }
+        activeTasks[loadingRequest] = task
         return true
     }
 
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, didCancel loadingRequest: AVAssetResourceLoadingRequest) {
-        // Each request is bounded to 512 KiB chunks. The next AVFoundation
-        // request naturally starts from its own byte offset after cancellation.
+        activeTasks.removeValue(forKey: loadingRequest)?.cancel()
+    }
+
+    private func removeActiveTask(for loadingRequest: AVAssetResourceLoadingRequest) {
+        queue.async { [weak self] in
+            self?.activeTasks.removeValue(forKey: loadingRequest)
+        }
     }
 }
 
