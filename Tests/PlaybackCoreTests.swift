@@ -1,4 +1,5 @@
 import XCTest
+import AVFoundation
 @testable import Mivu
 
 final class PlaybackCoreTests: XCTestCase {
@@ -191,5 +192,114 @@ final class PlaybackCoreTests: XCTestCase {
         XCTAssertEqual(info?.subtitleTracks[1].format, .srt)
         XCTAssertFalse(info?.subtitleTracks[1].isEmbedded ?? true)
         XCTAssertEqual(info?.subtitleTracks[1].url?.path, "/Videos/item/source-1/Subtitles/3/Stream.srt")
+    }
+
+    func testPlaybackErrorClassifierIdentifiesFormatAndDecodeErrors() {
+        let formatError = NSError(domain: AVFoundationErrorDomain, code: -11828, userInfo: [NSLocalizedDescriptionKey: "File format not supported"])
+        let reason1 = PlaybackErrorClassifier.classifyNSError(formatError)
+        XCTAssertTrue(reason1.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason1.categoryName, "mediaFormatOrDecode")
+
+        let decoderError = NSError(domain: AVFoundationErrorDomain, code: -11833, userInfo: [NSLocalizedDescriptionKey: "Decoder not found"])
+        let reason2 = PlaybackErrorClassifier.classifyNSError(decoderError)
+        XCTAssertTrue(reason2.isEligibleForTranscodeFallback)
+
+        let coreMediaError = NSError(domain: "CoreMediaErrorDomain", code: -12842, userInfo: [NSLocalizedDescriptionKey: "Unsupported format reader"])
+        let reason3 = PlaybackErrorClassifier.classifyNSError(coreMediaError)
+        XCTAssertTrue(reason3.isEligibleForTranscodeFallback)
+
+        // Underlying error wrapped inside generic AVErrorUnknown (-11800)
+        let wrapped = NSError(domain: AVFoundationErrorDomain, code: -11800, userInfo: [
+            NSLocalizedDescriptionKey: "The operation could not be completed",
+            NSUnderlyingErrorKey: coreMediaError
+        ])
+        let reason4 = PlaybackErrorClassifier.classifyNSError(wrapped)
+        XCTAssertTrue(reason4.isEligibleForTranscodeFallback)
+
+        let decodeFailed = NSError(domain: AVFoundationErrorDomain, code: -11848, userInfo: [NSLocalizedDescriptionKey: "Cannot decode video"])
+        XCTAssertTrue(PlaybackErrorClassifier.classifyNSError(decodeFailed).isEligibleForTranscodeFallback)
+
+        let audioFormatError = NSError(domain: NSOSStatusErrorDomain, code: 1718449257, userInfo: [NSLocalizedDescriptionKey: "Unsupported audio format"])
+        XCTAssertTrue(PlaybackErrorClassifier.classifyNSError(audioFormatError).isEligibleForTranscodeFallback)
+    }
+
+    func testPlaybackErrorClassifierBlocksNetworkErrors() {
+        let offlineError = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: [NSLocalizedDescriptionKey: "The Internet connection appears to be offline."])
+        let reason1 = PlaybackErrorClassifier.classifyNSError(offlineError)
+        XCTAssertFalse(reason1.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason1.categoryName, "network")
+
+        let timeoutError = NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut, userInfo: [NSLocalizedDescriptionKey: "The request timed out."])
+        let reason2 = PlaybackErrorClassifier.classifyNSError(timeoutError)
+        XCTAssertFalse(reason2.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason2.categoryName, "network")
+
+        // Network error wrapped inside AVErrorUnknown
+        let wrapped = NSError(domain: AVFoundationErrorDomain, code: -11800, userInfo: [
+            NSLocalizedDescriptionKey: "The operation could not be completed",
+            NSUnderlyingErrorKey: timeoutError
+        ])
+        let reason3 = PlaybackErrorClassifier.classifyNSError(wrapped)
+        XCTAssertFalse(reason3.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason3.categoryName, "network")
+
+        let badResponse = NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse, userInfo: [NSLocalizedDescriptionKey: "Bad response"])
+        let reason4 = PlaybackErrorClassifier.classifyNSError(badResponse)
+        XCTAssertFalse(reason4.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason4.categoryName, "server")
+    }
+
+    func testPlaybackErrorClassifierBlocksAuthenticationAndServerErrors() {
+        let authError = NSError(domain: NSURLErrorDomain, code: NSURLErrorUserCancelledAuthentication, userInfo: [NSLocalizedDescriptionKey: "Authentication cancelled"])
+        let reason1 = PlaybackErrorClassifier.classifyNSError(authError)
+        XCTAssertFalse(reason1.isEligibleForTranscodeFallback)
+        XCTAssertEqual(reason1.categoryName, "authentication")
+
+        // MPV errors
+        let mpvAuth = PlaybackErrorClassifier.classifyMPV(error: 0, message: "Server returned 401 Unauthorized")
+        XCTAssertFalse(mpvAuth.isEligibleForTranscodeFallback)
+        XCTAssertEqual(mpvAuth.categoryName, "authentication")
+
+        let mpvServer = PlaybackErrorClassifier.classifyMPV(error: 0, message: "HTTP 500 Internal Server Error")
+        XCTAssertFalse(mpvServer.isEligibleForTranscodeFallback)
+        XCTAssertEqual(mpvServer.categoryName, "server")
+
+        let mpvFormat = PlaybackErrorClassifier.classifyMPV(error: -14, message: "unsupported format or demuxer failed")
+        XCTAssertTrue(mpvFormat.isEligibleForTranscodeFallback)
+        XCTAssertEqual(mpvFormat.categoryName, "mediaFormatOrDecode")
+    }
+
+    func testPlaybackAlternativePreservesMethodAndAdvances() {
+        var item = MediaItem(
+            title: "Server stream",
+            url: URL(string: "https://media.test/direct")!,
+            playSessionID: "session-direct",
+            playbackAlternatives: [
+                PlaybackAlternative(
+                    url: URL(string: "https://media.test/transcode.m3u8")!,
+                    method: .transcode,
+                    playSessionID: "session-transcode",
+                    mediaSourceID: "source-1"
+                )
+            ]
+        )
+
+        XCTAssertEqual(item.playbackAlternatives?.first?.method, .transcode)
+        XCTAssertTrue(item.advanceToNextPlaybackAlternative())
+        XCTAssertEqual(item.url.absoluteString, "https://media.test/transcode.m3u8")
+        XCTAssertEqual(item.playSessionID, "session-transcode")
+    }
+
+    func testEngineSnapshotRetainsFailureReason() {
+        let failure = PlaybackFailureReason.mediaFormatOrDecode(description: "Unsupported codec", code: -11828)
+        let snapshot = PlaybackEngineSnapshot(
+            status: .failed,
+            errorMessage: "Unsupported codec",
+            failureReason: failure
+        )
+
+        XCTAssertEqual(snapshot.status, .failed)
+        XCTAssertEqual(snapshot.failureReason, failure)
+        XCTAssertTrue(snapshot.failureReason?.isEligibleForTranscodeFallback ?? false)
     }
 }

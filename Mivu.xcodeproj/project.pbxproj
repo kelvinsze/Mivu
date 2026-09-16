@@ -20,6 +20,7 @@
 		3FB53F5CC4296D466EF92E09 /* MivuApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1255C4ABB3088512F3C8BDEC /* MivuApp.swift */; };
 		46C79B1C0251D09C85459E0D /* PlaybackRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF0AAC7AA4CE0E40B63D26F2 /* PlaybackRouter.swift */; };
 		46C7F8F5470B4213D2EA45A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C1A2C1479CAA66881A6286 /* SettingsView.swift */; };
+		49C6F59E864771A2963DE59E /* PlaybackErrorClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5B846E77A22F381838C8AC /* PlaybackErrorClassifier.swift */; };
 		4EA213CAF65320CCA8E7BC35 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1B6CF3CDCB7CAD7F9E063 /* HistoryView.swift */; };
 		4F34AE11601F64CEEF07191A /* SOAPParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = D927BAD78CBBFFFD3F9DEAE5 /* SOAPParser.swift */; };
 		56DFD7DD123D2B09622A605F /* SMBAssetResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */; };
@@ -100,6 +101,7 @@
 		79DE2826965C1D69602443EC /* MediaServerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServerManager.swift; sourceTree = "<group>"; };
 		7EB11B61B4535D7FE6B9098C /* subfont.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = subfont.ttf; sourceTree = "<group>"; };
 		8A0D166AEE34812DFDF14EA3 /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
+		8A5B846E77A22F381838C8AC /* PlaybackErrorClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackErrorClassifier.swift; sourceTree = "<group>"; };
 		9817D2A02717385E26226173 /* UnifiedRatingsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnifiedRatingsAPIClient.swift; sourceTree = "<group>"; };
 		9B4257C4863B2449DDC203A2 /* SOAPParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SOAPParserTests.swift; sourceTree = "<group>"; };
 		9D95DEE150C0992DAC39C04E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@
 				A6BC2202DD3AEDC5445B648E /* MPVBridge.h */,
 				235BB513C85D77EB590C7A38 /* MPVBridge.m */,
 				723940D1AE88CF92874CC8B0 /* MPVPlayerEngine.swift */,
+				8A5B846E77A22F381838C8AC /* PlaybackErrorClassifier.swift */,
 				DF0AAC7AA4CE0E40B63D26F2 /* PlaybackRouter.swift */,
 				C0CC6CD7A95C4A23C37ECBCD /* PlayerEngine.swift */,
 				755202B4282F1F1C47E8546F /* SMBAssetResourceLoader.swift */,
@@ -480,6 +483,7 @@
 				36436C5DF492C43FFD76C4E4 /* NetworkSpeedMonitor.swift in Sources */,
 				936244374F89AF0104D49572 /* PersonDetailView.swift in Sources */,
 				3B0C3F58792CD6E3A802DB28 /* PhoneSceneDelegate.swift in Sources */,
+				49C6F59E864771A2963DE59E /* PlaybackErrorClassifier.swift in Sources */,
 				BDAA1CA065A53D5C9F848B9D /* PlaybackHistory.swift in Sources */,
 				46C79B1C0251D09C85459E0D /* PlaybackRouter.swift in Sources */,
 				AEF10D0C9CEF889B7E517B57 /* PlaybackSession.swift in Sources */,

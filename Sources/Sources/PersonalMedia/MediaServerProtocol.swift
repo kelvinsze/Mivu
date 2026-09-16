@@ -54,6 +54,7 @@ public extension MediaServerProtocol {
         resolved.playbackAlternatives = playback.candidates.dropFirst().map {
             PlaybackAlternative(
                 url: $0.url,
+                method: $0.method,
                 containerHint: $0.containerHint,
                 videoCodecHint: $0.videoCodecHint,
                 playSessionID: $0.playSessionId,
@@ -64,7 +65,7 @@ public extension MediaServerProtocol {
     }
 }
 
-public enum MediaPlaybackMethod: String, Sendable {
+public enum MediaPlaybackMethod: String, Codable, Sendable {
     case directPlay
     case directStream
     case transcode

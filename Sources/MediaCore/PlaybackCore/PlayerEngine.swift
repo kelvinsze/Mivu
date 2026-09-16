@@ -105,6 +105,7 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
     public var isMuted: Bool
     public var volume: Float
     public var errorMessage: String?
+    public var failureReason: PlaybackFailureReason?
     public var audioTracks: [AudioTrack]
     public var selectedAudioTrackID: String?
     public var chapters: [PlaybackChapter]
@@ -118,6 +119,7 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
         isMuted: Bool = false,
         volume: Float = 1.0,
         errorMessage: String? = nil,
+        failureReason: PlaybackFailureReason? = nil,
         audioTracks: [AudioTrack] = [],
         selectedAudioTrackID: String? = nil,
         chapters: [PlaybackChapter] = []
@@ -130,6 +132,7 @@ public struct PlaybackEngineSnapshot: Equatable, Sendable {
         self.isMuted = isMuted
         self.volume = volume
         self.errorMessage = errorMessage
+        self.failureReason = failureReason
         self.audioTracks = audioTracks
         self.selectedAudioTrackID = selectedAudioTrackID
         self.chapters = chapters

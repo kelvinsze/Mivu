@@ -51,6 +51,7 @@ public final class PlayerService: ObservableObject {
     @Published public private(set) var volumeBoost: Float
     @Published public private(set) var isAudioOnlyMode: Bool = false
     @Published public private(set) var showSkipOutroPrompt: Bool = false
+    @Published public var isShowingPlayer: Bool = false
 
     // AB Repeat
     @Published public private(set) var repeatPointA: TimeInterval? = nil
@@ -77,6 +78,7 @@ public final class PlayerService: ObservableObject {
     private var firstSOAPSeekPending = false
     private var castPlaybackStartedAt: Date?
     private var mpvFallbackAttempted = false
+    private var transcodeFallbackAttempted = false
     private var mpvInitialLoadRetryAttempted = false
     private var requiresNativePlayback = false
     private var isPortraitOrientation = false
@@ -185,7 +187,10 @@ public final class PlayerService: ObservableObject {
         requiresNativePlayback: Bool = false
     ) {
         setupAudioSession()
-        mpvFallbackAttempted = false
+        if origin != "playbackFallback" {
+            mpvFallbackAttempted = false
+            transcodeFallbackAttempted = false
+        }
         mpvInitialLoadRetryAttempted = false
         self.requiresNativePlayback = requiresNativePlayback
         subtitleTracks = item.subtitleTracks ?? []
@@ -307,6 +312,7 @@ public final class PlayerService: ObservableObject {
         chapters = []
         clearABRepeat()
         showSkipOutroPrompt = false
+        isShowingPlayer = false
         lastPauseTimestamp = nil
         stopTelemetryLoop()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -810,13 +816,43 @@ public final class PlayerService: ObservableObject {
             return
         }
 
+        guard hasServerAlternative else {
+            SSDPService.shared.recordPlaybackDebug("FALLBACK exhausted engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+            return
+        }
+
+        let failureReason = engine.snapshot.failureReason ?? .unclassified(session.errorMessage ?? "unknown")
+
+        // 仅对确认的容器/解码失败请求转码，避免把认证、网络或服务端错误误判为需要转码
+        guard failureReason.isEligibleForTranscodeFallback else {
+            logger.error("Playback failed with non-decoding error (\(failureReason.categoryName)); skipping candidate fallback.")
+            SSDPService.shared.recordPlaybackDebug("FALLBACK blocked_by_classification reason=\(failureReason.categoryName) engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+            session.errorMessage = failureReason.userFacingMessage
+            return
+        }
+
+        // 一次性回退策略：单次播放仅尝试一次转码候选回退，避免死循环
+        guard !transcodeFallbackAttempted else {
+            logger.error("Transcode fallback already attempted; exhausting candidate fallback to avoid loop.")
+            SSDPService.shared.recordPlaybackDebug("FALLBACK circuit_breaker_triggered engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+            session.errorMessage = "媒体解码失败，已尝试转码仍无法播放"
+            return
+        }
+
+        let nextCandidateMethod = session.currentItem?.playbackAlternatives?.first?.method
+
         guard var nextItem = session.currentItem,
               nextItem.advanceToNextPlaybackAlternative() else {
             SSDPService.shared.recordPlaybackDebug("FALLBACK exhausted engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
             return
         }
-        logger.error("Playback failed; trying the next server-provided stream.")
-        SSDPService.shared.recordPlaybackDebug("FALLBACK next url=\(SSDPService.sanitizedPlaybackURL(nextItem.url)) remaining=\(nextItem.playbackAlternatives?.count ?? 0)")
+
+        transcodeFallbackAttempted = true
+        let fallbackPosition = max(session.currentTime, session.currentItem?.playbackRequest.startPosition ?? 0)
+        nextItem.resumePosition = fallbackPosition
+
+        logger.error("Playback failed with decoding error; trying the next server-provided stream: \(nextItem.url.absoluteString)")
+        SSDPService.shared.recordPlaybackDebug("FALLBACK next method=\(nextCandidateMethod?.rawValue ?? "candidate") position=\(traceTime(fallbackPosition)) url=\(SSDPService.sanitizedPlaybackURL(nextItem.url)) remaining=\(nextItem.playbackAlternatives?.count ?? 0)")
         loadAndPlay(
             item: nextItem,
             origin: "playbackFallback",

@@ -11,13 +11,22 @@ public enum MediaSourceType: String, Codable, Sendable {
 /// A server-provided stream that can be tried if the current stream fails.
 public struct PlaybackAlternative: Codable, Equatable, Sendable {
     public let url: URL
+    public let method: MediaPlaybackMethod?
     public let containerHint: String?
     public let videoCodecHint: String?
     public let playSessionID: String?
     public let mediaSourceID: String?
 
-    public init(url: URL, containerHint: String? = nil, videoCodecHint: String? = nil, playSessionID: String? = nil, mediaSourceID: String? = nil) {
+    public init(
+        url: URL,
+        method: MediaPlaybackMethod? = nil,
+        containerHint: String? = nil,
+        videoCodecHint: String? = nil,
+        playSessionID: String? = nil,
+        mediaSourceID: String? = nil
+    ) {
         self.url = url
+        self.method = method
         self.containerHint = containerHint
         self.videoCodecHint = videoCodecHint
         self.playSessionID = playSessionID

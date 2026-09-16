@@ -370,7 +370,12 @@ public final class AVPlayerEngine: PlayerEngine {
                 let error = notification.userInfo?[AVPlayerItemFailedToPlayToEndTimeErrorKey] as? Error
                 let message = error?.localizedDescription ?? "Playback failed before ending."
                 let nsError = error as NSError?
-                self.updateSnapshot { $0.status = .failed; $0.errorMessage = message }
+                let reason = nsError.map { PlaybackErrorClassifier.classifyNSError($0) } ?? .unclassified(message)
+                self.updateSnapshot {
+                    $0.status = .failed
+                    $0.errorMessage = message
+                    $0.failureReason = reason
+                }
                 self.eventContinuation?.yield(.diagnostic(.failedToPlayToEnd(
                     message: message,
                     domain: nsError?.domain ?? "unknown",
@@ -442,7 +447,12 @@ public final class AVPlayerEngine: PlayerEngine {
             eventContinuation?.yield(.diagnostic(.itemStatus(rawValue: item.status.rawValue, duration: safeDuration, errorMessage: nil)))
         case .failed:
             let message = item.error?.localizedDescription ?? "Unknown playback error"
-            updateSnapshot { $0.status = .failed; $0.errorMessage = message }
+            let reason = PlaybackErrorClassifier.classifyAVPlayer(item: item)
+            updateSnapshot {
+                $0.status = .failed
+                $0.errorMessage = message
+                $0.failureReason = reason
+            }
             eventContinuation?.yield(.diagnostic(.itemStatus(rawValue: item.status.rawValue, duration: safeDuration, errorMessage: message)))
         case .unknown:
             updateSnapshot { $0.status = .loading }

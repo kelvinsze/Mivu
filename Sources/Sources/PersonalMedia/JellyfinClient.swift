@@ -359,7 +359,7 @@ public final class JellyfinClient: MediaServerProtocol, @unchecked Sendable {
             containerHint: playback?.candidates.first?.containerHint,
             videoCodecHint: playback?.candidates.first?.videoCodecHint,
             playbackAlternatives: playback?.candidates.dropFirst().map {
-                PlaybackAlternative(url: $0.url, containerHint: $0.containerHint, videoCodecHint: $0.videoCodecHint, playSessionID: $0.playSessionId, mediaSourceID: $0.mediaSourceId)
+                PlaybackAlternative(url: $0.url, method: $0.method, containerHint: $0.containerHint, videoCodecHint: $0.videoCodecHint, playSessionID: $0.playSessionId, mediaSourceID: $0.mediaSourceId)
             } ?? [],
             subtitleTracks: playback?.subtitleTracks,
             overview: dict["Overview"] as? String,

@@ -767,7 +767,7 @@ public final class MPVPlayerEngine: PlayerEngine {
                 if reason == 4 || error < 0 {
                     let errorMessage = message ?? "MPV playback ended with an error"
                     SSDPService.shared.recordPlaybackDebug("MPV_END_FILE reason=\(reason) error=\(error) message=\(errorMessage)")
-                    fail(errorMessage)
+                    fail(errorMessage, error: error)
                 } else if !hasLoadedFile {
                     // `loadfile replace` can report the previous item's normal
                     // END_FILE before the new file reaches FILE_LOADED. It is
@@ -801,10 +801,12 @@ public final class MPVPlayerEngine: PlayerEngine {
         eventContinuation?.yield(.snapshot(next))
     }
 
-    private func fail(_ message: String) {
+    private func fail(_ message: String, error: Int32 = 0) {
+        let reason = PlaybackErrorClassifier.classifyMPV(error: error, message: message)
         updateSnapshot {
             $0.status = .failed
             $0.errorMessage = message
+            $0.failureReason = reason
         }
         eventContinuation?.yield(.diagnostic(.itemStatus(rawValue: 2, duration: snapshot.duration, errorMessage: message)))
     }
@@ -813,9 +815,11 @@ public final class MPVPlayerEngine: PlayerEngine {
         guard !renderFailureReported else { return }
         renderFailureReported = true
         let message = renderDiagnostic()
+        let reason = PlaybackErrorClassifier.classifyMPV(error: 0, message: message)
         updateSnapshot {
             $0.status = .failed
             $0.errorMessage = message
+            $0.failureReason = reason
         }
         eventContinuation?.yield(.diagnostic(.renderFailure(message: message)))
     }
