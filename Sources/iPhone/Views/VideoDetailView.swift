@@ -12,7 +12,6 @@ public struct VideoDetailView: View {
     @State private var similarItems: [MediaItem] = []
     @State private var isOverviewExpanded = false
     @State private var isResolvingPlayback = false
-    @State private var isShowingPlayer = false
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var isLoadingUnifiedRatings = true
@@ -82,9 +81,6 @@ public struct VideoDetailView: View {
             await loadUnifiedRatings()
             await similar
             await mediaInspection
-        }
-        .fullScreenCover(isPresented: $isShowingPlayer) {
-            PlayerView()
         }
         .sheet(isPresented: $isShowingAudioSheet) {
             audioTracksSheet
@@ -1320,7 +1316,7 @@ public struct VideoDetailView: View {
               let serverID = currentItem.serverID,
               let client = MediaServerManager.shared.getClient(for: serverID) else {
             playerService.loadAndPlay(item: currentItem)
-            isShowingPlayer = true
+            playerService.isShowingPlayer = true
             return
         }
 
@@ -1331,7 +1327,7 @@ public struct VideoDetailView: View {
                 await MainActor.run {
                     isResolvingPlayback = false
                     playerService.loadAndPlay(item: resolved)
-                    isShowingPlayer = true
+                    playerService.isShowingPlayer = true
                 }
             } catch {
                 await MainActor.run {

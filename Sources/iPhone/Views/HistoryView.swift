@@ -5,7 +5,6 @@ public struct HistoryView: View {
     @ObservedObject var history = PlaybackHistory.shared
     @ObservedObject var playerService = PlayerService.shared
     @State private var searchText = ""
-    @State private var isShowingPlayer = false
     @State private var isConfirmingClear = false
     @State private var playbackResolveTask: Task<Void, Never>?
     @State private var playbackResolveID: UUID?
@@ -64,9 +63,6 @@ public struct HistoryView: View {
             }
             .navigationDestination(for: MediaItem.self) { item in
                 VideoDetailView(item: item)
-            }
-            .fullScreenCover(isPresented: $isShowingPlayer) {
-                PlayerView()
             }
             .confirmationDialog("清空所有播放历史？", isPresented: $isConfirmingClear) {
                 Button("清空历史", role: .destructive) {
@@ -226,7 +222,7 @@ public struct HistoryView: View {
               let serverID = item.serverID,
               let client = MediaServerManager.shared.getClient(for: serverID) else {
             playerService.loadAndPlay(item: item)
-            isShowingPlayer = true
+            playerService.isShowingPlayer = true
             return
         }
 
@@ -242,7 +238,7 @@ public struct HistoryView: View {
                     playbackResolveTask = nil
                     playbackResolveID = nil
                     playerService.loadAndPlay(item: resolved)
-                    isShowingPlayer = true
+                    playerService.isShowingPlayer = true
                 }
             } catch {
                 guard !Task.isCancelled else { return }

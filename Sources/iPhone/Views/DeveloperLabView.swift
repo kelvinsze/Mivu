@@ -6,7 +6,6 @@ public struct DeveloperLabView: View {
     @ObservedObject var playerService = PlayerService.shared
     @State private var inputUrlText: String = ""
     @State private var clipboardURL: URL?
-    @State private var isShowingPlayerSheet = false
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
 
@@ -142,9 +141,6 @@ public struct DeveloperLabView: View {
         }
         .navigationTitle("开发者与实验室")
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $isShowingPlayerSheet) {
-            PlayerView()
-        }
         .alert("播放错误", isPresented: $isShowingErrorAlert) {
             Button("好", role: .cancel) {}
         } message: {
@@ -167,7 +163,7 @@ public struct DeveloperLabView: View {
             originator: "Lab URL Input"
         )
         playerService.loadAndPlay(item: item)
-        isShowingPlayerSheet = true
+        playerService.isShowingPlayer = true
         inputUrlText = ""
     }
 }

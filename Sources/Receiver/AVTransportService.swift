@@ -41,6 +41,9 @@ public final class AVTransportService: @unchecked Sendable {
                     origin: "SOAP.SetAVTransportURI",
                     requiresNativePlayback: CarPlaySceneDelegate.shared?.isConnected == true
                 )
+                if CarPlaySceneDelegate.shared?.isConnected != true {
+                    PlayerService.shared.isShowingPlayer = true
+                }
                 CarPlaySceneDelegate.shared?.presentIncomingPlayback()
             }
 

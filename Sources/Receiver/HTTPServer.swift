@@ -273,6 +273,7 @@ public final class HTTPServer: @unchecked Sendable {
                 )
                 Task { @MainActor in
                     PlayerService.shared.loadAndPlay(item: item)
+                    PlayerService.shared.isShowingPlayer = true
                 }
                 sendResponse(connection: connection, statusCode: 200, contentType: "application/json", body: "{\"status\":\"ok\"}")
             } else {

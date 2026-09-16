@@ -3,6 +3,8 @@ import SwiftUI
 /// Main TabView for Mivu:
 /// [Home, Servers, History, Settings]
 public struct MainTabView: View {
+    @ObservedObject private var playerService = PlayerService.shared
+
     public init() {}
 
     public var body: some View {
@@ -28,5 +30,8 @@ public struct MainTabView: View {
                 }
         }
         .tint(.orange)
+        .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
+            PlayerView()
+        }
     }
 }

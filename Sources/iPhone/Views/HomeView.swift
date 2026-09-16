@@ -5,12 +5,11 @@ import Combine
 /// Features a cinematic Hero Continue Watching card, quick media servers rail,
 /// recently played posters, casting status pill, and floating mini player.
 public struct HomeView: View {
-    private let playerService = PlayerService.shared
+    @ObservedObject private var playerService = PlayerService.shared
     @ObservedObject var history = PlaybackHistory.shared
     @ObservedObject var serverManager = MediaServerManager.shared
 
     @State private var clipboardURL: URL?
-    @State private var isShowingPlayerSheet = false
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var playbackResolveTask: Task<Void, Never>?
@@ -48,19 +47,10 @@ public struct HomeView: View {
             }
             .background(Color(.systemBackground))
             .navigationTitle("Mivu")
-            .onReceive(playerService.$session.map { $0.currentItem?.id }.removeDuplicates()) { itemID in
-                if itemID != nil, playerService.session.currentItem?.sourceType != .personalMedia {
-                    isShowingPlayerSheet = true
-                }
-            }
             .safeAreaInset(edge: .bottom) {
                 HomeMiniPlayerBar(
-                    playerService: playerService,
-                    isShowingPlayerSheet: $isShowingPlayerSheet
+                    playerService: playerService
                 )
-            }
-            .fullScreenCover(isPresented: $isShowingPlayerSheet) {
-                PlayerView()
             }
             .navigationDestination(for: MediaItem.self) { item in
                 VideoDetailView(item: item)
@@ -358,7 +348,7 @@ public struct HomeView: View {
                     originator: "Clipboard"
                 )
                 playerService.loadAndPlay(item: item)
-                isShowingPlayerSheet = true
+                playerService.isShowingPlayer = true
                 clipboardURL = nil
             }
             .buttonStyle(.borderedProminent)
@@ -399,7 +389,7 @@ public struct HomeView: View {
               let serverID = item.serverID,
               let client = MediaServerManager.shared.getClient(for: serverID) else {
             playerService.loadAndPlay(item: item)
-            isShowingPlayerSheet = true
+            playerService.isShowingPlayer = true
             return
         }
 
@@ -415,7 +405,7 @@ public struct HomeView: View {
                     playbackResolveTask = nil
                     playbackResolveID = nil
                     playerService.loadAndPlay(item: resolved)
-                    isShowingPlayerSheet = true
+                    playerService.isShowingPlayer = true
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -434,13 +424,12 @@ public struct HomeView: View {
 /// Frosted Glass Mini Player at the bottom of Home
 private struct HomeMiniPlayerBar: View {
     @ObservedObject var playerService: PlayerService
-    @Binding var isShowingPlayerSheet: Bool
 
     var body: some View {
         if playerService.session.currentItem != nil {
             HStack(spacing: 12) {
                 Button {
-                    isShowingPlayerSheet = true
+                    playerService.isShowingPlayer = true
                 } label: {
                     HStack(spacing: 12) {
                         ZStack {

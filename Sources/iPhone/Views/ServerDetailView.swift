@@ -14,7 +14,6 @@ public struct ServerDetailView: View {
     @State private var continueWatching: [MediaItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var isShowingPlayer = false
     @State private var playbackResolveTask: Task<Void, Never>?
     @State private var playbackResolveID: UUID?
 
@@ -68,9 +67,6 @@ public struct ServerDetailView: View {
             loadContinueWatching()
         }
         .searchable(text: $searchText, prompt: "搜索影视、剧集")
-        .fullScreenCover(isPresented: $isShowingPlayer) {
-            PlayerView()
-        }
     }
 
     private var libraryPicker: some View {
@@ -282,7 +278,7 @@ public struct ServerDetailView: View {
                     playbackResolveID = nil
                     errorMessage = nil
                     playerService.loadAndPlay(item: resolved)
-                    isShowingPlayer = true
+                    playerService.isShowingPlayer = true
                 }
             } catch {
                 guard !Task.isCancelled else { return }
