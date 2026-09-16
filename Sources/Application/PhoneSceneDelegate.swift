@@ -17,6 +17,9 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
             window.rootViewController = UIHostingController(rootView: MainTabView())
             carPlayWindow = window
             window.makeKeyAndVisible()
+            Task { @MainActor in
+                PlayerService.shared.isCarPlayConnected = true
+            }
         }
 
         // Handle URL on launch if opened via deep link
@@ -29,6 +32,9 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         if scene.session.role.rawValue == "UIWindowSceneSessionRoleCarPlay" {
             logger.info("CarPlay UIWindowScene disconnected.")
             carPlayWindow = nil
+            Task { @MainActor in
+                PlayerService.shared.isCarPlayConnected = false
+            }
         }
     }
 

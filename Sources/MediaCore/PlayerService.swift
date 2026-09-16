@@ -4,6 +4,7 @@ import MediaPlayer
 import OSLog
 import Combine
 import UIKit
+import CarPlay
 
 private let logger = Logger(subsystem: "com.kold.mivu", category: "PlayerService")
 
@@ -52,6 +53,19 @@ public final class PlayerService: ObservableObject {
     @Published public private(set) var isAudioOnlyMode: Bool = false
     @Published public private(set) var showSkipOutroPrompt: Bool = false
     @Published public var isShowingPlayer: Bool = false
+    @Published public var isCarPlayConnected: Bool = false
+    @Published public private(set) var isExternalPlaybackActive: Bool = false
+
+    /// Indicates whether CarPlay projection, external display, or CarPlay casting is active.
+    public var isCarPlayActive: Bool {
+        if isCarPlayConnected || isExternalPlaybackActive { return true }
+        if CarPlaySceneDelegate.shared?.isConnected == true { return true }
+        return UIApplication.shared.connectedScenes.contains { scene in
+            scene.session.role == .carTemplateApplication
+                || scene.session.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication"
+                || scene.session.role.rawValue == "UIWindowSceneSessionRoleCarPlay"
+        }
+    }
 
     // AB Repeat
     @Published public private(set) var repeatPointA: TimeInterval? = nil
@@ -116,6 +130,14 @@ public final class PlayerService: ObservableObject {
         self.engine = avEngine
         self.player = avEngine.player
         applyEnginePreferences(to: self.engine)
+
+        self.isCarPlayConnected = CarPlaySceneDelegate.shared?.isConnected ?? false
+        avEngine.player.publisher(for: \.isExternalPlaybackActive)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] active in
+                self?.isExternalPlaybackActive = active
+            }
+            .store(in: &cancellables)
 
         setupAudioSession()
         setupRemoteCommands()

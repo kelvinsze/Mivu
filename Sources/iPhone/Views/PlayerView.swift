@@ -192,7 +192,7 @@ public struct PlayerView: View {
                 }
 
                 // Screen Unlock Floating Button
-                if isLocked && (showUnlockHint || isControlsVisible) {
+                if !playerService.isCarPlayActive && isLocked && (showUnlockHint || isControlsVisible) {
                     Button {
                         withAnimation {
                             isLocked = false
@@ -315,7 +315,7 @@ public struct PlayerView: View {
                                 .shadow(color: .black.opacity(0.4), radius: 8)
                             }
                             .padding(.trailing, 24)
-                            .padding(.bottom, isControlsVisible ? 120 : 40)
+                            .padding(.bottom, isControlsVisible ? (playerService.isCarPlayActive ? 80 : 120) : 40)
                         }
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -400,6 +400,12 @@ public struct PlayerView: View {
                 debounceLoadingControls()
             case .idle:
                 break
+            }
+        }
+        .onChange(of: playerService.isCarPlayActive) { _, isActive in
+            if isActive {
+                isLocked = false
+                showUnlockHint = false
             }
         }
         .sheet(isPresented: $showSubtitleSettingsSheet) {
@@ -773,25 +779,27 @@ public struct PlayerView: View {
 
             // MARK: Center Play/Pause & 15s Jump & Screen Lock
             ZStack {
-                HStack {
-                    Button {
-                        withAnimation {
-                            isLocked = true
-                            isControlsVisible = false
-                            showUnlockHint = true
-                            triggerDismissUnlockHint()
+                if !playerService.isCarPlayActive {
+                    HStack {
+                        Button {
+                            withAnimation {
+                                isLocked = true
+                                isControlsVisible = false
+                                showUnlockHint = true
+                                triggerDismissUnlockHint()
+                            }
+                        } label: {
+                            Image(systemName: "lock.open")
+                                .font(.title3)
+                                .foregroundColor(.white.opacity(0.85))
+                                .padding(12)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.3), radius: 6)
                         }
-                    } label: {
-                        Image(systemName: "lock.open")
-                            .font(.title3)
-                            .foregroundColor(.white.opacity(0.85))
-                            .padding(12)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.3), radius: 6)
+                        .padding(.leading, 32)
+                        Spacer()
                     }
-                    .padding(.leading, 32)
-                    Spacer()
                 }
 
                 let isPaused = playerService.session.status != .playing
@@ -1045,7 +1053,9 @@ public struct PlayerView: View {
                 }
 
                 // MARK: Bottom Action Toolbar (进度条之下)
-                bottomActionToolbar
+                if !playerService.isCarPlayActive {
+                    bottomActionToolbar
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
