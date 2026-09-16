@@ -12,6 +12,42 @@ public enum MediaServerType: String, Codable, Sendable, CaseIterable {
     /// fnOS is connected through its documented WebDAV endpoint. Its private
     /// media-library API is deliberately not assumed to be stable.
     case fnos
+
+    public func normalize(urlString raw: String) -> URL? {
+        var str = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !str.isEmpty else { return nil }
+
+        // Convert Windows UNC backslashes to forward slashes
+        str = str.replacingOccurrences(of: "\\", with: "/")
+
+        // Strip leading slashes
+        while str.hasPrefix("/") {
+            str = String(str.dropFirst())
+        }
+
+        let defaultScheme = (self == .smb) ? "smb" : "http"
+
+        if str.contains("://") {
+            let scheme = str.components(separatedBy: "://").first?.lowercased() ?? ""
+            if self == .smb && scheme != "smb" {
+                let rest = str.components(separatedBy: "://").dropFirst().joined(separator: "://")
+                str = "smb://\(rest)"
+            }
+        } else {
+            str = "\(defaultScheme)://\(str)"
+        }
+
+        if let url = URL(string: str), url.host != nil {
+            return url
+        }
+
+        if let encoded = str.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.union(.urlPathAllowed)),
+           let url = URL(string: encoded), url.host != nil {
+            return url
+        }
+
+        return nil
+    }
 }
 
 public struct MediaServerCredential: Codable, Sendable, Equatable {
@@ -243,10 +279,11 @@ public final class MediaServerManager: ObservableObject {
                 password: credential?.token
             )
         case .smb:
+            let normalizedURL = MediaServerType.smb.normalize(urlString: info.url.absoluteString) ?? info.url
             guard let client = try? SMBMediaClient(
                 id: info.id,
                 serverName: info.name,
-                serverBaseURL: info.url,
+                serverBaseURL: normalizedURL,
                 username: info.username,
                 password: credential?.token
             ) else {

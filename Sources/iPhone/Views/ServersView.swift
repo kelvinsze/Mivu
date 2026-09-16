@@ -279,16 +279,34 @@ struct AddServerView: View {
     }
 
     private func authenticateAndSave() {
-        guard let url = URL(string: serverUrlStr.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let url = serverType.normalize(urlString: serverUrlStr) else {
             errorMessage = "输入的服务器地址不合法"
             return
         }
-        let normalizedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        var normalizedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        var inputPassword = password
+
+        // If user embedded credentials in URL, extract them
+        if normalizedUsername.isEmpty, let user = url.user, !user.isEmpty {
+            normalizedUsername = user
+        }
+        if inputPassword.isEmpty, let pass = url.password, !pass.isEmpty {
+            inputPassword = pass
+        }
+
+        // Clean user/pass from URL so we don't store plain credentials in url
+        var cleanURL = url
+        if url.user != nil || url.password != nil {
+            var comp = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            comp?.user = nil
+            comp?.password = nil
+            cleanURL = comp?.url ?? url
+        }
 
         isAuthenticating = true
         errorMessage = nil
 
-        let name = serverName.isEmpty ? (url.host ?? selectedService.title) : serverName
+        let name = serverName.isEmpty ? (cleanURL.host ?? selectedService.title) : serverName
 
         Task {
             do {
@@ -296,22 +314,22 @@ struct AddServerView: View {
                 let userID: String?
                 switch serverType {
                 case .emby:
-                    let emby = EmbyClient(serverName: name, serverBaseURL: url)
+                    let emby = EmbyClient(serverName: name, serverBaseURL: cleanURL)
                     client = emby
                     userID = emby.userId
                 case .jellyfin:
-                    let jellyfin = JellyfinClient(serverName: name, serverBaseURL: url)
+                    let jellyfin = JellyfinClient(serverName: name, serverBaseURL: cleanURL)
                     client = jellyfin
                     userID = jellyfin.userId
                 case .webDAV, .fnos:
-                    client = WebDAVClient(serverName: name, serverBaseURL: url, username: normalizedUsername)
+                    client = WebDAVClient(serverName: name, serverBaseURL: cleanURL, username: normalizedUsername)
                     userID = nil
                 case .smb:
-                    client = try SMBMediaClient(serverName: name, serverBaseURL: url, username: normalizedUsername)
+                    client = try SMBMediaClient(serverName: name, serverBaseURL: cleanURL, username: normalizedUsername)
                     userID = nil
                 }
 
-                let token = try await client.authenticate(username: normalizedUsername, password: password)
+                let token = try await client.authenticate(username: normalizedUsername, password: inputPassword)
                 let resolvedUserID: String? = {
                     if let emby = client as? EmbyClient { return emby.userId }
                     if let jellyfin = client as? JellyfinClient { return jellyfin.userId }
@@ -321,7 +339,7 @@ struct AddServerView: View {
                 await MainActor.run {
                     MediaServerManager.shared.addServer(
                         name: name,
-                        url: url,
+                        url: cleanURL,
                         type: serverType,
                         username: normalizedUsername,
                         token: token,

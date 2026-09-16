@@ -530,11 +530,11 @@ public enum MediaServerError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .authenticationFailed: return "Server authentication failed. Please check your username and password."
-        case .notAuthenticated: return "User is not authenticated."
-        case .invalidResponse: return "Received invalid response format from media server."
-        case .invalidURL: return "The media server URL is invalid."
-        case .requestFailed(let code): return "Server returned error code: HTTP \(code)"
+        case .authenticationFailed: return "服务器认证失败，请检查用户名和密码"
+        case .notAuthenticated: return "未通过身份验证"
+        case .invalidResponse: return "服务器返回了无效的数据格式"
+        case .invalidURL: return "服务器地址不合法，请检查输入的 URL 格式"
+        case .requestFailed(let code): return "服务器请求失败 (HTTP \(code))"
         }
     }
 }

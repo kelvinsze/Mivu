@@ -27,7 +27,11 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
         let configuration = SMBPlaybackConfiguration(url: serverBaseURL, username: username, password: password)
         guard let configuration else { throw MediaServerError.invalidURL }
         try await withClient(configuration: configuration) { client in
-            _ = try await client.listDirectory(path: configuration.rootPath)
+            if !configuration.share.isEmpty {
+                _ = try await client.listDirectory(path: configuration.rootPath)
+            } else {
+                _ = try? await client.listShares()
+            }
         }
         self.password = password
         SMBPlaybackRegistry.shared.register(configuration, for: serverId)
@@ -36,12 +40,49 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
 
     public func fetchLibraries() async throws -> [MediaLibrary] {
         guard let configuration = authenticatedConfiguration else { throw MediaServerError.notAuthenticated }
-        return [MediaLibrary(id: configuration.rootPath, name: configuration.share, collectionType: "videos")]
+        if !configuration.share.isEmpty {
+            return [MediaLibrary(id: configuration.share, name: configuration.share, collectionType: "videos")]
+        }
+
+        return try await withClient(configuration: configuration) { client in
+            do {
+                let shares = try await client.listShares()
+                let visibleShares = shares.filter { share in
+                    let name = share.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !name.isEmpty, !name.hasSuffix("$") else { return false }
+                    guard !share.type.contains(.special),
+                          !share.type.contains(.ipc),
+                          !share.type.contains(.printQueue),
+                          !share.type.contains(.device) else { return false }
+                    return true
+                }
+                if visibleShares.isEmpty {
+                    return [MediaLibrary(id: "default", name: self.serverName, collectionType: "videos")]
+                }
+                return visibleShares.map { share in
+                    let comment = share.comment.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let displayName = comment.isEmpty ? share.name : "\(share.name) (\(comment))"
+                    return MediaLibrary(id: share.name, name: displayName, collectionType: "videos")
+                }
+            } catch {
+                return [MediaLibrary(id: "default", name: self.serverName, collectionType: "videos")]
+            }
+        }
     }
 
     public func fetchItems(libraryId: String, startIndex: Int, limit: Int) async throws -> [MediaItem] {
         guard let configuration = authenticatedConfiguration else { throw MediaServerError.notAuthenticated }
-        let files = try await scanVideoFiles(configuration: configuration, maximumCount: max(startIndex + limit, 100))
+        let shareName: String
+        let rootDir: String
+        if !configuration.share.isEmpty {
+            shareName = configuration.share
+            rootDir = configuration.rootPath
+        } else {
+            shareName = (libraryId == "default") ? "" : libraryId
+            rootDir = ""
+        }
+        guard !shareName.isEmpty else { return [] }
+        let files = try await scanVideoFiles(configuration: configuration, share: shareName, rootDirectory: rootDir, maximumCount: max(startIndex + limit, 100))
         return Array(files.dropFirst(startIndex).prefix(limit))
     }
 
@@ -62,10 +103,21 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
         guard let configuration = authenticatedConfiguration else { throw MediaServerError.notAuthenticated }
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else { return [] }
-        return try await scanVideoFiles(configuration: configuration, maximumCount: 400)
-            .filter { $0.title.localizedCaseInsensitiveContains(needle) }
-            .prefix(limit)
-            .map { $0 }
+        if !configuration.share.isEmpty {
+            return try await scanVideoFiles(configuration: configuration, share: configuration.share, rootDirectory: configuration.rootPath, maximumCount: 400)
+                .filter { $0.title.localizedCaseInsensitiveContains(needle) }
+                .prefix(limit)
+                .map { $0 }
+        } else {
+            let libraries = try await fetchLibraries()
+            var allResults: [MediaItem] = []
+            for lib in libraries where lib.id != "default" {
+                let items = try await scanVideoFiles(configuration: configuration, share: lib.id, rootDirectory: "", maximumCount: 200)
+                allResults.append(contentsOf: items.filter { $0.title.localizedCaseInsensitiveContains(needle) })
+                if allResults.count >= limit { break }
+            }
+            return Array(allResults.prefix(limit))
+        }
     }
 
     public func fetchContinueWatching(limit: Int) async throws -> [MediaItem] { [] }
@@ -79,9 +131,9 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
         return configuration.with(password: password)
     }
 
-    private func scanVideoFiles(configuration: SMBPlaybackConfiguration, maximumCount: Int) async throws -> [MediaItem] {
-        try await withClient(configuration: configuration) { client in
-            var pending = [configuration.rootPath]
+    private func scanVideoFiles(configuration: SMBPlaybackConfiguration, share: String, rootDirectory: String, maximumCount: Int) async throws -> [MediaItem] {
+        try await withClient(configuration: configuration, share: share) { client in
+            var pending = [rootDirectory]
             var visited = Set<String>()
             var results: [MediaItem] = []
             while let directory = pending.popLast(), results.count < maximumCount, visited.count < 256 {
@@ -91,14 +143,15 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
                     if entry.isDirectory {
                         pending.append(path)
                     } else if Self.playableExtensions.contains(URL(fileURLWithPath: entry.name).pathExtension.lowercased()) {
-                        guard let url = SMBPlaybackRegistry.shared.url(for: serverId, remotePath: path, fileName: entry.name) else { continue }
+                        let remotePath = configuration.share.isEmpty ? "\(share)/\(path)" : path
+                        guard let url = SMBPlaybackRegistry.shared.url(for: serverId, remotePath: remotePath, fileName: entry.name) else { continue }
                         results.append(MediaItem(
                             title: entry.name,
                             url: url,
                             sourceType: .personalMedia,
                             originator: serverName,
                             serverID: serverId,
-                            serverItemID: path,
+                            serverItemID: remotePath,
                             containerHint: URL(fileURLWithPath: entry.name).pathExtension.lowercased()
                         ))
                         if results.count == maximumCount { break }
@@ -109,17 +162,28 @@ public final class SMBMediaClient: MediaServerProtocol, @unchecked Sendable {
         }
     }
 
-    private func withClient<T>(configuration: SMBPlaybackConfiguration, operation: (SMBClient) async throws -> T) async throws -> T {
+    private func withClient<T>(configuration: SMBPlaybackConfiguration, share: String? = nil, operation: (SMBClient) async throws -> T) async throws -> T {
         let client = SMBClient(host: configuration.host, port: configuration.port)
         do {
-            try await client.login(username: configuration.username, password: configuration.password)
-            try await client.connectShare(configuration.share)
+            let user = configuration.username.isEmpty ? nil : configuration.username
+            let pass = (configuration.password?.isEmpty == true) ? nil : configuration.password
+            try await client.login(username: user, password: pass)
+            let targetShare = share ?? configuration.share
+            var isConnected = false
+            if !targetShare.isEmpty {
+                try await client.connectShare(targetShare)
+                isConnected = true
+            }
             let result = try await operation(client)
-            _ = try? await client.disconnectShare()
+            if isConnected {
+                _ = try? await client.disconnectShare()
+            }
             _ = try? await client.logoff()
             return result
         } catch {
-            _ = try? await client.disconnectShare()
+            if !(share ?? configuration.share).isEmpty {
+                _ = try? await client.disconnectShare()
+            }
             _ = try? await client.logoff()
             throw error
         }
@@ -141,13 +205,12 @@ public struct SMBPlaybackConfiguration: Sendable {
     public let password: String?
 
     init?(url: URL, username: String, password: String?) {
-        guard url.scheme?.lowercased() == "smb", let host = url.host else { return nil }
+        guard url.scheme?.lowercased() == "smb", let host = url.host, !host.isEmpty else { return nil }
         let components = url.pathComponents.filter { $0 != "/" }
-        guard let share = components.first, !share.isEmpty else { return nil }
         self.host = host
         self.port = url.port ?? 445
-        self.share = share
-        self.rootPath = components.dropFirst().joined(separator: "/")
+        self.share = components.first?.removingPercentEncoding ?? ""
+        self.rootPath = components.dropFirst().compactMap { $0.removingPercentEncoding }.joined(separator: "/")
         self.username = username
         self.password = password
     }
@@ -190,7 +253,8 @@ public final class SMBPlaybackRegistry: @unchecked Sendable {
         var components = URLComponents()
         components.scheme = "mivu-smb"
         components.host = serverID.uuidString
-        components.path = "/\(remotePath)"
+        let cleanPath = remotePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.percentEncodedPath = "/\(cleanPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleanPath)"
         return components.url
     }
 }

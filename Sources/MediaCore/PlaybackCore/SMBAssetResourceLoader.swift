@@ -117,9 +117,23 @@ actor SMBRangeReader {
         if let fileReader { return fileReader }
         guard let password = configuration.password else { throw MediaServerError.notAuthenticated }
         let client = SMBClient(host: configuration.host, port: configuration.port)
-        try await client.login(username: configuration.username, password: password)
-        try await client.connectShare(configuration.share)
-        let reader = client.fileReader(path: remotePath)
+        let user = configuration.username.isEmpty ? nil : configuration.username
+        let pass = password.isEmpty ? nil : password
+        try await client.login(username: user, password: pass)
+
+        let shareName: String
+        let filePath: String
+        if !configuration.share.isEmpty {
+            shareName = configuration.share
+            filePath = remotePath
+        } else {
+            let parts = remotePath.split(separator: "/", maxSplits: 1).map(String.init)
+            shareName = parts.first ?? ""
+            filePath = parts.count > 1 ? parts[1] : ""
+        }
+        guard !shareName.isEmpty else { throw MediaServerError.invalidURL }
+        try await client.connectShare(shareName)
+        let reader = client.fileReader(path: filePath)
         self.client = client
         self.fileReader = reader
         return reader

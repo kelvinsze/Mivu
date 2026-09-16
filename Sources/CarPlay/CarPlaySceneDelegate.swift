@@ -35,8 +35,8 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.isConnected = true
         PlayerService.shared.requireNativePlaybackForExternalPresentation(origin: "CarPlay.didConnect")
 
-        // CarPlay needs a root template before this callback returns.
-        presentInitialRootTemplate(using: interfaceController)
+        // Build and present the root template directly
+        presentRootTemplate(using: interfaceController)
 
         SSDPService.shared.recordPlaybackStage("CarPlay 车机连接就绪")
         self.sessionConfiguration = CPSessionConfiguration(delegate: self)
@@ -47,6 +47,15 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         }
 
         setupObservers()
+    }
+
+    public func templateApplicationScene(
+        _ templateApplicationScene: CPTemplateApplicationScene,
+        didConnect interfaceController: CPInterfaceController,
+        to window: CPWindow
+    ) {
+        logger.info("CarPlay connected with CPWindow.")
+        self.templateApplicationScene(templateApplicationScene, didConnect: interfaceController)
     }
 
     public func templateApplicationScene(_ templateApplicationScene: CPTemplateApplicationScene, didDisconnectInterfaceController interfaceController: CPInterfaceController) {
@@ -60,6 +69,15 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.needsRootTemplateRefresh = false
         self.shouldPresentIncomingPlayback = false
         cancellables.removeAll()
+    }
+
+    public func templateApplicationScene(
+        _ templateApplicationScene: CPTemplateApplicationScene,
+        didDisconnectInterfaceController interfaceController: CPInterfaceController,
+        from window: CPWindow
+    ) {
+        logger.info("CarPlay disconnected from CPWindow.")
+        self.templateApplicationScene(templateApplicationScene, didDisconnectInterfaceController: interfaceController)
     }
 
     // MARK: - CPSessionConfigurationDelegate
@@ -82,32 +100,27 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
 
     // MARK: - UI Updates
 
-    private func presentInitialRootTemplate(using interfaceController: CPInterfaceController) {
-        let statusItem = CPListItem(
-            text: "Mivu",
-            detailText: "正在载入媒体与接收器状态…",
-            image: UIImage(systemName: "play.rectangle.fill")
-        )
-        let initialRoot = CPListTemplate(
-            title: "Mivu",
-            sections: [CPListSection(items: [statusItem])]
-        )
-
-        self.rootTemplate = initialRoot
+    private func presentRootTemplate(using interfaceController: CPInterfaceController) {
+        let newSections = CarPlayTemplateBuilder.buildRootSections(interfaceController: interfaceController)
+        let root = CPListTemplate(title: "Mivu", sections: newSections)
+        self.rootTemplate = root
         self.isPresentingRootTemplate = true
 
-        interfaceController.setRootTemplate(initialRoot, animated: false) { [weak self] success, error in
+        interfaceController.setRootTemplate(root, animated: false) { [weak self] success, error in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.isPresentingRootTemplate = false
 
                 if success {
                     self.needsRootTemplateRefresh = false
-                    logger.info("Initial CarPlay root template presented successfully.")
-                    self.refreshCarPlayUI()
+                    logger.info("CarPlay root template presented successfully (\(newSections.count) sections).")
                 } else {
-                    self.rootTemplate = nil
-                    logger.error("Initial CarPlay root template presentation failed: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
+                    logger.error("CarPlay root template presentation failed: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
+                }
+
+                if self.needsRootTemplateRefresh {
+                    self.needsRootTemplateRefresh = false
+                    self.refreshCarPlayUI()
                 }
             }
         }
@@ -128,25 +141,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             root.updateSections(newSections)
             logger.info("Updated CarPlay root template sections (\(newSections.count) sections).")
         } else {
-            let newRoot = CPListTemplate(title: "Mivu", sections: newSections)
-            self.rootTemplate = newRoot
-            self.isPresentingRootTemplate = true
-            interfaceController.setRootTemplate(newRoot, animated: false) { [weak self] success, error in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    self.isPresentingRootTemplate = false
-                    if success {
-                        logger.info("CarPlay root template presented successfully.")
-                    } else {
-                        logger.error("CarPlay setRootTemplate failed: \(error?.localizedDescription ?? "unknown error", privacy: .public)")
-                    }
-
-                    if self.needsRootTemplateRefresh {
-                        self.needsRootTemplateRefresh = false
-                        self.refreshCarPlayUI()
-                    }
-                }
-            }
+            presentRootTemplate(using: interfaceController)
         }
 
         presentPendingIncomingPlayback()

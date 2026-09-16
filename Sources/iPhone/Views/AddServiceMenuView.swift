@@ -114,6 +114,8 @@ public enum ServiceMenuOption: String, CaseIterable, Identifiable, Sendable {
             return "支持连接 Plex Media Server 进行媒体发现与直接流媒体串流。"
         case .ftp:
             return "支持连接局域网 FTP 共享服务器。"
+        case .smb:
+            return "支持直接输入 IP 地址（如 192.168.1.100）或完整路径（如 smb://192.168.1.100/video）。未指定共享名时将自动列出所有共享文件夹。"
         default:
             return nil
         }

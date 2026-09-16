@@ -294,18 +294,22 @@ public final class PlayerService: ObservableObject {
         castPlaybackStartedAt = nil
         reportPlaybackProgress(force: true, isPaused: true, isStopped: true)
         engine.stop()
+        session.currentItem = nil
         session.status = .stopped
         session.currentTime = 0
         session.duration = 0
         session.bufferedTime = 0
         audioTracks = []
         selectedAudioTrack = nil
+        subtitleTracks = []
+        selectedSubtitleTrack = nil
+        secondarySubtitleTrack = nil
         chapters = []
         clearABRepeat()
         showSkipOutroPrompt = false
         lastPauseTimestamp = nil
         stopTelemetryLoop()
-        updateNowPlayingInfo()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         deactivateAudioSession()
     }
 
