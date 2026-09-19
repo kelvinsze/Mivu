@@ -28,7 +28,7 @@ public struct ServersView: View {
                             Text("尚未连接媒体服务器")
                                 .font(.title3.bold())
 
-                            Text("支持连接 Emby、Jellyfin、WebDAV、SMB 局域网共享、飞牛私有云及各大主流网盘，畅享高清视频串流。")
+                            Text("支持连接 Emby、Jellyfin、WebDAV、SMB 局域网共享及飞牛私有云，畅享高清视频串流。")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)

@@ -496,6 +496,7 @@ public struct PersonDetailView: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
             )
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
             // Title, Year, Person's Role
             VStack(alignment: .leading, spacing: 2) {
@@ -521,7 +522,10 @@ public struct PersonDetailView: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     // MARK: - Filters

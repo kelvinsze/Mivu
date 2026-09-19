@@ -27,7 +27,7 @@ public struct ServerDetailView: View {
 
     public var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 26) {
                 // 1. Library Filter Pills
                 if !libraries.isEmpty {
                     libraryPicker
@@ -67,6 +67,12 @@ public struct ServerDetailView: View {
             loadContinueWatching()
         }
         .searchable(text: $searchText, prompt: "搜索影视、剧集")
+        .onChange(of: searchText) { _, _ in
+            search()
+        }
+        .onSubmit(of: .search) {
+            search()
+        }
     }
 
     private var libraryPicker: some View {
@@ -125,6 +131,7 @@ public struct ServerDetailView: View {
                                     PosterArtwork(item: item)
                                         .frame(width: 125, height: 187)
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                         .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
 
                                     if showsProgress, let progress = progress(for: item) {
@@ -147,9 +154,11 @@ public struct ServerDetailView: View {
                                     Text("剩余 \(SOAPParser.formatUPnPTime(remaining))")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
+                                        .frame(width: 125, alignment: .leading)
                                 }
                             }
                             .frame(width: 125, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -170,9 +179,9 @@ public struct ServerDetailView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             ZStack(alignment: .topTrailing) {
                                 PosterArtwork(item: item)
-                                    .frame(maxWidth: .infinity)
                                     .aspectRatio(2 / 3, contentMode: .fit)
                                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     .shadow(color: .black.opacity(0.15), radius: 5, x: 0, y: 3)
 
                                 // Quality or container badge if available
@@ -192,7 +201,10 @@ public struct ServerDetailView: View {
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.primary)
                                 .lineLimit(2, reservesSpace: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -329,29 +341,30 @@ private struct PosterArtwork: View {
     @State private var image: UIImage?
 
     var body: some View {
-        ZStack {
-            Color(.tertiarySystemFill)
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                VStack(spacing: 4) {
-                    Image(systemName: "film")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
+        Color(.tertiarySystemFill)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    VStack(spacing: 4) {
+                        Image(systemName: "film")
+                            .font(.title2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
-        }
-        .clipped()
-        .task(id: item.posterUrl) {
-            guard let url = item.posterUrl else { return }
-            var request = URLRequest(url: url)
-            item.headers?.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
-            guard let (data, _) = try? await URLSession.shared.data(for: request),
-                  let loaded = UIImage(data: data),
-                  !Task.isCancelled else { return }
-            image = loaded
-        }
+            .clipped()
+            .contentShape(Rectangle())
+            .task(id: item.posterUrl) {
+                guard let url = item.posterUrl else { return }
+                var request = URLRequest(url: url)
+                item.headers?.forEach { request.setValue($0.value, forHTTPHeaderField: $0.key) }
+                guard let (data, _) = try? await URLSession.shared.data(for: request),
+                      let loaded = UIImage(data: data),
+                      !Task.isCancelled else { return }
+                image = loaded
+            }
     }
 }

@@ -271,11 +271,13 @@ public struct HomeView: View {
                                         }
                                         .frame(width: 110, height: 165)
                                         .clipped()
-                                        .cornerRadius(10)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     } else {
                                         posterPlaceholder(item)
                                             .frame(width: 110, height: 165)
-                                            .cornerRadius(10)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                     }
 
                                     // Small bottom progress bar on poster
@@ -296,6 +298,8 @@ public struct HomeView: View {
                                     .lineLimit(1)
                                     .frame(width: 110, alignment: .leading)
                             }
+                            .frame(width: 110, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }

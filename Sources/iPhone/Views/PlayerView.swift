@@ -38,7 +38,7 @@ public struct PlayerView: View {
     @ObservedObject var pipManager = PictureInPictureManager.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isControlsVisible = true
+    @State private var isControlsVisible = false
     @State private var hideControlsTask: Task<Void, Never>?
     @State private var loadingDebounceTask: Task<Void, Never>?
     @State private var isScrubbing = false
@@ -110,8 +110,9 @@ public struct PlayerView: View {
                     .opacity(0)
 
                 // Video rendering surface (AVPlayer or MPV)
+                // 默认比例适应模式下仅纵向延伸并保留横向安全区（避开车机左侧导航栏）；在填满屏幕模式（或缩放）下忽略全部安全区，恢复延伸至导航栏下方全屏显示
                 playbackSurface
-                    .ignoresSafeArea(edges: [.top, .bottom])
+                    .ignoresSafeArea(edges: (playerService.videoGravity == .resizeAspectFill || zoomScale > 1.05) ? .all : [.top, .bottom])
 
                 // Long press 2.0x speed gesture
                 LongPressSpeedGestureView(
@@ -254,13 +255,14 @@ public struct PlayerView: View {
                         .clipShape(Capsule())
                         .shadow(color: .black.opacity(0.3), radius: 6)
                     }
-                    .padding(.top, isControlsVisible ? 76 : 36)
+                    .padding(.top, isControlsVisible ? (isCompact(geometry: geometry) ? 50 : 76) : (isCompact(geometry: geometry) ? 24 : 36))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity)
                 }
 
                 // A-B Repeat Floating Indicator
                 if playerService.isABRepeatActive {
+                    let compact = isCompact(geometry: geometry)
                     HStack(spacing: 8) {
                         Image(systemName: "repeat.1")
                             .foregroundColor(.orange)
@@ -283,13 +285,14 @@ public struct PlayerView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Capsule())
                     .shadow(color: .black.opacity(0.3), radius: 6)
-                    .padding(.top, (isControlsVisible ? 76 : 36) + (zoomScale > 1.05 ? 36 : 0))
+                    .padding(.top, (isControlsVisible ? (compact ? 50 : 76) : (compact ? 24 : 36)) + (zoomScale > 1.05 ? 30 : 0))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.opacity)
                 }
 
                 // Skip Outro Floating Banner
                 if playerService.showSkipOutroPrompt && playerService.hasNextInPlaylist {
+                    let compact = isCompact(geometry: geometry)
                     VStack {
                         Spacer()
                         HStack {
@@ -299,23 +302,23 @@ public struct PlayerView: View {
                                     playerService.playNextInPlaylist()
                                 }
                             } label: {
-                                HStack(spacing: 8) {
+                                HStack(spacing: compact ? 6 : 8) {
                                     Image(systemName: "forward.end.fill")
-                                        .font(.caption.bold())
+                                        .font(.system(size: compact ? 10 : 12, weight: .bold))
                                     Text("跳过片尾，播放下一集")
-                                        .font(.subheadline.bold())
+                                        .font(.system(size: compact ? 12 : 14, weight: .bold))
                                     Image(systemName: "chevron.right")
-                                        .font(.caption.bold())
+                                        .font(.system(size: compact ? 10 : 12, weight: .bold))
                                 }
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, compact ? 12 : 16)
+                                .padding(.vertical, compact ? 7 : 10)
                                 .background(Color.orange)
                                 .clipShape(Capsule())
                                 .shadow(color: .black.opacity(0.4), radius: 8)
                             }
-                            .padding(.trailing, 24)
-                            .padding(.bottom, isControlsVisible ? (playerService.isCarPlayActive ? 80 : 120) : 40)
+                            .padding(.trailing, compact ? 16 : 24)
+                            .padding(.bottom, isControlsVisible ? (compact ? 55 : (playerService.isCarPlayActive ? 80 : 120)) : (compact ? 20 : 40))
                         }
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -330,6 +333,7 @@ public struct PlayerView: View {
                 }
 
                 if let message = snapshotToastMessage {
+                    let compact = isCompact(geometry: geometry)
                     HStack(spacing: 8) {
                         Image(systemName: "camera.fill")
                             .foregroundColor(.orange)
@@ -343,14 +347,14 @@ public struct PlayerView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Capsule())
                     .shadow(color: .black.opacity(0.3), radius: 6)
-                    .padding(.top, 50)
+                    .padding(.top, compact ? 36 : 50)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 // Top & Bottom Controls Overlays
                 if isControlsVisible && !isLocked {
-                    controlsOverlay
+                    controlsOverlay(geometry: geometry)
                         .transition(.opacity)
                 }
             }
@@ -368,7 +372,10 @@ public struct PlayerView: View {
         .onAppear {
             PlaybackOrientation.lockToLandscape()
             if playerService.session.status == .playing {
+                isControlsVisible = true
                 scheduleHideControls()
+            } else if playerService.session.status == .loading {
+                isControlsVisible = false
             } else {
                 isControlsVisible = true
             }
@@ -387,6 +394,9 @@ public struct PlayerView: View {
             switch newStatus {
             case .playing:
                 loadingDebounceTask?.cancel()
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isControlsVisible = true
+                }
                 scheduleHideControls()
             case .paused, .stopped, .failed:
                 loadingDebounceTask?.cancel()
@@ -709,6 +719,7 @@ public struct PlayerView: View {
         ProgressView()
             .progressViewStyle(CircularProgressViewStyle(tint: .orange))
             .scaleEffect(1.3)
+            .allowsHitTesting(false)
     }
 
     private func playbackErrorOverlay(_ message: String) -> some View {
@@ -731,339 +742,496 @@ public struct PlayerView: View {
         .padding(32)
     }
 
+    // MARK: - Responsive Layout Helpers
+
+    private func isCompact(geometry: GeometryProxy) -> Bool {
+        playerService.isCarPlayActive
+            || geometry.size.height <= 520
+            || geometry.safeAreaInsets.leading >= 80
+    }
+
+    private func isUltraCompact(geometry: GeometryProxy) -> Bool {
+        (playerService.isCarPlayActive && geometry.size.height <= 500)
+            || geometry.size.height <= 420
+    }
+
     // MARK: - Controls Overlay
 
-    private var controlsOverlay: some View {
+    private func controlsOverlay(geometry: GeometryProxy) -> some View {
         VStack(spacing: 0) {
-            // MARK: Top Bar
-            HStack(spacing: 12) {
-                Button {
-                    playerService.stop()
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.title3.bold())
-                        .foregroundColor(.white)
-                        .padding(10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(playerService.session.currentItem?.title ?? "正在播放")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-
-                    HStack(spacing: 6) {
-                        if let originator = playerService.session.currentItem?.originator {
-                            Text(originator)
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-
-                        mediaBadgesView
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
-            .background(
-                LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
-            )
+            topBar(geometry: geometry)
 
             Spacer()
 
-            // MARK: Center Play/Pause & 15s Jump & Screen Lock
-            ZStack {
-                if !playerService.isCarPlayActive {
-                    HStack {
-                        Button {
-                            withAnimation {
-                                isLocked = true
-                                isControlsVisible = false
-                                showUnlockHint = true
-                                triggerDismissUnlockHint()
-                            }
-                        } label: {
-                            Image(systemName: "lock.open")
-                                .font(.title3)
-                                .foregroundColor(.white.opacity(0.85))
-                                .padding(12)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.3), radius: 6)
-                        }
-                        .padding(.leading, 32)
-                        Spacer()
-                    }
-                }
-
-                let isPaused = playerService.session.status != .playing
-                let controlSpacing: CGFloat = isPaused ? (playerService.currentPlaylist.count > 1 ? 16 : 24) : (playerService.currentPlaylist.count > 1 ? 32 : 50)
-
-                HStack(spacing: controlSpacing) {
-                    if playerService.currentPlaylist.count > 1 {
-                        Button {
-                            playerService.playPreviousInPlaylist()
-                            scheduleHideControls()
-                        } label: {
-                            Image(systemName: "backward.end.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(playerService.hasPreviousInPlaylist ? .white : .white.opacity(0.3))
-                        }
-                        .disabled(!playerService.hasPreviousInPlaylist)
-                    }
-
-                    Button {
-                        playerService.seek(by: -15)
-                        scheduleHideControls()
-                    } label: {
-                        Image(systemName: "gobackward.15")
-                            .font(.system(size: isPaused ? 28 : 34))
-                            .foregroundColor(.white)
-                    }
-
-                    // Paused state: Frame Step Backward
-                    if isPaused {
-                        Button {
-                            playerService.stepFrame(forward: false)
-                        } label: {
-                            VStack(spacing: 2) {
-                                Image(systemName: "backward.frame")
-                                    .font(.system(size: 17, weight: .semibold))
-                                Text("逐帧")
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .foregroundColor(.white.opacity(0.9))
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                        }
-                    }
-
-                    Button {
-                        playerService.togglePlayPause()
-                        scheduleHideControls()
-                    } label: {
-                        Image(systemName: playerService.session.status == .playing ? "pause.fill" : "play.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(.white)
-                            .padding(22)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.3), radius: 10)
-                    }
-
-                    // Paused state: Frame Step Forward
-                    if isPaused {
-                        Button {
-                            playerService.stepFrame(forward: true)
-                        } label: {
-                            VStack(spacing: 2) {
-                                Image(systemName: "forward.frame")
-                                    .font(.system(size: 17, weight: .semibold))
-                                Text("逐帧")
-                                    .font(.system(size: 8, weight: .bold))
-                            }
-                            .foregroundColor(.white.opacity(0.9))
-                            .padding(8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                        }
-                    }
-
-                    Button {
-                        playerService.seek(by: 15)
-                        scheduleHideControls()
-                    } label: {
-                        Image(systemName: "goforward.15")
-                            .font(.system(size: isPaused ? 28 : 34))
-                            .foregroundColor(.white)
-                    }
-
-                    if playerService.currentPlaylist.count > 1 {
-                        Button {
-                            playerService.playNextInPlaylist()
-                            scheduleHideControls()
-                        } label: {
-                            Image(systemName: "forward.end.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(playerService.hasNextInPlaylist ? .white : .white.opacity(0.3))
-                        }
-                        .disabled(!playerService.hasNextInPlaylist)
-                    }
-                }
-            }
+            centerControls(geometry: geometry)
 
             Spacer()
 
-            // MARK: Bottom Scrubber & Time
-            VStack(spacing: 10) {
-                let currentTime = isScrubbing ? scrubTime : playerService.session.currentTime
-                let duration = max(playerService.session.duration, 1)
-                let playProgress = min(max(currentTime / duration, 0), 1.0)
-                let bufferProgress = min(max(playerService.session.bufferedTime / duration, 0), 1.0)
+            bottomControls(geometry: geometry)
+        }
+    }
 
-                // 3-Tier Layered Scrubber: Uncached -> Cached / Buffered -> Played -> Thumb
-                GeometryReader { geom in
-                    let totalWidth = geom.size.width
-                    let trackHeight: CGFloat = isScrubbing ? 7 : 5
-                    ZStack(alignment: .leading) {
-                        // 1. Uncached background (dark translucent track)
-                        Capsule()
-                            .fill(Color.white.opacity(0.20))
-                            .frame(height: trackHeight)
+    // MARK: - Top Bar
 
-                        // 2. Cached / Buffered progress track (prominent bright translucent white)
-                        Capsule()
-                            .fill(Color.white.opacity(0.65))
-                            .frame(width: max(0, totalWidth * bufferProgress), height: trackHeight)
-                            .animation(.linear(duration: 0.25), value: bufferProgress)
+    private func topBar(geometry: GeometryProxy) -> some View {
+        let compact = isCompact(geometry: geometry)
+        return HStack(spacing: compact ? 8 : 12) {
+            Button {
+                playerService.stop()
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: compact ? 13 : 16, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(compact ? 6 : 10)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
 
-                        // 3. Played progress track (accent color)
-                        Capsule()
-                            .fill(Color.orange)
-                            .frame(width: max(0, totalWidth * playProgress), height: trackHeight)
+            VStack(alignment: .leading, spacing: compact ? 1 : 3) {
+                Text(playerService.session.currentItem?.title ?? "正在播放")
+                    .font(.system(size: compact ? 14 : 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
 
-                        // 4. Chapter tick marks (Infuse / YouTube style dividers)
-                        if duration > 0 {
-                            ForEach(playerService.chapters) { chapter in
-                                if chapter.startTime > 0 && chapter.startTime < duration {
-                                    let xPos = (chapter.startTime / duration) * totalWidth
-                                    Rectangle()
-                                        .fill(Color.black.opacity(0.85))
-                                        .frame(width: 2, height: trackHeight + 2)
-                                        .offset(x: max(0, min(xPos - 1, totalWidth - 2)))
-                                }
-                            }
-                        }
-
-                        // 5. A-B Repeat Markers & Region
-                        if let a = playerService.repeatPointA, duration > 0 {
-                            let aPos = (a / duration) * totalWidth
-                            Rectangle()
-                                .fill(Color.orange)
-                                .frame(width: 2.5, height: trackHeight + 6)
-                                .offset(x: max(0, min(aPos - 1.25, totalWidth - 3)))
-                        }
-                        if let b = playerService.repeatPointB, duration > 0 {
-                            let bPos = (b / duration) * totalWidth
-                            Rectangle()
-                                .fill(Color.orange)
-                                .frame(width: 2.5, height: trackHeight + 6)
-                                .offset(x: max(0, min(bPos - 1.25, totalWidth - 3)))
-                        }
-
-                        // 6. Scrubbing thumb knob
-                        Circle()
-                            .fill(Color.white)
-                            .frame(width: isScrubbing ? 18 : 13, height: isScrubbing ? 18 : 13)
-                            .shadow(color: .black.opacity(0.45), radius: 3)
-                            .offset(x: max(0, min(totalWidth * playProgress - (isScrubbing ? 9 : 6.5), totalWidth - (isScrubbing ? 18 : 13))))
-                            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isScrubbing)
-                    }
-                    .frame(maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .gesture(
-                        DragGesture(minimumDistance: 0)
-                            .onChanged { val in
-                                isScrubbing = true
-                                let percent = min(max(val.location.x / totalWidth, 0), 1.0)
-                                scrubTime = percent * duration
-                            }
-                            .onEnded { val in
-                                isScrubbing = false
-                                let percent = min(max(val.location.x / totalWidth, 0), 1.0)
-                                playerService.seek(to: percent * duration)
-                                if playerService.session.status == .playing {
-                                    scheduleHideControls()
-                                }
-                            }
-                    )
-                }
-                .frame(height: 22)
-
-                HStack(alignment: .center, spacing: 6) {
-                    Text(SOAPParser.formatUPnPTime(currentTime))
-                        .font(.caption.monospacedDigit())
-                        .foregroundColor(.white.opacity(0.9))
-
-                    if let chapter = currentActiveChapter {
-                        Text("·")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.4))
-                        Text(chapter.title)
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                HStack(spacing: 5) {
+                    if let originator = playerService.session.currentItem?.originator {
+                        Text(originator)
+                            .font(.system(size: compact ? 9 : 10))
+                            .foregroundColor(.white.opacity(0.7))
                             .lineLimit(1)
                     }
 
-                    Spacer()
-
-                    // Real-time Speed Status
-                    if !playerService.session.isLiveStream {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.down")
-                                .font(.system(size: 9, weight: .bold))
-                            Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
-                                .font(.caption2.monospacedDigit())
-                        }
-                        .foregroundColor(.orange.opacity(0.95))
-                    }
-
-                    Spacer()
-
-                    if playerService.session.isLiveStream {
-                        HStack(spacing: 4) {
-                            Circle().fill(Color.red).frame(width: 6, height: 6)
-                            Text("LIVE")
-                                .font(.caption.bold())
-                                .foregroundColor(.red)
-                        }
-                    } else {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                showFinishTime.toggle()
-                            }
-                        } label: {
-                            if showFinishTime {
-                                let remaining = max(duration - currentTime, 0)
-                                let rate = max(Double(playerService.selectedSpeed), 0.1)
-                                let finishDate = Date().addingTimeInterval(remaining / rate)
-                                let formatter: DateFormatter = {
-                                    let df = DateFormatter()
-                                    df.dateFormat = "HH:mm"
-                                    return df
-                                }()
-                                Text("预计 \(formatter.string(from: finishDate)) 完播")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundColor(.orange.opacity(0.95))
-                            } else {
-                                let remaining = max(duration - currentTime, 0)
-                                Text("-\(SOAPParser.formatUPnPTime(remaining))")
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundColor(.white.opacity(0.75))
-                            }
-                        }
-                    }
-                }
-
-                // MARK: Bottom Action Toolbar (进度条之下)
-                if !playerService.isCarPlayActive {
-                    bottomActionToolbar
+                    mediaBadgesView(compact: compact)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-            .padding(.top, 16)
-            .background(
-                LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
-            )
+
+            Spacer(minLength: 8)
+
+            // On CarPlay or compact mode, provide clean quick actions in the top bar
+            if compact || playerService.isCarPlayActive {
+                compactTopActions
+                    .layoutPriority(1)
+            }
         }
+        .padding(.horizontal, compact ? 14 : 20)
+        .padding(.top, compact ? 8 : 16)
+        .padding(.bottom, compact ? 10 : 24)
+        .background(
+            LinearGradient(colors: [.black.opacity(0.8), .clear], startPoint: .top, endPoint: .bottom)
+        )
+    }
+
+    // MARK: - Compact Top Bar Quick Actions (CarPlay / Compact Displays)
+
+    private var compactTopActions: some View {
+        HStack(spacing: 6) {
+            if playerService.currentPlaylist.count > 1 {
+                Button {
+                    showEpisodeDrawer = true
+                    scheduleHideControls()
+                } label: {
+                    Image(systemName: "list.bullet.rectangle")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(6)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+            }
+
+            Menu {
+                ForEach(speeds, id: \.self) { speed in
+                    Button {
+                        playerService.setRate(speed)
+                        scheduleHideControls()
+                    } label: {
+                        HStack {
+                            Text("\(String(format: "%.2fx", speed))")
+                            if playerService.selectedSpeed == speed {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Text(formatSpeedPill(playerService.selectedSpeed))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+            }
+            .layoutPriority(1)
+
+            // CarPlay 投屏或车载界面下隐藏字幕按钮，避免占用宝贵显示宽度
+            if !playerService.isCarPlayActive {
+                Menu {
+                    Section("字幕轨道") {
+                        Button {
+                            playerService.setSubtitleTrack(nil)
+                            scheduleHideControls()
+                        } label: {
+                            HStack {
+                                Text("关闭字幕")
+                                if playerService.selectedSubtitleTrack == nil { Image(systemName: "checkmark") }
+                            }
+                        }
+                        ForEach(playerService.subtitleTracks) { track in
+                            Button {
+                                playerService.setSubtitleTrack(track)
+                                scheduleHideControls()
+                            } label: {
+                                HStack {
+                                    Text(subtitleLabel(track))
+                                    if playerService.selectedSubtitleTrack?.id == track.id { Image(systemName: "checkmark") }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: playerService.selectedSubtitleTrack == nil ? "captions.bubble" : "captions.bubble.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : .orange)
+                        .padding(6)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                }
+            }
+
+            Button {
+                playerService.toggleVideoGravity()
+                scheduleHideControls()
+            } label: {
+                Image(systemName: playerService.videoGravity == .resizeAspect ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(6)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+        }
+    }
+
+    // MARK: - Center Play/Pause & Seek Controls
+
+    private func centerControls(geometry: GeometryProxy) -> some View {
+        let compact = isCompact(geometry: geometry)
+        let ultraCompact = isUltraCompact(geometry: geometry)
+        let isPaused = playerService.session.status == .paused
+        let hasPlaylist = playerService.currentPlaylist.count > 1
+
+        let controlSpacing: CGFloat = compact
+            ? (isPaused ? (hasPlaylist ? 10 : 16) : (hasPlaylist ? 16 : 28))
+            : (isPaused ? (hasPlaylist ? 16 : 24) : (hasPlaylist ? 32 : 50))
+
+        let playIconSize: CGFloat = compact ? (ultraCompact ? 24 : 28) : 44
+        let playPadding: CGFloat = compact ? (ultraCompact ? 11 : 14) : 22
+        let seekIconSize: CGFloat = compact ? (isPaused ? 18 : 22) : (isPaused ? 28 : 34)
+        let playlistIconSize: CGFloat = compact ? 18 : 24
+
+        return ZStack {
+            if !compact && !playerService.isCarPlayActive && playerService.session.status != .loading {
+                HStack {
+                    Button {
+                        withAnimation {
+                            isLocked = true
+                            isControlsVisible = false
+                            showUnlockHint = true
+                            triggerDismissUnlockHint()
+                        }
+                    } label: {
+                        Image(systemName: "lock.open")
+                            .font(.title3)
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(12)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .shadow(color: .black.opacity(0.3), radius: 6)
+                    }
+                    .padding(.leading, 32)
+                    Spacer()
+                }
+            }
+
+            if playerService.session.status != .loading {
+                HStack(spacing: controlSpacing) {
+                if hasPlaylist {
+                    Button {
+                        playerService.playPreviousInPlaylist()
+                        scheduleHideControls()
+                    } label: {
+                        Image(systemName: "backward.end.fill")
+                            .font(.system(size: playlistIconSize))
+                            .foregroundColor(playerService.hasPreviousInPlaylist ? .white : .white.opacity(0.3))
+                    }
+                    .disabled(!playerService.hasPreviousInPlaylist)
+                }
+
+                Button {
+                    playerService.seek(by: -15)
+                    scheduleHideControls()
+                } label: {
+                    Image(systemName: "gobackward.15")
+                        .font(.system(size: seekIconSize))
+                        .foregroundColor(.white)
+                }
+
+                // Paused state: Frame Step Backward
+                if isPaused {
+                    Button {
+                        playerService.stepFrame(forward: false)
+                    } label: {
+                        VStack(spacing: compact ? 1 : 2) {
+                            Image(systemName: "backward.frame")
+                                .font(.system(size: compact ? 13 : 17, weight: .semibold))
+                            Text("逐帧")
+                                .font(.system(size: compact ? 7 : 8, weight: .bold))
+                        }
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(compact ? 5 : 8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                    }
+                }
+
+                Button {
+                    playerService.togglePlayPause()
+                    scheduleHideControls()
+                } label: {
+                    Image(systemName: playerService.session.status == .playing ? "pause.fill" : "play.fill")
+                        .font(.system(size: playIconSize))
+                        .foregroundColor(.white)
+                        .padding(playPadding)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.3), radius: compact ? 6 : 10)
+                }
+
+                // Paused state: Frame Step Forward
+                if isPaused {
+                    Button {
+                        playerService.stepFrame(forward: true)
+                    } label: {
+                        VStack(spacing: compact ? 1 : 2) {
+                            Image(systemName: "forward.frame")
+                                .font(.system(size: compact ? 13 : 17, weight: .semibold))
+                            Text("逐帧")
+                                .font(.system(size: compact ? 7 : 8, weight: .bold))
+                        }
+                        .foregroundColor(.white.opacity(0.9))
+                        .padding(compact ? 5 : 8)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                    }
+                }
+
+                Button {
+                    playerService.seek(by: 15)
+                    scheduleHideControls()
+                } label: {
+                    Image(systemName: "goforward.15")
+                        .font(.system(size: seekIconSize))
+                        .foregroundColor(.white)
+                }
+
+                if hasPlaylist {
+                    Button {
+                        playerService.playNextInPlaylist()
+                        scheduleHideControls()
+                    } label: {
+                        Image(systemName: "forward.end.fill")
+                            .font(.system(size: playlistIconSize))
+                            .foregroundColor(playerService.hasNextInPlaylist ? .white : .white.opacity(0.3))
+                    }
+                    .disabled(!playerService.hasNextInPlaylist)
+                }
+            }
+            }
+        }
+    }
+
+    // MARK: - Bottom Scrubber & Time Bar
+
+    private func bottomControls(geometry: GeometryProxy) -> some View {
+        let compact = isCompact(geometry: geometry)
+        let currentTime = isScrubbing ? scrubTime : playerService.session.currentTime
+        let duration = max(playerService.session.duration, 1)
+        let playProgress = min(max(currentTime / duration, 0), 1.0)
+        let bufferProgress = min(max(playerService.session.bufferedTime / duration, 0), 1.0)
+
+        return VStack(spacing: compact ? 6 : 10) {
+            // 3-Tier Layered Scrubber
+            GeometryReader { geom in
+                let totalWidth = geom.size.width
+                let trackHeight: CGFloat = compact
+                    ? (isScrubbing ? 5 : 3.5)
+                    : (isScrubbing ? 7 : 5)
+                let thumbSize: CGFloat = compact
+                    ? (isScrubbing ? 14 : 10)
+                    : (isScrubbing ? 18 : 13)
+
+                ZStack(alignment: .leading) {
+                    // 1. Uncached background
+                    Capsule()
+                        .fill(Color.white.opacity(0.20))
+                        .frame(height: trackHeight)
+
+                    // 2. Buffered track
+                    Capsule()
+                        .fill(Color.white.opacity(0.65))
+                        .frame(width: max(0, totalWidth * bufferProgress), height: trackHeight)
+                        .animation(.linear(duration: 0.25), value: bufferProgress)
+
+                    // 3. Played track
+                    Capsule()
+                        .fill(Color.orange)
+                        .frame(width: max(0, totalWidth * playProgress), height: trackHeight)
+
+                    // 4. Chapter tick marks
+                    if duration > 0 {
+                        ForEach(playerService.chapters) { chapter in
+                            if chapter.startTime > 0 && chapter.startTime < duration {
+                                let xPos = (chapter.startTime / duration) * totalWidth
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.85))
+                                    .frame(width: 2, height: trackHeight + 2)
+                                    .offset(x: max(0, min(xPos - 1, totalWidth - 2)))
+                            }
+                        }
+                    }
+
+                    // 5. A-B Repeat Markers & Region
+                    if let a = playerService.repeatPointA, duration > 0 {
+                        let aPos = (a / duration) * totalWidth
+                        Rectangle()
+                            .fill(Color.orange)
+                            .frame(width: 2.5, height: trackHeight + 4)
+                            .offset(x: max(0, min(aPos - 1.25, totalWidth - 3)))
+                    }
+                    if let b = playerService.repeatPointB, duration > 0 {
+                        let bPos = (b / duration) * totalWidth
+                        Rectangle()
+                            .fill(Color.orange)
+                            .frame(width: 2.5, height: trackHeight + 4)
+                            .offset(x: max(0, min(bPos - 1.25, totalWidth - 3)))
+                    }
+
+                    // 6. Scrubbing thumb knob
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: thumbSize, height: thumbSize)
+                        .shadow(color: .black.opacity(0.45), radius: 3)
+                        .offset(x: max(0, min(totalWidth * playProgress - (thumbSize / 2), totalWidth - thumbSize)))
+                        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isScrubbing)
+                }
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { val in
+                            isScrubbing = true
+                            let percent = min(max(val.location.x / totalWidth, 0), 1.0)
+                            scrubTime = percent * duration
+                        }
+                        .onEnded { val in
+                            isScrubbing = false
+                            let percent = min(max(val.location.x / totalWidth, 0), 1.0)
+                            playerService.seek(to: percent * duration)
+                            if playerService.session.status == .playing {
+                                scheduleHideControls()
+                            }
+                        }
+                )
+            }
+            .frame(height: compact ? 16 : 22)
+
+            HStack(alignment: .center, spacing: compact ? 4 : 6) {
+                Text(SOAPParser.formatUPnPTime(currentTime))
+                    .font(.system(size: compact ? 11 : 12, weight: .medium, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.9))
+                    .layoutPriority(3)
+
+                if let chapter = currentActiveChapter {
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.4))
+                    Text(chapter.title)
+                        .font(.system(size: compact ? 10 : 12))
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: compact ? 160 : 300, alignment: .leading)
+                        .layoutPriority(0)
+                }
+
+                Spacer(minLength: 4)
+
+                // Real-time Speed Status (hide on very narrow / small screens to prevent crowding)
+                if !playerService.session.isLiveStream && (!compact || geometry.size.width >= 650) {
+                    HStack(spacing: 2) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: compact ? 8 : 9, weight: .bold))
+                        Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
+                            .font(.system(size: compact ? 9 : 10, design: .monospaced))
+                    }
+                    .foregroundColor(.orange.opacity(0.95))
+                    .layoutPriority(1)
+
+                    Spacer(minLength: 4)
+                }
+
+                if playerService.session.isLiveStream {
+                    HStack(spacing: 4) {
+                        Circle().fill(Color.red).frame(width: compact ? 5 : 6, height: compact ? 5 : 6)
+                        Text("LIVE")
+                            .font(.system(size: compact ? 10 : 12, weight: .bold))
+                            .foregroundColor(.red)
+                    }
+                    .layoutPriority(3)
+                } else {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showFinishTime.toggle()
+                        }
+                    } label: {
+                        if showFinishTime {
+                            let remaining = max(duration - currentTime, 0)
+                            let rate = max(Double(playerService.selectedSpeed), 0.1)
+                            let finishDate = Date().addingTimeInterval(remaining / rate)
+                            let formatter: DateFormatter = {
+                                let df = DateFormatter()
+                                df.dateFormat = "HH:mm"
+                                return df
+                            }()
+                            Text(compact ? "完播 \(formatter.string(from: finishDate))" : "预计 \(formatter.string(from: finishDate)) 完播")
+                                .font(.system(size: compact ? 11 : 12, design: .monospaced))
+                                .foregroundColor(.orange.opacity(0.95))
+                        } else {
+                            let remaining = max(duration - currentTime, 0)
+                            Text("-\(SOAPParser.formatUPnPTime(remaining))")
+                                .font(.system(size: compact ? 11 : 12, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.75))
+                        }
+                    }
+                    .layoutPriority(3)
+                }
+            }
+
+            // MARK: Bottom Action Toolbar (进度条之下，仅在非紧凑/非车载模式显示)
+            if !compact && !playerService.isCarPlayActive {
+                bottomActionToolbar
+            }
+        }
+        .padding(.horizontal, compact ? 14 : 20)
+        .padding(.bottom, compact ? 8 : 24)
+        .padding(.top, compact ? 8 : 16)
+        .background(
+            LinearGradient(colors: [.clear, .black.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+        )
     }
 
     // MARK: - Diagnostics HUD
@@ -1139,7 +1307,9 @@ public struct PlayerView: View {
 
             // Right: Playback options
             speedMenuButton
-            subtitlesMenuButton
+            if !playerService.isCarPlayActive {
+                subtitlesMenuButton
+            }
             audioTracksMenuButton
             snapshotButton
             playbackSettingsButton
@@ -1252,9 +1422,11 @@ public struct PlayerView: View {
                 }
             }
         } label: {
-            Text("\(String(format: "%.1fx", playerService.selectedSpeed))")
+            Text(formatSpeedPill(playerService.selectedSpeed))
                 .font(.caption.bold())
                 .foregroundColor(.white)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 6)
                 .background(.ultraThinMaterial)
@@ -1422,9 +1594,11 @@ public struct PlayerView: View {
     private func scheduleHideControls() {
         hideControlsTask?.cancel()
         loadingDebounceTask?.cancel()
-        // 未开始播放（如加载中、已暂停、已停止）时不隐藏播放控制元素
+        // 仅在暂停或停止等需要用户操作的状态下保持控制条常驻，加载状态不强制展示控制条
         guard playerService.session.status == .playing else {
-            isControlsVisible = true
+            if playerService.session.status == .paused || playerService.session.status == .stopped {
+                isControlsVisible = true
+            }
             return
         }
         hideControlsTask = Task {
@@ -1454,6 +1628,14 @@ public struct PlayerView: View {
         }
     }
 
+    private func formatSpeedPill(_ speed: Float) -> String {
+        if speed.truncatingRemainder(dividingBy: 0.1) < 0.01 {
+            return String(format: "%.1fx", speed)
+        } else {
+            return String(format: "%.2fx", speed)
+        }
+    }
+
     private func subtitleLabel(_ track: SubtitleTrack) -> String {
         let base = track.title ?? track.language ?? "字幕 \(track.id)"
         let flags = [track.isDefault ? "默认" : nil, track.isForced ? "强制" : nil].compactMap { $0 }
@@ -1469,23 +1651,24 @@ public struct PlayerView: View {
     // MARK: - Media Badges & Chapter Helpers
 
     @ViewBuilder
-    private var mediaBadgesView: some View {
-        let badges = derivedBadges
+    private func mediaBadgesView(compact: Bool = false) -> some View {
+        let allBadges = derivedBadges
+        let badges = compact ? Array(allBadges.prefix(3)) : allBadges
         if !badges.isEmpty {
-            HStack(spacing: 4) {
+            HStack(spacing: compact ? 3 : 4) {
                 ForEach(badges, id: \.self) { badge in
-                    badgePill(badge)
+                    badgePill(badge, compact: compact)
                 }
             }
         }
     }
 
-    private func badgePill(_ text: String) -> some View {
+    private func badgePill(_ text: String, compact: Bool = false) -> some View {
         Text(text)
-            .font(.system(size: 9, weight: .bold))
+            .font(.system(size: compact ? 7.5 : 9, weight: .bold))
             .foregroundColor(.white.opacity(0.85))
-            .padding(.horizontal, 4)
-            .padding(.vertical, 1.5)
+            .padding(.horizontal, compact ? 3 : 4)
+            .padding(.vertical, compact ? 1 : 1.5)
             .background(Color.white.opacity(0.18))
             .clipShape(RoundedRectangle(cornerRadius: 3))
     }

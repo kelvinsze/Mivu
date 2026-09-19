@@ -13,13 +13,11 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         if session.role.rawValue == "UIWindowSceneSessionRoleCarPlay",
            let windowScene = scene as? UIWindowScene {
             logger.info("Connecting CarPlay UIWindowScene window...")
+            PlayerService.shared.isCarPlayConnected = true
             let window = UIWindow(windowScene: windowScene)
             window.rootViewController = UIHostingController(rootView: MainTabView())
             carPlayWindow = window
             window.makeKeyAndVisible()
-            Task { @MainActor in
-                PlayerService.shared.isCarPlayConnected = true
-            }
         }
 
         // Handle URL on launch if opened via deep link
@@ -32,9 +30,7 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
         if scene.session.role.rawValue == "UIWindowSceneSessionRoleCarPlay" {
             logger.info("CarPlay UIWindowScene disconnected.")
             carPlayWindow = nil
-            Task { @MainActor in
-                PlayerService.shared.isCarPlayConnected = false
-            }
+            PlayerService.shared.isCarPlayConnected = false
         }
     }
 

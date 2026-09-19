@@ -878,6 +878,7 @@ public struct VideoDetailView: View {
                                 }
                                 .frame(width: 72, height: 96)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(person.name)
@@ -900,6 +901,8 @@ public struct VideoDetailView: View {
                                 }
                                 .frame(width: 72, alignment: .leading)
                             }
+                            .frame(width: 72, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
@@ -945,6 +948,7 @@ public struct VideoDetailView: View {
                                 }
                                 .frame(width: 110, height: 165)
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(similar.title)
@@ -960,6 +964,8 @@ public struct VideoDetailView: View {
                                 }
                                 .frame(width: 110, alignment: .leading)
                             }
+                            .frame(width: 110, alignment: .leading)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                     }
