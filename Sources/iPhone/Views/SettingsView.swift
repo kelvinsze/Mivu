@@ -23,7 +23,7 @@ public struct SettingsView: View {
                 Section("车载投送 (CarPlay & DLNA)") {
                     HStack {
                         Label("车机显示名称", systemImage: "car.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(MivuEdition.primaryTint)
                         Spacer()
                         TextField("Mivu Car", text: $customFriendlyName)
                             .multilineTextAlignment(.trailing)
@@ -50,7 +50,7 @@ public struct SettingsView: View {
                         WiFiUploadLibraryView()
                     } label: {
                         Label("网页上传视频", systemImage: "arrow.up.doc.fill")
-                            .foregroundColor(.blue)
+                            .foregroundColor(MivuEdition.utilityTint)
                     }
                 } header: {
                     Text("Wi-Fi 文件上传")
@@ -98,7 +98,7 @@ public struct SettingsView: View {
                         get: { playerService.isVoiceBoostEnabled },
                         set: { playerService.setVoiceBoost($0) }
                     ))
-                    .tint(.orange)
+                    .tint(MivuEdition.primaryTint)
                 } header: {
                     Text("播放偏好与增强")
                 } footer: {
@@ -124,7 +124,7 @@ public struct SettingsView: View {
                         get: { playerService.subtitleAutoPortraitScale },
                         set: { playerService.setSubtitleAutoPortraitScale($0) }
                     ))
-                    .tint(.orange)
+                    .tint(MivuEdition.primaryTint)
                 } header: {
                     Text("字幕设置 (Subtitles)")
                 } footer: {
@@ -198,7 +198,7 @@ public struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "crown.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(MivuEdition.primaryTint)
                             Text("Mivu Pro 全能媒体中心")
                                 .font(.subheadline.bold())
                         }
@@ -280,7 +280,7 @@ public struct WiFiUploadLibraryView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.rectangle.fill")
                                     .font(.title3)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(MivuEdition.utilityTint)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(url.deletingPathExtension().lastPathComponent)
                                         .foregroundColor(.primary)
@@ -363,7 +363,7 @@ public struct WiFiUploadedVideosSection: View {
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(14)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                        .background(MivuEdition.secondarySurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                 }
             } else {
                 VStack(spacing: 8) {
@@ -375,7 +375,7 @@ public struct WiFiUploadedVideosSection: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.rectangle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(MivuEdition.utilityTint)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(url.deletingPathExtension().lastPathComponent)
                                         .foregroundColor(.primary)
@@ -387,10 +387,10 @@ public struct WiFiUploadedVideosSection: View {
                                 Spacer()
                                 Text(playerService.isCarPlayConnected ? "投送播放" : "播放")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(playerService.isCarPlayConnected ? .blue : .secondary)
+                                    .foregroundColor(playerService.isCarPlayConnected ? MivuEdition.utilityTint : .secondary)
                             }
                             .padding(12)
-                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                            .background(MivuEdition.secondarySurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }

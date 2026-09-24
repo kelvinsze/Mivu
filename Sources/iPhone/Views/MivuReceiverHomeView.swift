@@ -21,7 +21,7 @@ public struct MivuReceiverHomeView: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: MivuSpacing.l) {
                     // MARK: - 1. Live Receiver Status Card (Hero)
                     receiverStatusCard
                         .padding(.horizontal)
@@ -48,9 +48,9 @@ public struct MivuReceiverHomeView: View {
                         .padding(.horizontal)
                         .padding(.bottom, 30)
                 }
-                .padding(.top, 10)
+                .padding(.top, MivuSpacing.xs)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color.mivuBackground)
             .navigationTitle("Mivu 投屏")
             .onAppear {
                 serverIP = HTTPServer.shared.localIPAddress
@@ -76,15 +76,15 @@ public struct MivuReceiverHomeView: View {
     private var receiverStatusCard: some View {
         let isReceiverActive = playerService.isCarPlayConnected
 
-        return VStack(spacing: 16) {
-            HStack(alignment: .center, spacing: 14) {
+        return VStack(spacing: MivuSpacing.m) {
+            HStack(alignment: .center, spacing: MivuSpacing.s) {
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.12))
+                        .fill(Color.mivuAccent.opacity(0.12))
                         .frame(width: 50, height: 50)
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.title2)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.mivuAccent)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -109,13 +109,13 @@ public struct MivuReceiverHomeView: View {
                 } label: {
                     Image(systemName: "pencil.circle")
                         .font(.title3)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.mivuAccent)
                 }
             }
 
             Divider()
 
-            VStack(spacing: 8) {
+            VStack(spacing: MivuSpacing.xs) {
                 HStack {
                     Text("设备名称")
                         .font(.subheadline)
@@ -147,14 +147,12 @@ public struct MivuReceiverHomeView: View {
                 }
             }
         }
-        .padding(18)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .padding(MivuSpacing.m)
+        .mivuSurface()
     }
 
     private var photoVideoPickerCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: MivuSpacing.s) {
             Label("播放相册视频", systemImage: "photo.on.rectangle.angled")
                 .font(.headline)
 
@@ -170,7 +168,7 @@ public struct MivuReceiverHomeView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.blue)
+            .tint(.mivuAccent)
             .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
 
             if !playerService.isCarPlayConnected {
@@ -179,27 +177,25 @@ public struct MivuReceiverHomeView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .padding(MivuSpacing.m)
+        .mivuSurface()
     }
 
     // MARK: - 2. Active Playback Card
     private func activePlaybackCard(_ item: MediaItem) -> some View {
         let isPlaying = playerService.session.status == .playing
 
-        return VStack(alignment: .leading, spacing: 12) {
+        return VStack(alignment: .leading, spacing: MivuSpacing.s) {
             HStack {
                 Label("正在 CarPlay 播放", systemImage: "car.play.fill")
                     .font(.caption.bold())
-                    .foregroundColor(.blue)
+                    .foregroundColor(.mivuAccent)
                 Spacer()
                 Text(isPlaying ? "播放中" : "已暂停")
                     .font(.caption2.weight(.medium))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(isPlaying ? Color.green.opacity(0.15) : Color.orange.opacity(0.15))
+                    .background(isPlaying ? Color.green.opacity(0.15) : Color.mivuSurfaceSecondary)
                     .foregroundColor(isPlaying ? .green : .orange)
                     .cornerRadius(6)
             }
@@ -209,7 +205,7 @@ public struct MivuReceiverHomeView: View {
                 .lineLimit(2)
                 .foregroundColor(.primary)
 
-            HStack(spacing: 12) {
+            HStack(spacing: MivuSpacing.s) {
                 Button {
                     playerService.togglePlayPause()
                 } label: {
@@ -231,29 +227,24 @@ public struct MivuReceiverHomeView: View {
                         .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(Color.blue)
+                    .background(Color.mivuAccent)
                         .foregroundColor(.white)
                         .cornerRadius(8)
                 }
             }
         }
-        .padding(16)
-        .background(Color.blue.opacity(0.08))
-        .cornerRadius(14)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
-        )
+        .padding(MivuSpacing.m)
+        .mivuSurface()
     }
 
     // MARK: - 3. Casting Guide Card
     private var castingGuideCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: MivuSpacing.s) {
             Label("如何在 CarPlay 投屏？", systemImage: "questionmark.circle.fill")
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            VStack(spacing: 12) {
+            VStack(spacing: MivuSpacing.s) {
                 guideStepRow(
                     index: "1",
                     title: "连接 CarPlay",
@@ -273,17 +264,15 @@ public struct MivuReceiverHomeView: View {
                 )
             }
         }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
+        .padding(MivuSpacing.m)
+        .mivuSurface()
     }
 
     private func guideStepRow(index: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: MivuSpacing.s) {
             ZStack {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(Color.mivuAccent)
                     .frame(width: 22, height: 22)
                 Text(index)
                     .font(.caption2.bold())
@@ -304,21 +293,20 @@ public struct MivuReceiverHomeView: View {
 
     // MARK: - 4. Mivu Pro Promo Banner
     private var mivuProPromoBanner: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: MivuSpacing.s) {
             HStack {
                 Image(systemName: "crown.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(.mivuAccent)
                 Text("探索 Mivu Pro")
                     .font(.subheadline.bold())
-                    .foregroundColor(.orange)
+                    .foregroundColor(.primary)
                 Spacer()
                 Text("专业版")
                     .font(.caption2.bold())
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.2))
-                    .foregroundColor(.orange)
-                    .cornerRadius(4)
+                    .background(Color.mivuSurfaceSecondary, in: RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
+                    .foregroundColor(.secondary)
             }
 
             Text("需要连接个人私有云或家庭影院？Mivu Pro 支持 Emby、Jellyfin、SMB、WebDAV 媒体库挂载，提供影院级海报墙与元数据刮削。")
@@ -326,13 +314,8 @@ public struct MivuReceiverHomeView: View {
                 .foregroundColor(.secondary)
                 .lineSpacing(2)
         }
-        .padding(14)
-        .background(Color.orange.opacity(0.08))
-        .cornerRadius(14)
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.orange.opacity(0.2), lineWidth: 1)
-        )
+        .padding(MivuSpacing.m)
+        .mivuSurface()
     }
 
     // MARK: - Device Name Sheet

@@ -44,6 +44,10 @@ public struct HistoryView: View {
                         }
                     }
                     .listStyle(.plain)
+                    #if MIVU_LITE
+                    .scrollContentBackground(.hidden)
+                    .background(Color.mivuBackground)
+                    #endif
                     .searchable(text: $searchText, prompt: "搜索观看历史")
                 }
             }
@@ -96,6 +100,9 @@ public struct HistoryView: View {
                 .padding(.horizontal, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        #if MIVU_LITE
+        .background(Color.mivuBackground)
+        #endif
     }
 
     private func historyRow(_ item: MediaItem) -> some View {
@@ -115,7 +122,7 @@ public struct HistoryView: View {
 
     @ViewBuilder
     private func historyRowContent(_ item: MediaItem) -> some View {
-        HStack(spacing: 14) {
+        HStack(spacing: MivuSpacing.s) {
                 // Video thumbnail or placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
@@ -133,7 +140,7 @@ public struct HistoryView: View {
                         }
                         .frame(width: 100, height: 62)
                         .clipped()
-                        .cornerRadius(8)
+                        .clipShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
                     } else {
                         fallbackIcon(for: item)
                     }
@@ -151,7 +158,7 @@ public struct HistoryView: View {
                         VStack {
                             Spacer()
                             ProgressView(value: min(max(resume / dur, 0), 1.0))
-                                .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                .progressViewStyle(LinearProgressViewStyle(tint: MivuEdition.primaryTint))
                                 .scaleEffect(x: 1, y: 1.5, anchor: .center)
                                 .clipShape(RoundedRectangle(cornerRadius: 2))
                         }
@@ -163,12 +170,14 @@ public struct HistoryView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.title)
-                        .font(.headline)
+                    .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(1)
 
                     HStack(spacing: 6) {
+                        #if MIVU_PRO
                         sourceBadge(item.sourceType)
+                        #endif
 
                         if let resume = item.resumePosition, resume > 0 {
                             Text("已看至 \(SOAPParser.formatUPnPTime(resume))")
@@ -181,10 +190,12 @@ public struct HistoryView: View {
                         }
                     }
 
+                    #if MIVU_PRO
                     Text(item.url.lastPathComponent)
                         .font(.caption2)
                         .foregroundColor(.secondary.opacity(0.8))
                         .lineLimit(1)
+                    #endif
                 }
 
                 Spacer()
@@ -193,9 +204,8 @@ public struct HistoryView: View {
                     .font(.caption)
                     .foregroundColor(.secondary.opacity(0.5))
             }
-            .padding(10)
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(12)
+            .padding(historyRowPadding)
+            .background(historyRowBackground, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
         }
 
     private func fallbackIcon(for item: MediaItem) -> some View {
@@ -209,9 +219,8 @@ public struct HistoryView: View {
             .font(.system(size: 9, weight: .bold))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(badgeColor(for: source).opacity(0.15))
-            .foregroundColor(badgeColor(for: source))
-            .cornerRadius(4)
+            .background(badgeBackground(for: source), in: RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
+            .foregroundColor(badgeForeground(for: source))
     }
 
     private func badgeText(for source: MediaSourceType) -> String {
@@ -222,6 +231,38 @@ public struct HistoryView: View {
         case .directUrl: return "网络流"
         case .testStream: return "测试源"
         }
+    }
+
+    private var historyRowPadding: CGFloat {
+        #if MIVU_LITE
+        return MivuSpacing.s
+        #else
+        return 10
+        #endif
+    }
+
+    private var historyRowBackground: Color {
+        #if MIVU_LITE
+        return .mivuSurface
+        #else
+        return Color(.secondarySystemBackground)
+        #endif
+    }
+
+    private func badgeBackground(for source: MediaSourceType) -> Color {
+        #if MIVU_LITE
+        return .mivuSurfaceSecondary
+        #else
+        return badgeColor(for: source).opacity(0.15)
+        #endif
+    }
+
+    private func badgeForeground(for source: MediaSourceType) -> Color {
+        #if MIVU_LITE
+        return .secondary
+        #else
+        return badgeColor(for: source)
+        #endif
     }
 
     private func badgeColor(for source: MediaSourceType) -> Color {

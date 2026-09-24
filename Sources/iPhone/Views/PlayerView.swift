@@ -171,7 +171,7 @@ public struct PlayerView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "forward.fill")
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(MivuEdition.primaryTint)
                         Text("2.0x 快速播放中")
                             .font(.subheadline.bold())
                             .foregroundColor(.white)
@@ -205,7 +205,7 @@ public struct PlayerView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "lock.fill")
                                 .font(.title2)
-                                .foregroundColor(.orange)
+                                .foregroundColor(MivuEdition.primaryTint)
                             Text("点击解锁")
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.white.opacity(0.85))
@@ -265,7 +265,7 @@ public struct PlayerView: View {
                     let compact = isCompact(geometry: geometry)
                     HStack(spacing: 8) {
                         Image(systemName: "repeat.1")
-                            .foregroundColor(.orange)
+                            .foregroundColor(MivuEdition.primaryTint)
                             .font(.caption.bold())
                         let aStr = playerService.repeatPointA != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointA!) : "--:--"
                         let bStr = playerService.repeatPointB != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointB!) : "--:--"
@@ -313,7 +313,7 @@ public struct PlayerView: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, compact ? 12 : 16)
                                 .padding(.vertical, compact ? 7 : 10)
-                                .background(Color.orange)
+                                .background(MivuEdition.primaryTint)
                                 .clipShape(Capsule())
                                 .shadow(color: .black.opacity(0.4), radius: 8)
                             }
@@ -336,7 +336,7 @@ public struct PlayerView: View {
                     let compact = isCompact(geometry: geometry)
                     HStack(spacing: 8) {
                         Image(systemName: "camera.fill")
-                            .foregroundColor(.orange)
+                            .foregroundColor(MivuEdition.primaryTint)
                             .font(.caption.bold())
                         Text(message)
                             .font(.caption.bold())
@@ -638,7 +638,7 @@ public struct PlayerView: View {
             HStack(spacing: 6) {
                 Image(systemName: delta >= 0 ? "forward.fill" : "backward.fill")
                     .font(.title2)
-                    .foregroundColor(.orange)
+                    .foregroundColor(MivuEdition.primaryTint)
                 Text(delta >= 0 ? "+\(SOAPParser.formatUPnPTime(delta))" : "-\(SOAPParser.formatUPnPTime(-delta))")
                     .font(.title2.bold().monospacedDigit())
                     .foregroundColor(.white)
@@ -689,7 +689,7 @@ public struct PlayerView: View {
                     .frame(width: 6, height: 110)
 
                 Capsule()
-                    .fill(Color.orange)
+                    .fill(MivuEdition.primaryTint)
                     .frame(width: 6, height: 110 * value)
             }
         }
@@ -717,7 +717,7 @@ public struct PlayerView: View {
 
     private var loadingBufferingOverlay: some View {
         ProgressView()
-            .progressViewStyle(CircularProgressViewStyle(tint: .orange))
+            .progressViewStyle(CircularProgressViewStyle(tint: MivuEdition.primaryTint))
             .scaleEffect(1.3)
             .allowsHitTesting(false)
     }
@@ -726,7 +726,7 @@ public struct PlayerView: View {
         VStack(spacing: 14) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 40))
-                .foregroundColor(.orange)
+                .foregroundColor(MivuEdition.primaryTint)
             Text("播放遇到异常")
                 .font(.headline)
                 .foregroundColor(.white)
@@ -874,7 +874,7 @@ public struct PlayerView: View {
             } label: {
                 Image(systemName: "speaker.wave.3.fill")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(playerService.volumeBoost > 1.0 ? .orange : .white.opacity(0.9))
+                    .foregroundColor(playerService.volumeBoost > 1.0 ? MivuEdition.primaryTint : .white.opacity(0.9))
                     .padding(6)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
@@ -908,7 +908,7 @@ public struct PlayerView: View {
                 } label: {
                     Image(systemName: playerService.selectedSubtitleTrack == nil ? "captions.bubble" : "captions.bubble.fill")
                         .font(.system(size: 11))
-                        .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : .orange)
+                        .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : MivuEdition.primaryTint)
                         .padding(6)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
@@ -1099,7 +1099,7 @@ public struct PlayerView: View {
 
                     // 3. Played track
                     Capsule()
-                        .fill(Color.orange)
+                        .fill(MivuEdition.primaryTint)
                         .frame(width: max(0, totalWidth * playProgress), height: trackHeight)
 
                     // 4. Chapter tick marks
@@ -1119,14 +1119,14 @@ public struct PlayerView: View {
                     if let a = playerService.repeatPointA, duration > 0 {
                         let aPos = (a / duration) * totalWidth
                         Rectangle()
-                            .fill(Color.orange)
+                            .fill(MivuEdition.primaryTint)
                             .frame(width: 2.5, height: trackHeight + 4)
                             .offset(x: max(0, min(aPos - 1.25, totalWidth - 3)))
                     }
                     if let b = playerService.repeatPointB, duration > 0 {
                         let bPos = (b / duration) * totalWidth
                         Rectangle()
-                            .fill(Color.orange)
+                            .fill(MivuEdition.primaryTint)
                             .frame(width: 2.5, height: trackHeight + 4)
                             .offset(x: max(0, min(bPos - 1.25, totalWidth - 3)))
                     }
@@ -1189,7 +1189,7 @@ public struct PlayerView: View {
                         Text(SOAPParser.formatSpeed(playerService.downloadSpeed))
                             .font(.system(size: compact ? 9 : 10, design: .monospaced))
                     }
-                    .foregroundColor(.orange.opacity(0.95))
+                    .foregroundColor(MivuEdition.primaryTint.opacity(0.95))
                     .layoutPriority(1)
 
                     Spacer(minLength: 4)
@@ -1220,7 +1220,7 @@ public struct PlayerView: View {
                             }()
                             Text(compact ? "完播 \(formatter.string(from: finishDate))" : "预计 \(formatter.string(from: finishDate)) 完播")
                                 .font(.system(size: compact ? 11 : 12, design: .monospaced))
-                                .foregroundColor(.orange.opacity(0.95))
+                                .foregroundColor(MivuEdition.primaryTint.opacity(0.95))
                         } else {
                             let remaining = max(duration - currentTime, 0)
                             Text("-\(SOAPParser.formatUPnPTime(remaining))")
@@ -1251,7 +1251,7 @@ public struct PlayerView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text("STREAM TELEMETRY")
                 .font(.caption2.bold())
-                .foregroundColor(.orange)
+                .foregroundColor(MivuEdition.primaryTint)
 
             Text("Status: \(playerService.session.status.rawValue)")
                 .font(.caption2.monospaced())
@@ -1267,7 +1267,7 @@ public struct PlayerView: View {
 
             Text("Download: \(SOAPParser.formatSpeed(playerService.downloadSpeed))")
                 .font(.caption2.monospaced())
-                .foregroundColor(.orange)
+                .foregroundColor(MivuEdition.primaryTint)
 
             Text("Speed: \(String(format: "%.2fx", playerService.selectedSpeed)) | Gravity: \(playerService.videoGravity == .resizeAspect ? "Aspect" : "Fill")")
                 .font(.caption2.monospaced())
@@ -1295,7 +1295,7 @@ public struct PlayerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.orange.opacity(0.4), lineWidth: 1)
+                .stroke(MivuEdition.primaryTint.opacity(0.4), lineWidth: 1)
         )
         .padding(.leading, 16)
         .padding(.top, 85)
@@ -1390,7 +1390,7 @@ public struct PlayerView: View {
                 Text("章节")
                     .font(.caption2.bold())
             }
-            .foregroundColor(.orange)
+            .foregroundColor(MivuEdition.primaryTint)
             .padding(.horizontal, 9)
             .padding(.vertical, 6)
             .background(.ultraThinMaterial)
@@ -1521,7 +1521,7 @@ public struct PlayerView: View {
         } label: {
             Image(systemName: playerService.selectedSubtitleTrack == nil ? "captions.bubble" : "captions.bubble.fill")
                 .font(.system(size: 14))
-                .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : .orange)
+                .foregroundColor(playerService.selectedSubtitleTrack == nil ? .white.opacity(0.9) : MivuEdition.primaryTint)
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
@@ -1552,7 +1552,7 @@ public struct PlayerView: View {
         } label: {
             Image(systemName: (playerService.audioTracks.count > 1 || playerService.selectedAudioTrack != nil) ? "speaker.wave.2.fill" : "speaker.wave.2")
                 .font(.system(size: 14))
-                .foregroundColor(playerService.audioTracks.count > 1 ? .orange : .white.opacity(0.9))
+                .foregroundColor(playerService.audioTracks.count > 1 ? MivuEdition.primaryTint : .white.opacity(0.9))
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
@@ -1579,7 +1579,7 @@ public struct PlayerView: View {
         } label: {
             Image(systemName: PictureInPictureManager.shared.isPiPActive ? "pip.exit" : "pip.enter")
                 .font(.system(size: 14))
-                .foregroundColor(PictureInPictureManager.shared.isPiPActive ? .orange : .white.opacity(0.9))
+                .foregroundColor(PictureInPictureManager.shared.isPiPActive ? MivuEdition.primaryTint : .white.opacity(0.9))
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
@@ -1595,7 +1595,7 @@ public struct PlayerView: View {
         } label: {
             Image(systemName: "info.circle")
                 .font(.system(size: 14))
-                .foregroundColor(showDiagnosticsHUD ? .orange : .white.opacity(0.9))
+                .foregroundColor(showDiagnosticsHUD ? MivuEdition.primaryTint : .white.opacity(0.9))
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
@@ -2128,7 +2128,7 @@ struct SubtitleSettingsSheet: View {
                             Spacer()
                             Text("\(Int(playerService.subtitleUserScale * 100))%")
                                 .font(.headline.monospacedDigit())
-                                .foregroundColor(.orange)
+                                .foregroundColor(MivuEdition.primaryTint)
                         }
 
                         HStack(spacing: 12) {
@@ -2148,7 +2148,7 @@ struct SubtitleSettingsSheet: View {
                                 in: 0.5...2.0,
                                 step: 0.05
                             )
-                            .tint(.orange)
+                            .tint(MivuEdition.primaryTint)
 
                             Button {
                                 playerService.setSubtitleUserScale(playerService.subtitleUserScale + 0.05)
@@ -2170,7 +2170,7 @@ struct SubtitleSettingsSheet: View {
                                         .font(.caption.bold())
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
-                                        .background(isSelected ? Color.orange : Color(uiColor: .tertiarySystemFill))
+                                        .background(isSelected ? MivuEdition.primaryTint : Color(uiColor: .tertiarySystemFill))
                                         .foregroundColor(isSelected ? .white : .primary)
                                         .clipShape(Capsule())
                                 }
@@ -2188,7 +2188,7 @@ struct SubtitleSettingsSheet: View {
                             Spacer()
                             Text(playerService.subtitleDelay == 0 ? "0.0s (已对齐)" : String(format: "%+.1fs", playerService.subtitleDelay))
                                 .font(.headline.monospacedDigit())
-                                .foregroundColor(playerService.subtitleDelay == 0 ? .secondary : .orange)
+                                .foregroundColor(playerService.subtitleDelay == 0 ? .secondary : MivuEdition.primaryTint)
                         }
 
                         HStack(spacing: 8) {
@@ -2208,7 +2208,7 @@ struct SubtitleSettingsSheet: View {
                                 playerService.setSubtitleDelay(0)
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(playerService.subtitleDelay == 0 ? .secondary.opacity(0.4) : .orange)
+                            .tint(playerService.subtitleDelay == 0 ? .secondary.opacity(0.4) : MivuEdition.primaryTint)
 
                             Button("+0.1s") {
                                 playerService.setSubtitleDelay(playerService.subtitleDelay + 0.1)
@@ -2236,7 +2236,7 @@ struct SubtitleSettingsSheet: View {
                             get: { playerService.subtitleAutoPortraitScale },
                             set: { playerService.setSubtitleAutoPortraitScale($0) }
                         ))
-                        .tint(.orange)
+                        .tint(MivuEdition.primaryTint)
 
                         Text("在竖屏模式下轻微缩小字幕比例，避免横屏视频在小窗口下过度遮挡画面。")
                             .font(.caption2)
@@ -2298,18 +2298,18 @@ struct EpisodeDrawerSheet: View {
                                 HStack {
                                     Text("第 \(index + 1) 集")
                                         .font(.caption2.bold())
-                                        .foregroundColor(isCurrent ? .orange : .secondary)
+                                        .foregroundColor(isCurrent ? MivuEdition.primaryTint : .secondary)
                                     Spacer()
                                     if isCurrent {
                                         Image(systemName: playerService.session.status == .playing ? "waveform" : "play.fill")
                                             .font(.caption2)
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(MivuEdition.primaryTint)
                                     }
                                 }
 
                                 Text(item.title)
                                     .font(.subheadline.weight(isCurrent ? .bold : .medium))
-                                    .foregroundColor(isCurrent ? .orange : .primary)
+                                    .foregroundColor(isCurrent ? MivuEdition.primaryTint : .primary)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)
                             }
@@ -2317,11 +2317,11 @@ struct EpisodeDrawerSheet: View {
                             .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(isCurrent ? Color.orange.opacity(0.12) : Color(uiColor: .secondarySystemBackground))
+                                    .fill(isCurrent ? MivuEdition.primaryTint.opacity(0.12) : Color(uiColor: .secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isCurrent ? Color.orange : Color.clear, lineWidth: 1.5)
+                                    .stroke(isCurrent ? MivuEdition.primaryTint : Color.clear, lineWidth: 1.5)
                             )
                         }
                         .buttonStyle(.plain)
@@ -2374,7 +2374,7 @@ struct PlaybackSettingsSheet: View {
                         get: { playerService.isVoiceBoostEnabled },
                         set: { playerService.setVoiceBoost($0) }
                     ))
-                    .tint(.orange)
+                    .tint(MivuEdition.primaryTint)
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -2382,11 +2382,11 @@ struct PlaybackSettingsSheet: View {
                             Spacer()
                             Text("\(Int(playerService.volumeBoost * 100))%")
                                 .font(.subheadline.bold().monospacedDigit())
-                                .foregroundColor(playerService.volumeBoost > 1.0 ? .orange : .secondary)
+                                .foregroundColor(playerService.volumeBoost > 1.0 ? MivuEdition.primaryTint : .secondary)
                         }
 
                         Slider(value: volumeBoostBinding, in: 1.0...2.0, step: 0.05)
-                            .tint(.orange)
+                            .tint(MivuEdition.primaryTint)
 
                         HStack {
                             Text("100% (标准)")
@@ -2454,11 +2454,11 @@ struct PlaybackSettingsSheet: View {
                             let offsetPercent = 100 - playerService.subtitleVerticalOffset
                             Text(offsetPercent == 0 ? "置底 (0%)" : "+\(offsetPercent)% 向上")
                                 .font(.subheadline.bold().monospacedDigit())
-                                .foregroundColor(offsetPercent > 0 ? .orange : .secondary)
+                                .foregroundColor(offsetPercent > 0 ? MivuEdition.primaryTint : .secondary)
                         }
 
                         Slider(value: subtitleOffsetBinding, in: 0.0...0.5, step: 0.05)
-                            .tint(.orange)
+                            .tint(MivuEdition.primaryTint)
                     }
                     .padding(.vertical, 4)
 
@@ -2524,7 +2524,7 @@ struct PlaybackSettingsSheet: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.orange)
+                        .tint(MivuEdition.primaryTint)
 
                         Button {
                             playerService.setRepeatPointB()
@@ -2537,7 +2537,7 @@ struct PlaybackSettingsSheet: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.orange)
+                        .tint(MivuEdition.primaryTint)
                         .disabled(playerService.repeatPointA == nil || currentTime <= (playerService.repeatPointA ?? 0))
                     }
                 } header: {
@@ -2557,7 +2557,7 @@ struct PlaybackSettingsSheet: View {
                     } label: {
                         HStack {
                             Image(systemName: "camera.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(MivuEdition.primaryTint)
                             Text("保存当前原画截图至系统相册")
                                 .foregroundColor(.primary)
                         }
