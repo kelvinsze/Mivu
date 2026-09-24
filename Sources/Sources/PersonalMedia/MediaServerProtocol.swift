@@ -65,12 +65,6 @@ public extension MediaServerProtocol {
     }
 }
 
-public enum MediaPlaybackMethod: String, Codable, Sendable {
-    case directPlay
-    case directStream
-    case transcode
-}
-
 /// One server-provided playback option, kept in resolver preference order.
 public struct MediaPlaybackCandidate: Sendable, Equatable {
     public let url: URL

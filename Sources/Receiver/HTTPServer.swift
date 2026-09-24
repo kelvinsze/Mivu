@@ -11,8 +11,10 @@ public final class HTTPServer: @unchecked Sendable {
 
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.kold.mivu.httpserver", qos: .userInitiated)
-    private var isRunning = false
+    public private(set) var isRunning = false
     public private(set) var port: UInt16 = 7890
+
+    private static let maximumUploadSize = 10 * 1024 * 1024 * 1024
 
     public var localIPAddress: String {
         return NetworkHelper.getWiFiAddress() ?? "127.0.0.1"
@@ -93,7 +95,15 @@ public final class HTTPServer: @unchecked Sendable {
                 let headers = self.parseHeaders(headerString)
                 let contentLength = Int(headers["content-length"] ?? "0") ?? 0
 
-                if bodyData.count >= contentLength {
+                if self.isUploadRequest(headerString: headerString) {
+                    self.receiveUpload(
+                        connection: connection,
+                        headerString: headerString,
+                        headers: headers,
+                        initialBodyData: bodyData,
+                        contentLength: contentLength
+                    )
+                } else if bodyData.count >= contentLength {
                     self.processRequest(connection: connection, headerString: headerString, headers: headers, bodyData: bodyData)
                 } else {
                     // Read more body data
@@ -105,6 +115,137 @@ public final class HTTPServer: @unchecked Sendable {
                 // Continue reading headers
                 self.readHTTPRequest(connection: connection, accumulatedData: currentData)
             }
+        }
+    }
+
+    private func isUploadRequest(headerString: String) -> Bool {
+        let requestLine = headerString.components(separatedBy: "\r\n").first ?? ""
+        let parts = requestLine.split(separator: " ")
+        guard parts.count >= 2 else { return false }
+        let path = String(parts[1].split(separator: "?", maxSplits: 1).first ?? "")
+        return parts[0].uppercased() == "POST" && path == "/api/upload"
+    }
+
+    /// Saves upload bodies incrementally so large videos never need to be held in memory.
+    private func receiveUpload(
+        connection: NWConnection,
+        headerString: String,
+        headers: [String: String],
+        initialBodyData: Data,
+        contentLength: Int
+    ) {
+        guard contentLength > 0, contentLength <= Self.maximumUploadSize else {
+            sendResponse(connection: connection, statusCode: 413, contentType: "application/json", body: "{\"error\":\"file_too_large\"}")
+            return
+        }
+
+        let requestTarget = headerString.components(separatedBy: "\r\n").first?
+            .split(separator: " ")
+            .dropFirst()
+            .first
+            .map(String.init) ?? ""
+        let providedName = URLComponents(string: "http://localhost\(requestTarget)")?
+            .queryItems?
+            .first(where: { $0.name == "filename" })?
+            .value ?? ""
+
+        guard UploadedVideoStore.isSupportedVideo(filename: providedName),
+              headers["content-type"]?.lowercased().hasPrefix("video/") != false else {
+            sendResponse(connection: connection, statusCode: 415, contentType: "application/json", body: "{\"error\":\"unsupported_video\"}")
+            return
+        }
+        guard initialBodyData.count <= contentLength else {
+            sendResponse(connection: connection, statusCode: 400, contentType: "application/json", body: "{\"error\":\"invalid_body\"}")
+            return
+        }
+
+        do {
+            let destination = try UploadedVideoStore.uniqueDestination(for: providedName)
+            let temporaryURL = destination.deletingLastPathComponent()
+                .appendingPathComponent(".upload-\(UUID().uuidString.lowercased())")
+            FileManager.default.createFile(atPath: temporaryURL.path, contents: nil)
+            let handle = try FileHandle(forWritingTo: temporaryURL)
+            handle.write(initialBodyData)
+
+            if initialBodyData.count == contentLength {
+                finishUpload(connection: connection, handle: handle, temporaryURL: temporaryURL, destination: destination)
+            } else {
+                receiveUploadChunk(
+                    connection: connection,
+                    handle: handle,
+                    temporaryURL: temporaryURL,
+                    destination: destination,
+                    receivedBytes: initialBodyData.count,
+                    contentLength: contentLength
+                )
+            }
+        } catch {
+            logger.error("Unable to prepare upload: \(error.localizedDescription)")
+            sendResponse(connection: connection, statusCode: 500, contentType: "application/json", body: "{\"error\":\"storage_unavailable\"}")
+        }
+    }
+
+    private func receiveUploadChunk(
+        connection: NWConnection,
+        handle: FileHandle,
+        temporaryURL: URL,
+        destination: URL,
+        receivedBytes: Int,
+        contentLength: Int
+    ) {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] content, _, isComplete, error in
+            guard let self else { return }
+            guard error == nil, let content else {
+                try? handle.close()
+                try? FileManager.default.removeItem(at: temporaryURL)
+                if error == nil && !isComplete {
+                    self.sendResponse(connection: connection, statusCode: 400, contentType: "application/json", body: "{\"error\":\"incomplete_upload\"}")
+                }
+                return
+            }
+
+            let totalBytes = receivedBytes + content.count
+            guard totalBytes <= contentLength else {
+                try? handle.close()
+                try? FileManager.default.removeItem(at: temporaryURL)
+                self.sendResponse(connection: connection, statusCode: 400, contentType: "application/json", body: "{\"error\":\"invalid_body\"}")
+                return
+            }
+
+            handle.write(content)
+            if totalBytes == contentLength {
+                self.finishUpload(connection: connection, handle: handle, temporaryURL: temporaryURL, destination: destination)
+            } else if isComplete {
+                try? handle.close()
+                try? FileManager.default.removeItem(at: temporaryURL)
+                self.sendResponse(connection: connection, statusCode: 400, contentType: "application/json", body: "{\"error\":\"incomplete_upload\"}")
+            } else {
+                self.receiveUploadChunk(
+                    connection: connection,
+                    handle: handle,
+                    temporaryURL: temporaryURL,
+                    destination: destination,
+                    receivedBytes: totalBytes,
+                    contentLength: contentLength
+                )
+            }
+        }
+    }
+
+    private func finishUpload(connection: NWConnection, handle: FileHandle, temporaryURL: URL, destination: URL) {
+        do {
+            try handle.close()
+            try FileManager.default.moveItem(at: temporaryURL, to: destination)
+            logger.info("Saved Wi-Fi upload: \(destination.lastPathComponent, privacy: .public)")
+
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .mivuUploadedVideosDidChange, object: destination)
+            }
+            sendResponse(connection: connection, statusCode: 200, contentType: "application/json", body: "{\"status\":\"ok\"}")
+        } catch {
+            try? FileManager.default.removeItem(at: temporaryURL)
+            logger.error("Unable to save upload: \(error.localizedDescription)")
+            sendResponse(connection: connection, statusCode: 500, contentType: "application/json", body: "{\"error\":\"save_failed\"}")
         }
     }
 
@@ -316,7 +457,15 @@ public final class HTTPServer: @unchecked Sendable {
     }
 
     private func sendResponse(connection: NWConnection, statusCode: Int, contentType: String, body: String) {
-        let statusText = statusCode == 200 ? "OK" : (statusCode == 404 ? "Not Found" : "Internal Server Error")
+        let statusText: String
+        switch statusCode {
+        case 200: statusText = "OK"
+        case 400: statusText = "Bad Request"
+        case 404: statusText = "Not Found"
+        case 413: statusText = "Payload Too Large"
+        case 415: statusText = "Unsupported Media Type"
+        default: statusText = "Internal Server Error"
+        }
         let bodyData = Data(body.utf8)
         let responseHeader = """
         HTTP/1.1 \(statusCode) \(statusText)\r
@@ -423,6 +572,23 @@ enum WebRemoteTemplate {
               font-size: 0.9rem;
               margin-bottom: 0.75rem;
             }
+            input[type="file"] {
+              width: 100%;
+              color: var(--muted);
+              margin-bottom: 0.75rem;
+            }
+            progress {
+              width: 100%;
+              height: 0.45rem;
+              margin-top: 0.8rem;
+              accent-color: var(--accent);
+            }
+            .upload-status {
+              font-size: 0.82rem;
+              color: var(--muted);
+              margin-top: 0.5rem;
+              min-height: 1rem;
+            }
             button.btn-primary {
               width: 100%;
               background: var(--accent);
@@ -483,6 +649,14 @@ enum WebRemoteTemplate {
               <input type="text" id="videoUrlInput" placeholder="输入 HTTP/HTTPS 或 HLS m3u8 链接">
               <button class="btn-primary" onclick="pushVideo()">🚀 立即投送播放</button>
             </div>
+
+            <div class="card">
+              <div class="card-title">通过 Wi-Fi 上传到 Mivu</div>
+              <input type="file" id="videoFileInput" accept="video/*,.mkv,.webm,.avi,.m2ts,.ts">
+              <button class="btn-primary" id="uploadButton" onclick="uploadVideo()">⬆️ 上传到视频库</button>
+              <progress id="uploadProgress" value="0" max="100" hidden></progress>
+              <div class="upload-status" id="uploadStatus">视频会保存在此设备的 Mivu 文件库中。</div>
+            </div>
           </div>
 
           <script>
@@ -524,11 +698,133 @@ enum WebRemoteTemplate {
               document.getElementById('videoUrlInput').value = '';
               fetchStatus();
             }
+
+            function uploadVideo() {
+              const input = document.getElementById('videoFileInput');
+              const file = input.files[0];
+              if (!file) return alert('请选择视频文件');
+
+              const button = document.getElementById('uploadButton');
+              const progress = document.getElementById('uploadProgress');
+              const status = document.getElementById('uploadStatus');
+              const request = new XMLHttpRequest();
+              request.open('POST', '/api/upload?filename=' + encodeURIComponent(file.name));
+              request.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+              request.upload.onprogress = (event) => {
+                if (!event.lengthComputable) return;
+                const percent = Math.round(event.loaded / event.total * 100);
+                progress.value = percent;
+                status.textContent = '正在上传 ' + percent + '%';
+              };
+              request.onload = () => {
+                button.disabled = false;
+                progress.hidden = true;
+                if (request.status === 200) {
+                  status.textContent = '上传完成，已保存到 Mivu 视频库。';
+                  input.value = '';
+                } else {
+                  status.textContent = '上传失败，请确认文件是受支持的视频且小于 10 GB。';
+                }
+              };
+              request.onerror = () => {
+                button.disabled = false;
+                progress.hidden = true;
+                status.textContent = '网络连接中断，上传未完成。';
+              };
+              button.disabled = true;
+              progress.value = 0;
+              progress.hidden = false;
+              status.textContent = '正在准备上传…';
+              request.send(file);
+            }
           </script>
         </body>
         </html>
         """
     }
+}
+
+// MARK: - Wi-Fi Uploaded Video Storage
+
+public enum UploadedVideoStore {
+    private static let folderName = "Mivu Uploads"
+    private static let supportedExtensions: Set<String> = [
+        "mp4", "mov", "m4v", "mkv", "avi", "webm", "ts", "m2ts", "mpg", "mpeg", "3gp"
+    ]
+
+    public static func isSupportedVideo(filename: String) -> Bool {
+        supportedExtensions.contains(URL(fileURLWithPath: filename).pathExtension.lowercased())
+    }
+
+    public static func videos() -> [URL] {
+        guard let directory = try? directoryURL(),
+              let urls = try? FileManager.default.contentsOfDirectory(
+                at: directory,
+                includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey],
+                options: [.skipsHiddenFiles]
+              ) else { return [] }
+
+        return urls
+            .filter { isSupportedVideo(filename: $0.lastPathComponent) }
+            .sorted {
+                let left = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                let right = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+                return left > right
+            }
+    }
+
+    public static func mediaItem(for url: URL) -> MediaItem {
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init)
+        return MediaItem(
+            title: url.deletingPathExtension().lastPathComponent,
+            url: url,
+            sourceType: .directUrl,
+            originator: "Wi-Fi Upload",
+            fileName: url.lastPathComponent,
+            fileSize: size
+        )
+    }
+
+    public static func delete(_ url: URL) throws {
+        let directory = try directoryURL().standardizedFileURL
+        guard url.deletingLastPathComponent().standardizedFileURL == directory else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try FileManager.default.removeItem(at: url)
+    }
+
+    fileprivate static func uniqueDestination(for providedName: String) throws -> URL {
+        let directory = try directoryURL()
+        let safeName = URL(fileURLWithPath: providedName).lastPathComponent
+            .components(separatedBy: CharacterSet(charactersIn: "/\\:"))
+            .joined(separator: "-")
+        let baseName = URL(fileURLWithPath: safeName).deletingPathExtension().lastPathComponent
+        let extensionName = URL(fileURLWithPath: safeName).pathExtension.lowercased()
+        let normalizedBase = baseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "视频" : baseName
+
+        var candidate = directory.appendingPathComponent(normalizedBase).appendingPathExtension(extensionName)
+        var index = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            candidate = directory.appendingPathComponent("\(normalizedBase) (\(index))").appendingPathExtension(extensionName)
+            index += 1
+        }
+        return candidate
+    }
+
+    private static func directoryURL() throws -> URL {
+        let directory = try FileManager.default.url(
+            for: .documentDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent(folderName, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+    }
+}
+
+public extension Notification.Name {
+    static let mivuUploadedVideosDidChange = Notification.Name("mivu.uploaded-videos-did-change")
 }
 
 // MARK: - Network IP Helper

@@ -37,7 +37,11 @@ public struct HomeView: View {
                     mediaSourcesSection
                         .padding(.horizontal)
 
-                    // MARK: - 4. Recently Played Carousel (2:3 Posters)
+                    // MARK: - 4. Wi-Fi Uploaded Videos
+                    WiFiUploadedVideosSection()
+                        .padding(.horizontal)
+
+                    // MARK: - 5. Recently Played Carousel (2:3 Posters)
                     if !history.items.isEmpty {
                         recentlyPlayedSection
                             .padding(.bottom, 60) // Extra padding for mini-player clearance
@@ -369,6 +373,7 @@ public struct HomeView: View {
     private func sourceLabel(_ source: MediaSourceType) -> String {
         switch source {
         case .personalMedia: return "媒体库"
+        case .photoLibrary: return "相册视频"
         case .dlna: return "DLNA"
         case .directUrl: return "网络流"
         case .testStream: return "测试源"

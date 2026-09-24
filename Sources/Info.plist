@@ -58,6 +58,8 @@
 	<string>Mivu uses your local network to discover media servers and receive video casting requests from devices and apps on your network.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Mivu 需要保存视频高清截图至您的系统相册。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Mivu 需要访问您的相册，以选择视频并在 CarPlay 上播放。</string>
 	<key>RatingsAPIBaseURL</key>
 	<string>https://mivu-rating-api.koldllc.com</string>
 	<key>UIApplicationSceneManifest</key>

@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// Settings view for configuring the UPnP receiver and accessing Developer Lab.
 public struct SettingsView: View {
@@ -6,6 +7,14 @@ public struct SettingsView: View {
     @ObservedObject private var playerService = PlayerService.shared
 
     public init() {}
+
+    private var aboutSectionTitle: String {
+        #if MIVU_LITE
+        return "关于 Mivu"
+        #else
+        return "关于 Mivu Pro"
+        #endif
+    }
 
     public var body: some View {
         NavigationStack {
@@ -34,6 +43,20 @@ public struct SettingsView: View {
                             .font(.subheadline.monospaced())
                             .foregroundColor(.secondary)
                     }
+                }
+
+                Section {
+                    NavigationLink {
+                        WiFiUploadLibraryView()
+                    } label: {
+                        Label("网页上传视频", systemImage: "arrow.up.doc.fill")
+                            .foregroundColor(.blue)
+                    }
+                } header: {
+                    Text("Wi-Fi 文件上传")
+                } footer: {
+                    Text("同一 Wi-Fi 下，在电脑或手机浏览器打开 Mivu 显示的地址即可上传视频；完成后会立即在 App 中播放。")
+                        .font(.caption2)
                 }
 
                 // MARK: - Playback & Audio Preferences
@@ -138,6 +161,7 @@ public struct SettingsView: View {
                         .font(.caption2)
                 }
 
+                #if MIVU_PRO
                 // MARK: - Developer & Casting Lab
                 Section {
                     NavigationLink {
@@ -166,9 +190,34 @@ public struct SettingsView: View {
                     Text("包含 DLNA 服务监控、Apple HLS / MP4 测试流、自定义 URL 播放器及系统网络诊断。")
                         .font(.caption2)
                 }
+                #endif
 
                 // MARK: - About
-                Section("关于 Mivu") {
+                #if MIVU_LITE
+                Section("升级到 Mivu Pro") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.orange)
+                            Text("Mivu Pro 全能媒体中心")
+                                .font(.subheadline.bold())
+                        }
+                        Text("支持 Emby、Jellyfin、WebDAV、SMB 私有媒体库挂载，精美影视海报墙与智能刮削。")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+                #endif
+
+                Section(aboutSectionTitle) {
+                    HStack {
+                        Text("应用名称")
+                        Spacer()
+                        Text(Bundle.main.infoDictionary?["CFBundleDisplayName"] as? String ?? (Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "Mivu"))
+                            .foregroundColor(.secondary)
+                    }
+
                     HStack {
                         Text("版本")
                         Spacer()
@@ -189,5 +238,177 @@ public struct SettingsView: View {
             }
             .navigationTitle("设置")
         }
+    }
+}
+
+/// Local files received through Mivu's Wi-Fi web page.
+public struct WiFiUploadLibraryView: View {
+    @ObservedObject private var playerService = PlayerService.shared
+    @State private var videos: [URL] = []
+
+    public init() {}
+
+    private var webAddress: String {
+        "http://\(HTTPServer.shared.localIPAddress):\(HTTPServer.shared.port)"
+    }
+
+    public var body: some View {
+        List {
+            Section("网页上传地址") {
+                Text(webAddress)
+                    .font(.body.monospaced())
+                    .textSelection(.enabled)
+
+                Text("请让上传设备与此 iPhone 连接同一个 Wi-Fi；App 保持在前台时可接收上传。")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
+
+            Section("已上传视频") {
+                if videos.isEmpty {
+                    ContentUnavailableView(
+                        "还没有上传的视频",
+                        systemImage: "film.stack",
+                        description: Text("在浏览器打开上方地址，选择视频后即可上传。")
+                    )
+                } else {
+                    ForEach(videos, id: \.self) { url in
+                        Button {
+                            playerService.loadAndPlay(item: UploadedVideoStore.mediaItem(for: url), origin: "WiFiUploadLibrary")
+                            playerService.isShowingPlayer = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "play.rectangle.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text(fileSizeText(for: url))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "play.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .onDelete(perform: delete)
+                }
+            }
+        }
+        .navigationTitle("Wi-Fi 视频库")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    reloadVideos()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("刷新视频库")
+            }
+        }
+        .onAppear(perform: reloadVideos)
+        .refreshable { reloadVideos() }
+    }
+
+    private func reloadVideos() {
+        videos = UploadedVideoStore.videos()
+    }
+
+    private func delete(at offsets: IndexSet) {
+        for index in offsets {
+            try? UploadedVideoStore.delete(videos[index])
+        }
+        reloadVideos()
+    }
+
+    private func fileSizeText(for url: URL) -> String {
+        let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
+    }
+}
+
+/// Full local video list for reuse on the Mivu home screen.
+public struct WiFiUploadedVideosSection: View {
+    @ObservedObject private var playerService = PlayerService.shared
+    @State private var videos: [URL] = []
+
+    public init() {}
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("本地视频", systemImage: "film.stack.fill")
+                    .font(.title3.bold())
+                Spacer()
+                NavigationLink {
+                    WiFiUploadLibraryView()
+                } label: {
+                    Text("管理")
+                        .font(.subheadline)
+                }
+            }
+
+            if videos.isEmpty {
+                NavigationLink {
+                    WiFiUploadLibraryView()
+                } label: {
+                    Label("暂无上传视频，打开 Wi-Fi 视频库开始上传", systemImage: "arrow.up.doc")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                }
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(videos, id: \.self) { url in
+                        Button {
+                            playerService.loadAndPlay(item: UploadedVideoStore.mediaItem(for: url), origin: "WiFiUploadHome")
+                            playerService.isShowingPlayer = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "play.rectangle.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(url.deletingPathExtension().lastPathComponent)
+                                        .foregroundColor(.primary)
+                                        .lineLimit(1)
+                                    Text(fileSizeText(for: url))
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Text(playerService.isCarPlayConnected ? "投送播放" : "播放")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(playerService.isCarPlayConnected ? .blue : .secondary)
+                            }
+                            .padding(12)
+                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .onAppear(perform: reloadVideos)
+        .onReceive(NotificationCenter.default.publisher(for: .mivuUploadedVideosDidChange)) { _ in
+            reloadVideos()
+        }
+    }
+
+    private func reloadVideos() {
+        videos = UploadedVideoStore.videos()
+    }
+
+    private func fileSizeText(for url: URL) -> String {
+        let bytes = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        return ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
     }
 }

@@ -3,9 +3,19 @@ import Foundation
 /// Defines the origin or type of a playable media stream in Mivu.
 public enum MediaSourceType: String, Codable, Sendable {
     case directUrl = "direct_url"
+    case photoLibrary = "photo_library"
     case dlna = "dlna"
     case personalMedia = "personal_media"
     case testStream = "test_stream"
+}
+
+/// Playback method reported by a media server. Kept in the shared playback
+/// model because Lite still uses playback alternatives for compatibility
+/// fallback without compiling the Pro server layer.
+public enum MediaPlaybackMethod: String, Codable, Sendable {
+    case directPlay
+    case directStream
+    case transcode
 }
 
 /// A server-provided stream that can be tried if the current stream fails.

@@ -61,9 +61,11 @@ public struct HistoryView: View {
                     }
                 }
             }
+            #if MIVU_PRO
             .navigationDestination(for: MediaItem.self) { item in
                 VideoDetailView(item: item)
             }
+            #endif
             .confirmationDialog("清空所有播放历史？", isPresented: $isConfirmingClear) {
                 Button("清空历史", role: .destructive) {
                     withAnimation { history.clear() }
@@ -97,8 +99,23 @@ public struct HistoryView: View {
     }
 
     private func historyRow(_ item: MediaItem) -> some View {
+        #if MIVU_PRO
         NavigationLink(value: item) {
-            HStack(spacing: 14) {
+            historyRowContent(item)
+        }
+        #else
+        Button {
+            playHistoryItem(item)
+        } label: {
+            historyRowContent(item)
+        }
+        .buttonStyle(.plain)
+        #endif
+    }
+
+    @ViewBuilder
+    private func historyRowContent(_ item: MediaItem) -> some View {
+        HStack(spacing: 14) {
                 // Video thumbnail or placeholder
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
@@ -180,8 +197,6 @@ public struct HistoryView: View {
             .background(Color(.secondarySystemBackground))
             .cornerRadius(12)
         }
-        .buttonStyle(.plain)
-    }
 
     private func fallbackIcon(for item: MediaItem) -> some View {
         Image(systemName: item.sourceType == .personalMedia ? "film" : "antenna.radiowaves.left.and.right")
@@ -202,6 +217,7 @@ public struct HistoryView: View {
     private func badgeText(for source: MediaSourceType) -> String {
         switch source {
         case .personalMedia: return "媒体库"
+        case .photoLibrary: return "相册视频"
         case .dlna: return "DLNA 投送"
         case .directUrl: return "网络流"
         case .testStream: return "测试源"
@@ -211,6 +227,7 @@ public struct HistoryView: View {
     private func badgeColor(for source: MediaSourceType) -> Color {
         switch source {
         case .personalMedia: return .orange
+        case .photoLibrary: return .pink
         case .dlna: return .cyan
         case .directUrl: return .purple
         case .testStream: return .blue
@@ -218,6 +235,11 @@ public struct HistoryView: View {
     }
 
     private func playHistoryItem(_ item: MediaItem) {
+        #if !MIVU_PRO
+        playerService.loadAndPlay(item: item)
+        playerService.isShowingPlayer = true
+        return
+        #else
         guard item.sourceType == .personalMedia,
               let serverID = item.serverID,
               let client = MediaServerManager.shared.getClient(for: serverID) else {
@@ -251,5 +273,6 @@ public struct HistoryView: View {
                 }
             }
         }
+        #endif
     }
 }
