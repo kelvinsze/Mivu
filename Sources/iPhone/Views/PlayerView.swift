@@ -814,6 +814,7 @@ public struct PlayerView: View {
                     .layoutPriority(1)
             }
         }
+        .buttonStyle(.plain)
         .padding(.horizontal, compact ? 14 : 20)
         .padding(.top, compact ? 8 : 16)
         .padding(.bottom, compact ? 10 : 24)
