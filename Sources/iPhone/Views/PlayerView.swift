@@ -1006,6 +1006,9 @@ public struct PlayerView: View {
                         .font(.system(size: playIconSize))
                         .foregroundColor(.white)
                         .padding(playPadding)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .shadow(color: .black.opacity(0.3), radius: compact ? 6 : 10)
                 }
 
                 // Paused state: Frame Step Forward
@@ -1047,6 +1050,7 @@ public struct PlayerView: View {
                     .disabled(!playerService.hasNextInPlaylist)
                 }
             }
+            .buttonStyle(.plain)
             }
         }
     }
