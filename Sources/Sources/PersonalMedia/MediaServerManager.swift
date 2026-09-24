@@ -279,6 +279,7 @@ public final class MediaServerManager: ObservableObject {
                 password: credential?.token
             )
         case .smb:
+            #if MIVU_PRO
             let normalizedURL = MediaServerType.smb.normalize(urlString: info.url.absoluteString) ?? info.url
             guard let client = try? SMBMediaClient(
                 id: info.id,
@@ -291,6 +292,9 @@ public final class MediaServerManager: ObservableObject {
                 return
             }
             activeClients[info.id] = client
+            #else
+            logger.error("SMB media server is unavailable in Mivu Lite")
+            #endif
         }
     }
 }

@@ -15,36 +15,52 @@ packages:
     url: https://github.com/kishikawakatsumi/SMBClient.git
     from: 0.1.0
 
-targets:
-  Mivu:
+targetTemplates:
+  AppBase:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
     sources:
       - path: Sources
+        excludes:
+          - "Info*.plist"
+          - "Sources/PersonalMedia/SMBMediaClient.swift"
+          - "Sources/PersonalMedia/MediaServerManager.swift"
+          - "Sources/PersonalMedia/MediaServerProtocol.swift"
+          - "Sources/PersonalMedia/EmbyClient.swift"
+          - "Sources/PersonalMedia/JellyfinClient.swift"
+          - "Sources/PersonalMedia/WebDAVClient.swift"
+          - "MediaCore/PlaybackCore/SMBAssetResourceLoader.swift"
+          - "MediaCore/PlaybackCore/SMBLocalHTTPProxy.swift"
+          - "MediaCore/AppAttestClient.swift"
+          - "MediaCore/UnifiedRatingsAPIClient.swift"
+          - "iPhone/Views/HomeView.swift"
+          - "iPhone/Views/MainTabView.swift"
+          - "iPhone/Views/ServersView.swift"
+          - "iPhone/Views/ServerDetailView.swift"
+          - "iPhone/Views/VideoDetailView.swift"
+          - "iPhone/Views/PersonDetailView.swift"
+          - "iPhone/Views/AddServiceMenuView.swift"
+          - "iPhone/Views/DeveloperLabView.swift"
     preBuildScripts:
       - name: Verify CarPlay Entitlements
         script: |
           "${PROJECT_DIR}/scripts/verify-carplay-entitlements.sh"
+        inputFiles:
+          - "$(PROJECT_DIR)/scripts/verify-carplay-entitlements.sh"
+          - "$(PROJECT_DIR)/$(CODE_SIGN_ENTITLEMENTS)"
         basedOnDependencyAnalysis: false
     dependencies:
       - framework: Frameworks/MPV/libmpv.xcframework
         embed: false
-      - package: SMBClient
     settings:
       base:
-        CODE_SIGN_ENTITLEMENTS: Mivu.entitlements
         CLANG_WARN_DOCUMENTATION_COMMENTS: NO
-        PRODUCT_BUNDLE_IDENTIFIER: com.kold.mivu
-        PRODUCT_NAME: Mivu
-        PRODUCT_MODULE_NAME: Mivu
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: 1
         TARGETED_DEVICE_FAMILY: "1,2"
         ENABLE_PREVIEWS: YES
         SWIFT_VERSION: "5.0"
-        INFOPLIST_FILE: Sources/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: VFB889K3T3
@@ -53,10 +69,6 @@ targets:
           - GLES_SILENCE_DEPRECATION=1
         FRAMEWORK_SEARCH_PATHS: "$(inherited) $(PROJECT_DIR)/Frameworks/MPV"
         "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64
-        OTHER_SWIFT_FLAGS:
-          - "$(inherited)"
-          - "-Xcc"
-          - "-DGLES_SILENCE_DEPRECATION=1"
         OTHER_LDFLAGS:
           - "$(inherited)"
           - "-framework"
@@ -85,6 +97,62 @@ targets:
           - "-liconv"
           - "-lc++"
 
+targets:
+  Mivu:
+    templates:
+      - AppBase
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Mivu.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.kold.mivu
+        PRODUCT_NAME: Mivu
+        PRODUCT_MODULE_NAME: Mivu
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: Sources/Info.plist
+        OTHER_SWIFT_FLAGS:
+          - "$(inherited)"
+          - "-Xcc"
+          - "-DGLES_SILENCE_DEPRECATION=1"
+          - "-DMIVU_LITE"
+
+  MivuPro:
+    templates:
+      - AppBase
+    sources:
+      - path: Sources/Sources/PersonalMedia/SMBMediaClient.swift
+      - path: Sources/Sources/PersonalMedia/MediaServerManager.swift
+      - path: Sources/Sources/PersonalMedia/MediaServerProtocol.swift
+      - path: Sources/Sources/PersonalMedia/EmbyClient.swift
+      - path: Sources/Sources/PersonalMedia/JellyfinClient.swift
+      - path: Sources/Sources/PersonalMedia/WebDAVClient.swift
+      - path: Sources/MediaCore/PlaybackCore/SMBAssetResourceLoader.swift
+      - path: Sources/MediaCore/PlaybackCore/SMBLocalHTTPProxy.swift
+      - path: Sources/MediaCore/AppAttestClient.swift
+      - path: Sources/MediaCore/UnifiedRatingsAPIClient.swift
+      - path: Sources/iPhone/Views/HomeView.swift
+      - path: Sources/iPhone/Views/MainTabView.swift
+      - path: Sources/iPhone/Views/ServersView.swift
+      - path: Sources/iPhone/Views/ServerDetailView.swift
+      - path: Sources/iPhone/Views/VideoDetailView.swift
+      - path: Sources/iPhone/Views/PersonDetailView.swift
+      - path: Sources/iPhone/Views/AddServiceMenuView.swift
+      - path: Sources/iPhone/Views/DeveloperLabView.swift
+    dependencies:
+      - package: SMBClient
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: MivuPro.entitlements
+        PRODUCT_BUNDLE_IDENTIFIER: com.kold.mivupro
+        PRODUCT_NAME: "Mivu Pro"
+        PRODUCT_MODULE_NAME: MivuPro
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIconPro
+        INFOPLIST_FILE: Sources/Info-Pro.plist
+        OTHER_SWIFT_FLAGS:
+          - "$(inherited)"
+          - "-Xcc"
+          - "-DGLES_SILENCE_DEPRECATION=1"
+          - "-DMIVU_PRO"
+
   MivuTests:
     type: bundle.unit-test
     platform: iOS
@@ -112,3 +180,8 @@ schemes:
     test:
       targets:
         - MivuTests
+
+  MivuPro:
+    build:
+      targets:
+        MivuPro: all

@@ -10,7 +10,11 @@ struct MivuApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if MIVU_LITE
+            MivuLiteTabView()
+            #else
             MainTabView()
+            #endif
         }
     }
 }
@@ -22,14 +26,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
-        logger.info("Mivu launching. Initializing DLNA HTTP Server and SSDP Discovery...")
-
-        // Start UPnP HTTP Server on port 7890
+        logger.info("Mivu launching. Starting the local web upload service.")
         HTTPServer.shared.start(port: 7890)
-        SMBLocalHTTPProxy.shared.start()
-
-        // Start SSDP Multicast discovery service on 239.255.255.250:1900
         SSDPService.shared.start()
+
+        #if MIVU_PRO
+        SMBLocalHTTPProxy.shared.start()
+        #endif
 
         return true
     }
@@ -71,6 +74,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         logger.info("Mivu terminating. Stopping services...")
         SSDPService.shared.stop()
         HTTPServer.shared.stop()
+        #if MIVU_PRO
         SMBLocalHTTPProxy.shared.stop()
+        #endif
     }
 }

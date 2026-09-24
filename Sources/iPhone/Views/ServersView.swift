@@ -325,8 +325,12 @@ struct AddServerView: View {
                     client = WebDAVClient(serverName: name, serverBaseURL: cleanURL, username: normalizedUsername)
                     userID = nil
                 case .smb:
+                    #if MIVU_PRO
                     client = try SMBMediaClient(serverName: name, serverBaseURL: cleanURL, username: normalizedUsername)
                     userID = nil
+                    #else
+                    throw NSError(domain: "MivuLite", code: 1, userInfo: [NSLocalizedDescriptionKey: "SMB media libraries are available in Mivu Pro"])
+                    #endif
                 }
 
                 let token = try await client.authenticate(username: normalizedUsername, password: inputPassword)
