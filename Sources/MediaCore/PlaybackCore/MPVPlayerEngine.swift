@@ -429,6 +429,7 @@ public final class MPVPlayerEngine: PlayerEngine {
             .map { "\($0.key): \($0.value)" }
             .joined(separator: "\n")
         let sourceURL: URL
+        #if MIVU_PRO
         if request.url.scheme?.lowercased() == "mivu-smb" {
             guard let proxyURL = SMBLocalHTTPProxy.shared.url(for: request.url) else {
                 fail("SMB local stream is unavailable")
@@ -438,6 +439,9 @@ public final class MPVPlayerEngine: PlayerEngine {
         } else {
             sourceURL = request.url
         }
+        #else
+        sourceURL = request.url
+        #endif
         let handle = MPVControlHandle(handle)
         controlQueue.async { [weak self] in
             let result = sourceURL.absoluteString.withCString { url in

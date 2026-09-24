@@ -14,11 +14,13 @@ public enum PlaybackRouter {
     private static let mpvContainers: Set<String> = ["mkv", "webm", "avi", "flv", "ts", "m2ts", "ogv"]
 
     public static func route(for request: PlaybackRequest, mpvAvailable: Bool) -> PlaybackRoute {
+        #if MIVU_PRO
         if request.url.scheme?.lowercased() == "mivu-smb" {
             guard mpvAvailable, SMBLocalHTTPProxy.shared.url(for: request.url) != nil else {
                 return .native
             }
         }
+        #endif
         guard mpvAvailable else {
             return .native
         }

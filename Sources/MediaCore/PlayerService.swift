@@ -63,7 +63,6 @@ public final class PlayerService: ObservableObject {
         return UIApplication.shared.connectedScenes.contains { scene in
             scene.session.role == .carTemplateApplication
                 || scene.session.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication"
-                || scene.session.role.rawValue == "UIWindowSceneSessionRoleCarPlay"
         }
     }
 
@@ -78,7 +77,7 @@ public final class PlayerService: ObservableObject {
     private var telemetryTask: Task<Void, Never>?
 
     private let nativeEngine: AVPlayerEngine
-    private let mpvEngine: MPVPlayerEngine?
+    private var mpvEngine: MPVPlayerEngine?
     private var engine: PlayerEngine
     private var engineTask: Task<Void, Never>?
     private var engineGeneration = 0
@@ -90,7 +89,14 @@ public final class PlayerService: ObservableObject {
     private var lastTraceSnapshotAt: TimeInterval = 0
     private var pendingSeekOrigin: (target: TimeInterval, origin: String)?
     private var firstSOAPSeekPending = false
+    private var castLoadStartedAt: Date?
     private var castPlaybackStartedAt: Date?
+    private var castFirstFrameAt: Date?
+    private var castBufferWaitStartedAt: Date?
+    private var castTotalBufferWait: TimeInterval = 0
+    private var castBufferWaitCount = 0
+    private var lastCastMetricSampleAt = Date.distantPast
+    private var suppressLockedScreenCastPause = false
     private var mpvFallbackAttempted = false
     private var transcodeFallbackAttempted = false
     private var mpvInitialLoadRetryAttempted = false
@@ -110,6 +116,17 @@ public final class PlayerService: ObservableObject {
         let savedSubPos = UserDefaults.standard.integer(forKey: Self.subtitleVerticalOffsetKey)
         self.subtitleVerticalOffset = (savedSubPos >= 50 && savedSubPos <= 100) ? savedSubPos : 100
 
+        #if MIVU_LITE
+        // Keep the casting-only build unconstrained for new installs while
+        // preserving any setting carried over from an existing installation.
+        if UserDefaults.standard.object(forKey: Self.playbackRateLimitMbpsKey) == nil {
+            UserDefaults.standard.set(0, forKey: Self.playbackRateLimitMbpsKey)
+        }
+        if UserDefaults.standard.object(forKey: Self.playbackCacheLimitMBKey) == nil {
+            UserDefaults.standard.set(128, forKey: Self.playbackCacheLimitMBKey)
+        }
+        #endif
+
         let savedRateLimit = UserDefaults.standard.integer(forKey: Self.playbackRateLimitMbpsKey)
         self.playbackRateLimitMbps = [0, 5, 10, 20, 50].contains(savedRateLimit) ? savedRateLimit : 0
         let savedCacheLimit = UserDefaults.standard.integer(forKey: Self.playbackCacheLimitMBKey)
@@ -124,9 +141,8 @@ public final class PlayerService: ObservableObject {
         self.volumeBoost = savedVolBoost >= 1.0 && savedVolBoost <= 2.0 ? savedVolBoost : 1.0
 
         let avEngine = AVPlayerEngine()
-        let candidateMPV = MPVPlayerEngine()
         self.nativeEngine = avEngine
-        self.mpvEngine = candidateMPV.isOperational ? candidateMPV : nil
+        self.mpvEngine = nil
         self.engine = avEngine
         self.player = avEngine.player
         applyEnginePreferences(to: self.engine)
@@ -208,13 +224,14 @@ public final class PlayerService: ObservableObject {
         recordHistory: Bool = true,
         requiresNativePlayback: Bool = false
     ) {
+        finishCastDiagnosticSummary(reason: "replaced")
         setupAudioSession()
         if origin != "playbackFallback" {
             mpvFallbackAttempted = false
             transcodeFallbackAttempted = false
         }
         mpvInitialLoadRetryAttempted = false
-        self.requiresNativePlayback = requiresNativePlayback
+        self.requiresNativePlayback = requiresNativePlayback || isCarPlayConnected
         subtitleTracks = item.subtitleTracks ?? []
         let subtitleKey = subtitlePreferenceKey(for: item)
         let savedSubtitleID = UserDefaults.standard.string(forKey: subtitleKey)
@@ -229,10 +246,17 @@ public final class PlayerService: ObservableObject {
         }
         if item.sourceType == .dlna {
             castTraceGeneration += 1
+            castLoadStartedAt = Date()
+            castFirstFrameAt = nil
+            castPlaybackStartedAt = nil
+            castBufferWaitStartedAt = nil
+            castTotalBufferWait = 0
+            castBufferWaitCount = 0
+            lastCastMetricSampleAt = .distantPast
+            SSDPService.shared.recordCastDebug("ROUTE engine=\(engineName) g=\(castTraceGeneration)")
             SSDPService.shared.recordCastDebug("LOAD g=\(castTraceGeneration) origin=\(origin) sameURL=\(session.currentItem?.url == item.url) previous=\(traceTime(player.currentTime().seconds)) host=\(item.url.host ?? "local")")
         }
         firstSOAPSeekPending = item.sourceType == .dlna
-        castPlaybackStartedAt = nil
         lastTracePlayerTime = nil
         lastTraceSnapshotAt = 0
         logger.info("Loading media item: \(item.title) (\(item.url.absoluteString))")
@@ -263,6 +287,11 @@ public final class PlayerService: ObservableObject {
         session.duration = item.duration ?? 0
         session.bufferedTime = 0
         session.errorMessage = nil
+        if isCarPlayConnected {
+            // The phone becomes the control surface while the CarPlay scene
+            // owns video presentation.
+            isShowingPlayer = true
+        }
         NetworkSpeedMonitor.reset()
         startTelemetryLoop()
 
@@ -314,8 +343,23 @@ public final class PlayerService: ObservableObject {
         reportPlaybackProgress(force: true, isPaused: true, isStopped: false)
     }
 
+    /// Some cast senders emit a DLNA Pause as the phone locks, even though the
+    /// receiver remains visible on CarPlay. Keep that one lock-triggered command
+    /// from interrupting the external playback; normal foreground Pause commands
+    /// still take effect.
+    public func pauseFromCastController() {
+        guard suppressLockedScreenCastPause else {
+            pause()
+            return
+        }
+        suppressLockedScreenCastPause = false
+        traceCast("PAUSE_IGNORED phone_locked")
+        SSDPService.shared.recordCastDebug("SOAP Pause ignored because phone lock preserved active CarPlay cast")
+    }
+
     public func stop() {
         traceCast("STOP / REMOVE_ITEM")
+        finishCastDiagnosticSummary(reason: "stopped")
         updateHistoryProgress(force: true)
         firstSOAPSeekPending = false
         castPlaybackStartedAt = nil
@@ -658,11 +702,12 @@ public final class PlayerService: ObservableObject {
     }
 
     private func selectEngine(for item: MediaItem, requiresNativePlayback: Bool = false) {
+        let requestedMPVEngine = requiresNativePlayback ? nil : makeMPVIfNeeded(for: item.playbackRequest)
         let route: PlaybackRoute = requiresNativePlayback
             ? .native
             : PlaybackRouter.route(
                 for: item.playbackRequest,
-                mpvAvailable: mpvEngine?.isOperational == true
+                mpvAvailable: requestedMPVEngine?.isOperational == true
             )
         let selected: PlayerEngine
         switch route {
@@ -706,6 +751,7 @@ public final class PlayerService: ObservableObject {
                     lastTraceSnapshotAt = now
                     traceCast("TICK sampled=\(traceTime(current))")
                 }
+                recordCastMetricSample(snapshot: snapshot)
             }
 
             let previousStatus = session.status
@@ -750,6 +796,7 @@ public final class PlayerService: ObservableObject {
 
         case .ended:
             traceCast("DID_END currentItem=\(player.currentItem != nil)")
+            finishCastDiagnosticSummary(reason: "ended")
             logger.info("Reached end of media playback.")
             session.status = .stopped
             reportPlaybackProgress(force: true, isPaused: true, isStopped: true)
@@ -772,10 +819,15 @@ public final class PlayerService: ObservableObject {
                     }
                 }
             case .timeControl(let rawValue, let waitingReason):
+                let waiting = rawValue == AVPlayer.TimeControlStatus.waitingToPlayAtSpecifiedRate.rawValue
+                updateCastBufferWait(waiting: waiting)
                 if rawValue == AVPlayer.TimeControlStatus.playing.rawValue,
                    session.currentItem?.sourceType == .dlna,
                    castPlaybackStartedAt == nil {
                     castPlaybackStartedAt = Date()
+                    if let started = castLoadStartedAt {
+                        traceCast("CAST_START elapsed=\(traceTime(Date().timeIntervalSince(started)))")
+                    }
                 }
                 traceCast("TIME_CONTROL=\(rawValue) waiting=\(waitingReason ?? "none")")
                 SSDPService.shared.recordPlaybackDebug("TIME_CONTROL engine=\(engineName) raw=\(rawValue) waiting=\(waitingReason ?? "none")")
@@ -796,17 +848,41 @@ public final class PlayerService: ObservableObject {
                 traceCast("FAILED_TO_END domain=\(domain) code=\(code)")
                 session.status = .failed
                 session.errorMessage = message
+                finishCastDiagnosticSummary(reason: "failed_to_end")
                 logger.error("Player item failed to play to end: \(message)")
             case .renderFailure(let message):
                 guard engine is MPVPlayerEngine else { return }
                 traceCast("RENDER_FAILURE message=\(message)")
                 session.status = .failed
                 session.errorMessage = message
+                finishCastDiagnosticSummary(reason: "render_failed")
                 logger.error("MPV render failed: \(message)")
             case .presentationSize(let width, let height):
+                if width > 0, height > 0, castFirstFrameAt == nil,
+                   session.currentItem?.sourceType == .dlna {
+                    castFirstFrameAt = Date()
+                    if let started = castLoadStartedAt {
+                        traceCast("CAST_FIRST_FRAME elapsed=\(traceTime(castFirstFrameAt!.timeIntervalSince(started))) size=\(Int(width))x\(Int(height))")
+                    }
+                }
                 SSDPService.shared.recordPlaybackDebug("VIDEO_PRESENTATION engine=\(engineName) width=\(Int(width)) height=\(Int(height))")
             }
         }
+    }
+
+    /// MPV is retained as a compatibility fallback, but its native handle and
+    /// renderer are expensive enough that they should not be created for the
+    /// normal AVPlayer route.
+    private func makeMPVIfNeeded(for request: PlaybackRequest) -> MPVPlayerEngine? {
+        guard PlaybackRouter.route(for: request, mpvAvailable: true) == .mpv else {
+            return nil
+        }
+        if let mpvEngine { return mpvEngine.isOperational ? mpvEngine : nil }
+
+        let candidate = MPVPlayerEngine()
+        guard candidate.isOperational else { return nil }
+        mpvEngine = candidate
+        return candidate
     }
 
     private func handlePlaybackFailure() {
@@ -822,24 +898,29 @@ public final class PlayerService: ObservableObject {
             let nativeUnsupported: Set<String> = ["webm", "mkv", "avi", "flv", "ogv"]
             if nativeUnsupported.contains(container) {
                 SSDPService.shared.recordPlaybackDebug("FALLBACK skipped_native_unsupported container=\(container) engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+                finishCastDiagnosticSummary(reason: "failed")
             } else {
                 fallbackToNativeAfterMPVFailure()
             }
             return
         }
+        #if MIVU_PRO
         if engine is AVPlayerEngine,
            !mpvFallbackAttempted,
            !hasServerAlternative,
            session.currentItem?.url.scheme?.lowercased() == "mivu-smb",
-           mpvEngine?.isOperational == true,
            let item = session.currentItem,
            SMBLocalHTTPProxy.shared.url(for: item.url) != nil {
-            fallbackToMPVAfterNativeSMBFailure()
-            return
+            if makeMPVIfNeeded(for: item.playbackRequest) != nil {
+                fallbackToMPVAfterNativeSMBFailure()
+                return
+            }
         }
+        #endif
 
         guard hasServerAlternative else {
             SSDPService.shared.recordPlaybackDebug("FALLBACK exhausted engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+            finishCastDiagnosticSummary(reason: "failed")
             return
         }
 
@@ -850,6 +931,7 @@ public final class PlayerService: ObservableObject {
             logger.error("Playback failed with non-decoding error (\(failureReason.categoryName)); skipping candidate fallback.")
             SSDPService.shared.recordPlaybackDebug("FALLBACK blocked_by_classification reason=\(failureReason.categoryName) engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
             session.errorMessage = failureReason.userFacingMessage
+            finishCastDiagnosticSummary(reason: "failed")
             return
         }
 
@@ -858,6 +940,7 @@ public final class PlayerService: ObservableObject {
             logger.error("Transcode fallback already attempted; exhausting candidate fallback to avoid loop.")
             SSDPService.shared.recordPlaybackDebug("FALLBACK circuit_breaker_triggered engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
             session.errorMessage = "媒体解码失败，已尝试转码仍无法播放"
+            finishCastDiagnosticSummary(reason: "failed")
             return
         }
 
@@ -866,6 +949,7 @@ public final class PlayerService: ObservableObject {
         guard var nextItem = session.currentItem,
               nextItem.advanceToNextPlaybackAlternative() else {
             SSDPService.shared.recordPlaybackDebug("FALLBACK exhausted engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
+            finishCastDiagnosticSummary(reason: "failed")
             return
         }
 
@@ -921,8 +1005,8 @@ public final class PlayerService: ObservableObject {
     private func fallbackToMPVAfterNativeSMBFailure() {
         guard !mpvFallbackAttempted,
               engine is AVPlayerEngine,
-              let mpvEngine,
-              let item = session.currentItem else { return }
+              let item = session.currentItem,
+              let mpvEngine = makeMPVIfNeeded(for: item.playbackRequest) else { return }
         mpvFallbackAttempted = true
         let request = item.playbackRequest
         let fallbackPosition = max(session.currentTime, request.startPosition)
@@ -953,6 +1037,20 @@ public final class PlayerService: ObservableObject {
     }
 
     private func setupNotifications() {
+        NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.suppressLockedScreenCastPause = self.isCarPlayActive
+                        && self.session.currentItem?.sourceType == .dlna
+                        && self.session.status == .playing
+                    if self.suppressLockedScreenCastPause {
+                        self.traceCast("LOCK_GUARD armed")
+                    }
+                }
+            }
+            .store(in: &cancellables)
+
         NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in
@@ -965,6 +1063,7 @@ public final class PlayerService: ObservableObject {
             .sink { [weak self] _ in
                 Task { @MainActor [weak self] in
                     self?.recordLifecycleDiagnostic("foreground")
+                    self?.suppressLockedScreenCastPause = false
                 }
             }
             .store(in: &cancellables)
@@ -999,6 +1098,9 @@ public final class PlayerService: ObservableObject {
     }
 
     private func reportPlaybackProgress(force: Bool, isPaused: Bool, isStopped: Bool) {
+        #if !MIVU_PRO
+        return
+        #else
         guard let item = session.currentItem,
               let itemId = item.serverItemID,
               let serverID = item.serverID else { return }
@@ -1020,6 +1122,7 @@ public final class PlayerService: ObservableObject {
                 logger.debug("Playback progress report failed: \(error.localizedDescription)")
             }
         }
+        #endif
     }
 
     private func retryInitialMPVLoadIfEligible() -> Bool {
@@ -1069,6 +1172,58 @@ public final class PlayerService: ObservableObject {
         SSDPService.shared.recordCastDebug("\(event) g=\(castTraceGeneration) player=\(traceTime(player.currentTime().seconds)) reported=\(traceTime(session.currentTime)) duration=\(traceTime(session.duration)) state=\(session.status.rawValue) rate=\(player.rate)")
     }
 
+    private func updateCastBufferWait(waiting: Bool) {
+        guard session.currentItem?.sourceType == .dlna else { return }
+        if waiting {
+            guard castBufferWaitStartedAt == nil else { return }
+            castBufferWaitStartedAt = Date()
+            castBufferWaitCount += 1
+            traceCast("BUFFER_WAIT_BEGIN count=\(castBufferWaitCount)")
+        } else if let started = castBufferWaitStartedAt {
+            let duration = Date().timeIntervalSince(started)
+            castTotalBufferWait += max(0, duration)
+            castBufferWaitStartedAt = nil
+            traceCast("BUFFER_WAIT_END duration=\(traceTime(duration)) total=\(traceTime(castTotalBufferWait))")
+        }
+    }
+
+    private func recordCastMetricSample(snapshot: PlaybackEngineSnapshot) {
+        guard session.currentItem?.sourceType == .dlna,
+              castLoadStartedAt != nil else { return }
+        let now = Date()
+        guard now.timeIntervalSince(lastCastMetricSampleAt) >= 2 else { return }
+        lastCastMetricSampleAt = now
+        let bufferSeconds = max(0, snapshot.bufferedTime - snapshot.currentTime)
+        // DLNA can continue playing while the player cover is dismissed, so
+        // sample the effective rate here instead of relying on the visible HUD
+        // telemetry (which is intentionally paused in the background).
+        var sampledSpeed = NetworkSpeedMonitor.currentDownloadSpeed()
+        if sampledSpeed <= 0, let event = player.currentItem?.accessLog()?.events.last,
+           event.observedBitrate > 0 {
+            sampledSpeed = event.observedBitrate / 8.0
+        }
+        let bitrateBPS = max(0, Int(sampledSpeed * 8))
+        SSDPService.shared.recordCastDebug(
+            "METRIC bitrate_bps=\(bitrateBPS) buffer_s=\(traceTime(bufferSeconds)) engine=\(engineName)"
+        )
+    }
+
+    private func finishCastDiagnosticSummary(reason: String) {
+        guard let started = castLoadStartedAt,
+              session.currentItem?.sourceType == .dlna else { return }
+        updateCastBufferWait(waiting: false)
+        let now = Date()
+        let startElapsed = now.timeIntervalSince(started)
+        let firstFrameElapsed = castFirstFrameAt.map { $0.timeIntervalSince(started) }
+        let firstFrameText = firstFrameElapsed.map(traceTime) ?? "unknown"
+        SSDPService.shared.recordCastDebug(
+            "SUMMARY reason=\(reason) start_s=\(traceTime(startElapsed)) first_frame_s=\(firstFrameText) waits=\(castBufferWaitCount) wait_total_s=\(traceTime(castTotalBufferWait)) engine=\(engineName)"
+        )
+        castLoadStartedAt = nil
+        castFirstFrameAt = nil
+        castBufferWaitStartedAt = nil
+    }
+
     // MARK: - Telemetry & Network Monitoring
 
     private func startTelemetryLoop() {
@@ -1076,7 +1231,8 @@ public final class PlayerService: ObservableObject {
         telemetryTask = Task { [weak self] in
             while !Task.isCancelled {
                 do {
-                    try await Task.sleep(nanoseconds: 400_000_000)
+                    let interval: UInt64 = self?.isShowingPlayer == true ? 1_000_000_000 : 2_000_000_000
+                    try await Task.sleep(nanoseconds: interval)
                 } catch {
                     break
                 }
@@ -1100,53 +1256,22 @@ public final class PlayerService: ObservableObject {
             return
         }
 
-        // 1. Hardware network download throughput with AVPlayer accessLog fallback
-        var speed = NetworkSpeedMonitor.currentDownloadSpeed()
-        if speed <= 0, let event = player.currentItem?.accessLog()?.events.last {
-            if event.observedBitrate > 0 {
-                speed = event.observedBitrate / 8.0
+        // Download throughput and loaded ranges are expensive and only feed the
+        // visible player HUD. Native/MPV snapshots continue to update playback
+        // state and buffer position for background DLNA control.
+        if isShowingPlayer {
+            var speed = NetworkSpeedMonitor.currentDownloadSpeed()
+            if speed <= 0, let event = player.currentItem?.accessLog()?.events.last {
+                if event.observedBitrate > 0 {
+                    speed = event.observedBitrate / 8.0
+                }
             }
-        }
-        downloadSpeed = speed
+            downloadSpeed = speed
 
-        // 2. Direct buffer check for AVPlayer if in AVPlayerEngine mode
-        if let currentItem = player.currentItem {
-            let currentTime = player.currentTime().seconds
-            let loadedTimeRanges = currentItem.loadedTimeRanges
-            var maxBuffered: TimeInterval = 0
-            for value in loadedTimeRanges {
-                let range = value.timeRangeValue
-                let start = range.start.seconds
-                let end = (range.start + range.duration).seconds
-                if start.isFinite && end.isFinite && !start.isNaN && !end.isNaN {
-                    if start <= (currentTime.isFinite ? currentTime + 1.5 : 1.5) && end >= (currentTime.isFinite ? currentTime : 0) {
-                        maxBuffered = max(maxBuffered, end)
-                    } else if start <= 1.0 {
-                        maxBuffered = max(maxBuffered, end)
-                    }
-                }
-            }
-            if maxBuffered == 0 {
-                for value in loadedTimeRanges {
-                    let range = value.timeRangeValue
-                    let start = range.start.seconds
-                    let duration = range.duration.seconds
-                    if start.isFinite && duration.isFinite && !start.isNaN && !duration.isNaN {
-                        maxBuffered = max(maxBuffered, start + duration)
-                    }
-                }
-            }
-            if maxBuffered > 0 && maxBuffered > session.bufferedTime {
-                session.bufferedTime = maxBuffered
-            }
-
-            // 3. Duration recovery if session duration is still 0
-            if session.duration == 0 {
-                let dur = currentItem.duration.seconds
-                if dur.isFinite && !dur.isNaN && dur > 0 {
-                    session.duration = dur
-                }
-            }
+            // AVPlayerEngine already publishes loadedTimeRanges through its
+            // snapshot observer; avoid a second range walk here.
+        } else if downloadSpeed != 0 {
+            downloadSpeed = 0
         }
 
         // 4. AB Repeat check

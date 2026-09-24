@@ -868,6 +868,18 @@ public struct PlayerView: View {
             }
             .layoutPriority(1)
 
+            Button {
+                showPlaybackSettingsSheet = true
+                scheduleHideControls()
+            } label: {
+                Image(systemName: "speaker.wave.3.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(playerService.volumeBoost > 1.0 ? .orange : .white.opacity(0.9))
+                    .padding(6)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+
             // CarPlay 投屏或车载界面下隐藏字幕按钮，避免占用宝贵显示宽度
             if !playerService.isCarPlayActive {
                 Menu {

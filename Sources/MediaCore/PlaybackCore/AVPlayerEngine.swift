@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import MediaToolbox
 
 /// Native AVPlayer adapter used during the migration to PlaybackCore.
 ///
@@ -23,9 +24,13 @@ public final class AVPlayerEngine: PlayerEngine {
     private var playerTimeControlObserver: NSKeyValueObservation?
     private var notificationTokens: [NSObjectProtocol] = []
     private var pendingSubtitleTrack: SubtitleTrack?
+    #if MIVU_PRO
     private var smbResourceLoader: SMBAssetResourceLoader?
+    #endif
     private var maximumBitrate: Double?
     private var cacheLimitBytes: Int64 = 128 * 1024 * 1024
+    private var volumeBoost: Float = 1.0
+    private var audioMixGeneration = 0
 
     public init(player: AVPlayer = AVPlayer()) {
         var continuation: AsyncStream<PlaybackEngineEvent>.Continuation?
@@ -56,6 +61,7 @@ public final class AVPlayerEngine: PlayerEngine {
         invalidateCurrentItemObservers()
 
         let asset: AVURLAsset
+        #if MIVU_PRO
         if let resourceLoader = SMBAssetResourceLoader(url: request.url) {
             smbResourceLoader = resourceLoader
             asset = resourceLoader.makeAsset()
@@ -66,9 +72,15 @@ public final class AVPlayerEngine: PlayerEngine {
             smbResourceLoader = nil
             asset = AVURLAsset(url: request.url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers])
         }
+        #else
+        asset = request.headers.isEmpty
+            ? AVURLAsset(url: request.url)
+            : AVURLAsset(url: request.url, options: ["AVURLAssetHTTPHeaderFieldsKey": request.headers])
+        #endif
 
         let playerItem = AVPlayerItem(asset: asset)
         applyResourceLimits(to: playerItem)
+        applyVolumeBoost(to: playerItem)
         playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
         installItemObservers(for: playerItem)
 
@@ -112,7 +124,9 @@ public final class AVPlayerEngine: PlayerEngine {
     public func stop() {
         player.pause()
         player.replaceCurrentItem(with: nil)
+        #if MIVU_PRO
         smbResourceLoader = nil
+        #endif
         invalidateCurrentItemObservers()
         updateSnapshot {
             $0.status = .stopped
@@ -160,6 +174,13 @@ public final class AVPlayerEngine: PlayerEngine {
     public func setMuted(_ isMuted: Bool) {
         player.isMuted = isMuted
         updateSnapshot { $0.isMuted = isMuted }
+    }
+
+    public func setVolumeBoost(_ boost: Float) {
+        volumeBoost = max(1.0, min(2.0, boost))
+        if let item = player.currentItem {
+            applyVolumeBoost(to: item)
+        }
     }
 
     public func setSubtitleTrack(_ track: SubtitleTrack?) {
@@ -212,6 +233,43 @@ public final class AVPlayerEngine: PlayerEngine {
         let referenceBitrate = maximumBitrate ?? 10_000_000
         let seconds = Double(cacheLimitBytes) * 8 / referenceBitrate
         item.preferredForwardBufferDuration = min(max(seconds, 5), 180)
+    }
+
+    /// `AVPlayer.volume` is capped at 1.0. Apply a per-item audio tap so the
+    /// same user-facing boost setting also works on AirPlay and CarPlay, which
+    /// intentionally use the native player.
+    private func applyVolumeBoost(to item: AVPlayerItem) {
+        audioMixGeneration &+= 1
+        let generation = audioMixGeneration
+        guard volumeBoost > 1.0 else {
+            item.audioMix = nil
+            return
+        }
+        let gain = volumeBoost
+        let asset = item.asset
+
+        Task { @MainActor [weak self, weak item] in
+            guard let self,
+                  let item,
+                  self.player.currentItem === item,
+                  self.audioMixGeneration == generation,
+                  self.volumeBoost == gain,
+                  let audioTracks = try? await asset.loadTracks(withMediaType: .audio),
+                  self.player.currentItem === item,
+                  self.audioMixGeneration == generation else { return }
+
+            let parameters = audioTracks.compactMap { track -> AVMutableAudioMixInputParameters? in
+                guard let tap = VolumeBoostAudioTap.make(gain: gain) else { return nil }
+                let parameters = AVMutableAudioMixInputParameters(track: track)
+                parameters.audioTapProcessor = tap
+                return parameters
+            }
+            guard !parameters.isEmpty else { return }
+
+            let mix = AVMutableAudioMix()
+            mix.inputParameters = parameters
+            item.audioMix = mix
+        }
     }
 
     private func applySubtitleTrack(_ track: SubtitleTrack?, to item: AVPlayerItem, in group: AVMediaSelectionGroup) {
@@ -490,5 +548,110 @@ public final class AVPlayerEngine: PlayerEngine {
         }
         guard maxBuffered > 0 else { return }
         updateSnapshot { $0.bufferedTime = maxBuffered }
+    }
+}
+
+/// A small, in-place gain processor for AVPlayer's decoded PCM stream. The
+/// soft limiter raises quiet audio without clipping full-scale samples.
+private enum VolumeBoostAudioTap {
+    private struct State {
+        let gain: Float
+        var format = AudioStreamBasicDescription()
+    }
+
+    static func make(gain: Float) -> MTAudioProcessingTap? {
+        let state = UnsafeMutablePointer<State>.allocate(capacity: 1)
+        state.initialize(to: State(gain: gain))
+
+        var callbacks = MTAudioProcessingTapCallbacks(
+            version: kMTAudioProcessingTapCallbacksVersion_0,
+            clientInfo: UnsafeMutableRawPointer(state),
+            init: initialize,
+            finalize: finalize,
+            prepare: prepare,
+            unprepare: nil,
+            process: process
+        )
+        var tap: MTAudioProcessingTap?
+        let status = MTAudioProcessingTapCreate(
+            kCFAllocatorDefault,
+            &callbacks,
+            kMTAudioProcessingTapCreationFlag_PostEffects,
+            &tap
+        )
+        guard status == noErr else {
+            state.deinitialize(count: 1)
+            state.deallocate()
+            return nil
+        }
+        return tap
+    }
+
+    private static let initialize: MTAudioProcessingTapInitCallback = { _, clientInfo, storageOut in
+        storageOut.pointee = clientInfo
+    }
+
+    private static let finalize: MTAudioProcessingTapFinalizeCallback = { tap in
+        let storage = MTAudioProcessingTapGetStorage(tap)
+        let state = storage.assumingMemoryBound(to: State.self)
+        state.deinitialize(count: 1)
+        state.deallocate()
+    }
+
+    private static let prepare: MTAudioProcessingTapPrepareCallback = { tap, _, format in
+        let storage = MTAudioProcessingTapGetStorage(tap)
+        storage.assumingMemoryBound(to: State.self).pointee.format = format.pointee
+    }
+
+    private static let process: MTAudioProcessingTapProcessCallback = { tap, numberFrames, _, bufferList, numberFramesOut, flagsOut in
+        var sourceFlags: MTAudioProcessingTapFlags = 0
+        var sourceFrames: CMItemCount = 0
+        let status = MTAudioProcessingTapGetSourceAudio(
+            tap,
+            numberFrames,
+            bufferList,
+            &sourceFlags,
+            nil,
+            &sourceFrames
+        )
+        numberFramesOut.pointee = sourceFrames
+        flagsOut.pointee = sourceFlags
+
+        guard status == noErr else { return }
+        let storage = MTAudioProcessingTapGetStorage(tap)
+        let state = storage.assumingMemoryBound(to: State.self).pointee
+        guard state.format.mFormatID == kAudioFormatLinearPCM else { return }
+
+        let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
+        for buffer in buffers {
+            guard let data = buffer.mData else { continue }
+            if state.format.mFormatFlags & kAudioFormatFlagIsFloat != 0 {
+                let samples = data.assumingMemoryBound(to: Float.self)
+                let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.stride
+                for index in 0..<count {
+                    samples[index] = limit(samples[index], gain: state.gain)
+                }
+            } else if state.format.mFormatFlags & kAudioFormatFlagIsSignedInteger != 0,
+                      state.format.mBitsPerChannel == 16 {
+                let samples = data.assumingMemoryBound(to: Int16.self)
+                let count = Int(buffer.mDataByteSize) / MemoryLayout<Int16>.stride
+                for index in 0..<count {
+                    let normalized = Float(samples[index]) / Float(Int16.max)
+                    samples[index] = Int16((limit(normalized, gain: state.gain) * Float(Int16.max)).rounded())
+                }
+            } else if state.format.mFormatFlags & kAudioFormatFlagIsSignedInteger != 0,
+                      state.format.mBitsPerChannel == 32 {
+                let samples = data.assumingMemoryBound(to: Int32.self)
+                let count = Int(buffer.mDataByteSize) / MemoryLayout<Int32>.stride
+                for index in 0..<count {
+                    let normalized = Float(samples[index]) / Float(Int32.max)
+                    samples[index] = Int32((limit(normalized, gain: state.gain) * Float(Int32.max)).rounded())
+                }
+            }
+        }
+    }
+
+    private static func limit(_ sample: Float, gain: Float) -> Float {
+        sample * gain / (1 + (gain - 1) * abs(sample))
     }
 }
