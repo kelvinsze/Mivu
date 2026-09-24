@@ -35,6 +35,7 @@ public struct SettingsView: View {
                             }
                     }
 
+                    #if MIVU_PRO
                     HStack {
                         Label("投送服务端口", systemImage: "network")
                             .foregroundColor(.secondary)
@@ -43,6 +44,7 @@ public struct SettingsView: View {
                             .font(.subheadline.monospaced())
                             .foregroundColor(.secondary)
                     }
+                    #endif
                 }
 
                 Section {
@@ -61,6 +63,7 @@ public struct SettingsView: View {
 
                 // MARK: - Playback & Audio Preferences
                 Section {
+                    #if MIVU_PRO
                     Picker("恢复播放自动回退", selection: Binding(
                         get: { playerService.rewindOnResumeSeconds },
                         set: { playerService.setRewindOnResumeSeconds($0) }
@@ -93,6 +96,7 @@ public struct SettingsView: View {
                         Text("120 秒").tag(120)
                         Text("180 秒").tag(180)
                     }
+                    #endif
 
                     Toggle("默认开启人声增强", isOn: Binding(
                         get: { playerService.isVoiceBoostEnabled },
@@ -102,11 +106,17 @@ public struct SettingsView: View {
                 } header: {
                     Text("播放偏好与增强")
                 } footer: {
+                    #if MIVU_PRO
                     Text("设置回退秒数以便暂停恢复时温习前情；开启片头片尾智能跳过，将在连播时更省心；人声增强可动态平衡对白响度。")
                         .font(.caption2)
+                    #else
+                    Text("人声增强可动态平衡对白响度。")
+                        .font(.caption2)
+                    #endif
                 }
 
                 // MARK: - Subtitles & Playback
+                #if MIVU_PRO
                 Section {
                     Picker("字幕默认大小", selection: Binding(
                         get: { playerService.subtitleUserScale },
@@ -131,6 +141,7 @@ public struct SettingsView: View {
                     Text("开启后，在手机竖屏播放视频时会自动微调字幕比例，避免在小窗口下遮挡画面；在播放器中点击字幕按钮也可实时微调。")
                         .font(.caption2)
                 }
+                #endif
 
                 Section {
                     Picker("网络限速", selection: Binding(
@@ -241,11 +252,8 @@ public struct SettingsView: View {
     }
 }
 
-/// Local files received through Mivu's Wi-Fi web page.
+/// Wi-Fi upload instructions, intentionally separate from the local library.
 public struct WiFiUploadLibraryView: View {
-    @ObservedObject private var playerService = PlayerService.shared
-    @State private var videos: [URL] = []
-
     public init() {}
 
     private var webAddress: String {
@@ -264,56 +272,87 @@ public struct WiFiUploadLibraryView: View {
                     .foregroundColor(.secondary)
             }
 
-            Section("已上传视频") {
-                if videos.isEmpty {
-                    ContentUnavailableView(
-                        "还没有上传的视频",
-                        systemImage: "film.stack",
-                        description: Text("在浏览器打开上方地址，选择视频后即可上传。")
-                    )
-                } else {
-                    ForEach(videos, id: \.self) { url in
-                        Button {
-                            playerService.loadAndPlay(item: UploadedVideoStore.mediaItem(for: url), origin: "WiFiUploadLibrary")
-                            playerService.isShowingPlayer = true
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "play.rectangle.fill")
-                                    .font(.title3)
-                                    .foregroundColor(MivuEdition.utilityTint)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(url.deletingPathExtension().lastPathComponent)
-                                        .foregroundColor(.primary)
-                                        .lineLimit(1)
-                                    Text(fileSizeText(for: url))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "play.fill")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .buttonStyle(.plain)
+            NavigationLink {
+                LocalVideoLibraryView()
+            } label: {
+                Label("查看本地视频", systemImage: "film.stack.fill")
+            }
+
+            Text("上传完成后，视频会出现在本地视频列表中。")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+        }
+        .navigationTitle("Wi-Fi 上传")
+    }
+}
+
+/// Full local video list, separate from the Wi-Fi upload instructions.
+public struct LocalVideoLibraryView: View {
+    @ObservedObject private var playerService = PlayerService.shared
+    @State private var videos: [URL] = []
+
+    public init() {}
+
+    public var body: some View {
+        List {
+            if videos.isEmpty {
+                ContentUnavailableView(
+                    "还没有本地视频",
+                    systemImage: "film.stack",
+                    description: Text("通过 Wi-Fi 上传的视频会出现在这里。")
+                )
+            } else {
+                ForEach(videos, id: \.self) { url in
+                    Button {
+                        playerService.loadAndPlay(item: UploadedVideoStore.mediaItem(for: url), origin: "LocalVideoLibrary")
+                        playerService.isShowingPlayer = true
+                    } label: {
+                        localVideoRow(url)
                     }
-                    .onDelete(perform: delete)
+                    .buttonStyle(.plain)
                 }
+                .onDelete(perform: delete)
             }
         }
-        .navigationTitle("Wi-Fi 视频库")
+        .navigationTitle("本地视频")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    reloadVideos()
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink {
+                    WiFiUploadLibraryView()
                 } label: {
+                    Image(systemName: "arrow.up.doc.fill")
+                }
+                .accessibilityLabel("Wi-Fi 上传")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: reloadVideos) {
                     Image(systemName: "arrow.clockwise")
                 }
-                .accessibilityLabel("刷新视频库")
+                .accessibilityLabel("刷新本地视频")
             }
         }
         .onAppear(perform: reloadVideos)
         .refreshable { reloadVideos() }
+    }
+
+    private func localVideoRow(_ url: URL) -> some View {
+        HStack(spacing: MivuSpacing.s) {
+            Image(systemName: "play.rectangle.fill")
+                .font(.title3)
+                .foregroundColor(MivuEdition.utilityTint)
+            VStack(alignment: .leading, spacing: MivuSpacing.xxs) {
+                Text(url.deletingPathExtension().lastPathComponent)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                Text(fileSizeText(for: url))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Image(systemName: "play.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
+        }
     }
 
     private func reloadVideos() {
@@ -333,9 +372,8 @@ public struct WiFiUploadLibraryView: View {
     }
 }
 
-/// Full local video list for reuse on the Mivu home screen.
+/// Local-video preview for the Mivu home screen.
 public struct WiFiUploadedVideosSection: View {
-    @ObservedObject private var playerService = PlayerService.shared
     @State private var videos: [URL] = []
 
     public init() {}
@@ -343,22 +381,27 @@ public struct WiFiUploadedVideosSection: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("本地视频", systemImage: "film.stack.fill")
-                    .font(.title3.bold())
+                NavigationLink {
+                    LocalVideoLibraryView()
+                } label: {
+                    Label("本地视频", systemImage: "film.stack.fill")
+                        .font(.title3.bold())
+                }
+                .buttonStyle(.plain)
                 Spacer()
                 NavigationLink {
-                    WiFiUploadLibraryView()
+                    LocalVideoLibraryView()
                 } label: {
-                    Text("管理")
+                    Text("查看全部")
                         .font(.subheadline)
                 }
             }
 
             if videos.isEmpty {
                 NavigationLink {
-                    WiFiUploadLibraryView()
+                    LocalVideoLibraryView()
                 } label: {
-                    Label("暂无上传视频，打开 Wi-Fi 视频库开始上传", systemImage: "arrow.up.doc")
+                    Label("暂无本地视频", systemImage: "film.stack")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -367,10 +410,9 @@ public struct WiFiUploadedVideosSection: View {
                 }
             } else {
                 VStack(spacing: 8) {
-                    ForEach(videos, id: \.self) { url in
-                        Button {
-                            playerService.loadAndPlay(item: UploadedVideoStore.mediaItem(for: url), origin: "WiFiUploadHome")
-                            playerService.isShowingPlayer = true
+                    ForEach(videos.prefix(2), id: \.self) { url in
+                        NavigationLink {
+                            LocalVideoLibraryView()
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.rectangle.fill")
@@ -385,9 +427,9 @@ public struct WiFiUploadedVideosSection: View {
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
-                                Text(playerService.isCarPlayConnected ? "投送播放" : "播放")
+                                Image(systemName: "chevron.right")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundColor(playerService.isCarPlayConnected ? MivuEdition.utilityTint : .secondary)
+                                    .foregroundColor(.secondary)
                             }
                             .padding(12)
                             .background(MivuEdition.secondarySurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))

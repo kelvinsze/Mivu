@@ -2,19 +2,18 @@ import SwiftUI
 import CoreTransferable
 import PhotosUI
 import UniformTypeIdentifiers
+import UIKit
 
 /// Dedicated Home view for Mivu (Standard / Lite Edition).
 /// Focuses purely on UPnP/DLNA casting reception, live endpoint status,
 /// and casting tutorials.
 public struct MivuReceiverHomeView: View {
     @ObservedObject private var playerService = PlayerService.shared
-    @State private var serverIP: String = HTTPServer.shared.localIPAddress
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
-    @State private var isEditingDeviceName = false
+    @State private var isShowingExternalCastHelp = false
     @State private var selectedPhotoVideo: PhotosPickerItem?
     @State private var isPreparingPhotoVideo = false
-    @AppStorage("mivu_custom_friendly_name") private var customFriendlyName: String = ""
 
     public init() {}
 
@@ -22,15 +21,12 @@ public struct MivuReceiverHomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: MivuSpacing.l) {
-                    // MARK: - 1. Live Receiver Status Card (Hero)
+                    // MARK: - 1. Live Receiver Status Card
                     receiverStatusCard
                         .padding(.horizontal)
 
-                    photoVideoPickerCard
-                        .padding(.horizontal)
-
-                    // MARK: - 2. Wi-Fi Uploaded Videos
-                    WiFiUploadedVideosSection()
+                    // MARK: - 2. Primary casting sources
+                    castingContentSection
                         .padding(.horizontal)
 
                     // MARK: - 3. Active Casting Session (if playing)
@@ -51,17 +47,14 @@ public struct MivuReceiverHomeView: View {
                 .padding(.top, MivuSpacing.xs)
             }
             .background(Color.mivuBackground)
-            .navigationTitle("Mivu 投屏")
-            .onAppear {
-                serverIP = HTTPServer.shared.localIPAddress
-            }
+            .navigationTitle("Mivu")
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
                 Text(errorMessage ?? "无法解析或播放所选视频流")
             }
-            .sheet(isPresented: $isEditingDeviceName) {
-                deviceNameSheet
+            .sheet(isPresented: $isShowingExternalCastHelp) {
+                externalCastHelpSheet
             }
             .onChange(of: selectedPhotoVideo) { _, selection in
                 guard let selection else { return }
@@ -76,109 +69,136 @@ public struct MivuReceiverHomeView: View {
     private var receiverStatusCard: some View {
         let isReceiverActive = playerService.isCarPlayConnected
 
-        return VStack(spacing: MivuSpacing.m) {
-            HStack(alignment: .center, spacing: MivuSpacing.s) {
-                ZStack {
-                    Circle()
-                        .fill(Color.mivuAccent.opacity(0.12))
-                        .frame(width: 50, height: 50)
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.title2)
-                        .foregroundColor(.mivuAccent)
-                }
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(isReceiverActive ? "投屏服务已就绪" : "等待连接 CarPlay")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        Circle()
-                            .fill(isReceiverActive ? Color.green : Color.secondary)
-                            .frame(width: 8, height: 8)
-                    }
-
-                    Text(isReceiverActive ? "等待来自局域网设备的媒体投送" : "连接 CarPlay 后自动开启投屏服务")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                Button {
-                    isEditingDeviceName = true
-                } label: {
-                    Image(systemName: "pencil.circle")
-                        .font(.title3)
-                        .foregroundColor(.mivuAccent)
-                }
+        return VStack(spacing: MivuSpacing.s) {
+            ZStack {
+                Circle()
+                    .fill(Color.mivuAccent.opacity(0.12))
+                    .frame(width: 56, height: 56)
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.title2)
+                    .foregroundColor(Color.mivuAccent)
             }
 
-            Divider()
-
-            VStack(spacing: MivuSpacing.xs) {
-                HStack {
-                    Text("设备名称")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(UPnPDevice.shared.friendlyName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.primary)
-                }
-
-                HStack {
-                    Text(isReceiverActive ? "局域网 IP" : "局域网 IP（CarPlay 连接后可用）")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(isReceiverActive ? serverIP : "未启用")
-                        .font(.subheadline.monospaced())
-                        .foregroundColor(.primary)
-                }
-
-                HStack {
-                    Text(isReceiverActive ? "HTTP 服务端口" : "HTTP 服务端口（CarPlay 连接后启用）")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(isReceiverActive ? "\(HTTPServer.shared.port)" : "未启用")
-                        .font(.subheadline.monospaced())
-                        .foregroundColor(.primary)
-                }
+            HStack(spacing: 6) {
+                Text(isReceiverActive ? "投屏服务已就绪" : "等待连接 CarPlay")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Circle()
+                    .fill(isReceiverActive ? Color.green : Color.secondary)
+                    .frame(width: 8, height: 8)
             }
+
+            if isReceiverActive {
+                Text(UPnPDevice.shared.friendlyName)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(Color.mivuAccent)
+            }
+
+            Text(isReceiverActive ? "等待来自局域网设备的媒体投送" : "连接 CarPlay 后自动开启投屏服务")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
         .padding(MivuSpacing.m)
         .mivuSurface()
     }
 
-    private var photoVideoPickerCard: some View {
-        VStack(alignment: .leading, spacing: MivuSpacing.s) {
-            Label("播放相册视频", systemImage: "photo.on.rectangle.angled")
-                .font(.headline)
+    private var castingContentSection: some View {
+        VStack(alignment: .leading, spacing: MivuSpacing.m) {
+            Label("选择投屏内容", systemImage: "rectangle.connected.to.line.below")
+                .font(.title3.bold())
 
-            Text("从手机相册选择本地视频，将在 CarPlay 车机屏幕播放，手机作为遥控器使用。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            PhotosPicker(selection: $selectedPhotoVideo, matching: .videos) {
-                Label(
-                    isPreparingPhotoVideo ? "正在准备视频…" : "从相册选择视频",
-                    systemImage: "play.rectangle.fill"
-                )
-                .frame(maxWidth: .infinity)
+            GeometryReader { geometry in
+                let cardWidth = (geometry.size.width - (MivuSpacing.s * 2)) / 3
+                HStack(spacing: MivuSpacing.s) {
+                    localVideoSource
+                        .frame(width: cardWidth)
+                    photoVideoSource
+                        .frame(width: cardWidth)
+                    externalAppSource
+                        .frame(width: cardWidth)
+                }
+                .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
+                .opacity(playerService.isCarPlayConnected ? 1 : 0.45)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.mivuAccent)
-            .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
-
-            if !playerService.isCarPlayConnected {
-                Text("请先连接 CarPlay，再选择视频。")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+            .frame(height: 136)
         }
         .padding(MivuSpacing.m)
-        .mivuSurface()
+        .mivuSurface(radius: MivuRadius.xl)
+    }
+
+    private var localVideoSource: some View {
+        NavigationLink {
+            LocalVideoLibraryView()
+        } label: {
+            castingSourceCard(
+                title: "本地视频",
+                icon: "film.stack.fill"
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var photoVideoSource: some View {
+        PhotosPicker(selection: $selectedPhotoVideo, matching: .videos) {
+            castingSourceCard(
+                title: isPreparingPhotoVideo ? "正在准备视频…" : "相册视频",
+                icon: "photo.on.rectangle.angled",
+                usesMulticolorSymbol: true
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
+    }
+
+    private var externalAppSource: some View {
+        Button {
+            isShowingExternalCastHelp = true
+        } label: {
+            castingSourceCard(
+                title: "视频 App",
+                icon: "play.fill"
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func castingSourceCard(
+        title: String,
+        icon: String,
+        usesMulticolorSymbol: Bool = false
+    ) -> some View {
+        VStack(alignment: .leading, spacing: MivuSpacing.xs) {
+            HStack(alignment: .top) {
+                Image(systemName: icon)
+                    .symbolRenderingMode(usesMulticolorSymbol ? .multicolor : .monochrome)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(Color.mivuAccent)
+                    .frame(width: 44, height: 44)
+                    .background(Color.mivuSurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+
+                Spacer(minLength: MivuSpacing.xs)
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, MivuSpacing.xs)
+            }
+
+            Spacer(minLength: MivuSpacing.xxs)
+
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .padding(MivuSpacing.xs)
+        .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+        .background(Color.mivuSurfaceSecondary, in: RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
     }
 
     // MARK: - 2. Active Playback Card
@@ -189,7 +209,7 @@ public struct MivuReceiverHomeView: View {
             HStack {
                 Label("正在 CarPlay 播放", systemImage: "car.play.fill")
                     .font(.caption.bold())
-                    .foregroundColor(.mivuAccent)
+                    .foregroundColor(Color.mivuAccent)
                 Spacer()
                 Text(isPlaying ? "播放中" : "已暂停")
                     .font(.caption2.weight(.medium))
@@ -254,7 +274,7 @@ public struct MivuReceiverHomeView: View {
                 guideStepRow(
                     index: "2",
                     title: "选择视频",
-                    detail: "上传视频、从相册选择，或从支持的视频 App 投屏。"
+                    detail: "从本地视频列表、相册选择，或从支持的视频 App 投屏。"
                 )
 
                 guideStepRow(
@@ -296,7 +316,7 @@ public struct MivuReceiverHomeView: View {
         VStack(alignment: .leading, spacing: MivuSpacing.s) {
             HStack {
                 Image(systemName: "crown.fill")
-                    .foregroundColor(.mivuAccent)
+                    .foregroundColor(Color.mivuAccent)
                 Text("探索 Mivu Pro")
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
@@ -309,7 +329,7 @@ public struct MivuReceiverHomeView: View {
                     .foregroundColor(.secondary)
             }
 
-            Text("需要连接个人私有云或家庭影院？Mivu Pro 支持 Emby、Jellyfin、SMB、WebDAV 媒体库挂载，提供影院级海报墙与元数据刮削。")
+            Text("敬请期待")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineSpacing(2)
@@ -318,38 +338,71 @@ public struct MivuReceiverHomeView: View {
         .mivuSurface()
     }
 
-    // MARK: - Device Name Sheet
-    private var deviceNameSheet: some View {
+    private var externalCastHelpSheet: some View {
         NavigationStack {
-            Form {
-                Section("修改投屏设备名称") {
-                    TextField("输入设备显示名称", text: $customFriendlyName)
+            List {
+                Section {
+                    ForEach(Self.supportedVideoApps) { app in
+                        let isInstalled = UIApplication.shared.canOpenURL(app.url)
+
+                        Button {
+                            UIApplication.shared.open(app.url)
+                        } label: {
+                            HStack(spacing: MivuSpacing.s) {
+                                Image(systemName: app.icon)
+                                    .foregroundStyle(isInstalled ? Color.mivuAccent : .secondary)
+                                    .frame(width: 28)
+
+                                Text(app.name)
+
+                                Spacer()
+
+                                if isInstalled {
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Text("未安装")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .disabled(!isInstalled)
+                    }
+                } header: {
+                    Text("支持投屏的视频 App")
+                } footer: {
+                    Text("请在 App 内打开分享或投屏菜单，并选择 Mivu 作为播放设备。")
                 }
 
                 Section {
-                    Text("修改后，在其他设备投屏时将显示此名称。")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Label("先连接 CarPlay", systemImage: "car.fill")
+                    Label("在视频 App 中打开分享或投屏菜单", systemImage: "square.and.arrow.up")
+                    Label("选择 Mivu 作为播放设备", systemImage: "rectangle.connected.to.line.below")
+                } header: {
+                    Text("从其他 App 投屏")
+                } footer: {
+                    Text("Mivu 会在 CarPlay 连接后自动作为局域网投屏设备出现。")
                 }
             }
-            .navigationTitle("设备名称")
+            .navigationTitle("视频 App 投屏")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { isEditingDeviceName = false }
-                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
-                        if !customFriendlyName.trimmingCharacters(in: .whitespaces).isEmpty {
-                            UPnPDevice.shared.friendlyName = customFriendlyName
-                        }
-                        isEditingDeviceName = false
-                    }
+                    Button("完成") { isShowingExternalCastHelp = false }
                 }
             }
         }
-        .presentationDetents([.fraction(0.35)])
+        .presentationDetents([.medium])
     }
+
+    private static let supportedVideoApps = [
+        SupportedVideoApp(name: "Bilibili", scheme: "bilibili://", icon: "play.rectangle.fill"),
+        SupportedVideoApp(name: "腾讯视频", scheme: "tenvideo2://", icon: "play.tv.fill"),
+        SupportedVideoApp(name: "优酷", scheme: "youku://", icon: "play.square.fill"),
+        SupportedVideoApp(name: "夸克", scheme: "quark://", icon: "play.circle.fill")
+    ]
 
     private func playPhotoVideo(_ selection: PhotosPickerItem) async {
         isPreparingPhotoVideo = true
@@ -386,6 +439,15 @@ public struct MivuReceiverHomeView: View {
             isShowingErrorAlert = true
         }
     }
+}
+
+private struct SupportedVideoApp: Identifiable {
+    let name: String
+    let scheme: String
+    let icon: String
+
+    var id: String { scheme }
+    var url: URL { URL(string: scheme)! }
 }
 
 private struct PhotoLibraryVideo: Transferable {
