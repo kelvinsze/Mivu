@@ -814,7 +814,7 @@ public struct PlayerView: View {
                     .layoutPriority(1)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PlayerOverlayButtonStyle())
         .padding(.horizontal, compact ? 14 : 20)
         .padding(.top, compact ? 8 : 16)
         .padding(.bottom, compact ? 10 : 24)
@@ -1831,6 +1831,13 @@ public struct PlayerView: View {
                 }
             }
         }
+    }
+}
+
+private struct PlayerOverlayButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }
 
