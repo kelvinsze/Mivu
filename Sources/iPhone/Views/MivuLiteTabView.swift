@@ -117,7 +117,7 @@ public struct MivuLiteTabView: View {
                     Label("设置", systemImage: "gearshape.fill")
                 }
         }
-        .tint(.mivuAccent)
+        .tint(Color.mivuAccent)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
             if isCarPlayWindow {
                 PlayerView()
@@ -156,7 +156,7 @@ public struct CarPlayRemoteControlView: View {
 
             Image(systemName: "car.play.fill")
                 .font(.system(size: 54))
-                .foregroundStyle(.mivuAccent)
+                .foregroundStyle(Color.mivuAccent)
 
             VStack(spacing: MivuSpacing.xs) {
                 Text("正在 CarPlay 播放")
