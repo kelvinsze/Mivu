@@ -21,6 +21,12 @@ public final class AVTransportService: @unchecked Sendable {
         // MARK: - AVTransport Actions
 
         case "SetAVTransportURI":
+            let isCarPlayConnected = await MainActor.run {
+                CarPlaySceneDelegate.shared?.isConnected == true || PlayerService.shared.isCarPlayConnected
+            }
+            guard isCarPlayConnected else {
+                return (500, SOAPParser.makeSOAPFault(errorCode: 701, errorDescription: "CarPlay is not connected"))
+            }
             guard let uriString = action.parameters["CurrentURI"], let url = URL(string: uriString) else {
                 return (500, SOAPParser.makeSOAPFault(errorCode: 714, errorDescription: "Illegal MIME-Type or Invalid URI"))
             }
@@ -39,11 +45,8 @@ public final class AVTransportService: @unchecked Sendable {
                 PlayerService.shared.loadAndPlay(
                     item: item,
                     origin: "SOAP.SetAVTransportURI",
-                    requiresNativePlayback: CarPlaySceneDelegate.shared?.isConnected == true
+                    requiresNativePlayback: true
                 )
-                if CarPlaySceneDelegate.shared?.isConnected != true {
-                    PlayerService.shared.isShowingPlayer = true
-                }
                 CarPlaySceneDelegate.shared?.presentIncomingPlayback()
             }
 
@@ -67,7 +70,7 @@ public final class AVTransportService: @unchecked Sendable {
 
         case "Pause":
             await MainActor.run {
-                PlayerService.shared.pause()
+                PlayerService.shared.pauseFromCastController()
             }
             let body = SOAPParser.makeSOAPResponse(
                 actionName: "Pause",

@@ -12,10 +12,14 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     public func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         if session.role.rawValue == "UIWindowSceneSessionRoleCarPlay",
            let windowScene = scene as? UIWindowScene {
-            logger.info("Connecting CarPlay UIWindowScene window...")
+            logger.info("Connecting CarPlay UIWindowScene window.")
             PlayerService.shared.isCarPlayConnected = true
             let window = UIWindow(windowScene: windowScene)
-            window.rootViewController = UIHostingController(rootView: MainTabView())
+            #if MIVU_LITE
+            window.rootViewController = UIHostingController(rootView: MivuLiteTabView(isCarPlayWindow: true))
+            #else
+            window.rootViewController = UIHostingController(rootView: MainTabView(isCarPlayWindow: true))
+            #endif
             carPlayWindow = window
             window.makeKeyAndVisible()
         }

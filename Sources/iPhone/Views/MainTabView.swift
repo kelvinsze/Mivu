@@ -4,8 +4,11 @@ import SwiftUI
 /// [Home, Servers, History, Settings]
 public struct MainTabView: View {
     @ObservedObject private var playerService = PlayerService.shared
+    private let isCarPlayWindow: Bool
 
-    public init() {}
+    public init(isCarPlayWindow: Bool = false) {
+        self.isCarPlayWindow = isCarPlayWindow
+    }
 
     public var body: some View {
         TabView {
@@ -31,7 +34,11 @@ public struct MainTabView: View {
         }
         .tint(.orange)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
-            PlayerView()
+            if isCarPlayWindow {
+                PlayerView()
+            } else {
+                MivuPlaybackPresentation()
+            }
         }
     }
 }

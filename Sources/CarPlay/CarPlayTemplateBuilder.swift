@@ -21,9 +21,9 @@ public final class CarPlayTemplateBuilder {
                 detailText: "\(isPlaying ? "▶ 正在播放" : "⏸ 已暂停") · \(SOAPParser.formatUPnPTime(session.currentTime)) / \(SOAPParser.formatUPnPTime(session.duration))",
                 image: UIImage(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
             )
-            configureVideoPlayback(nowPlayingItem, for: current, isCurrentlyPlaying: isPlaying)
+            configureVideoPlayback(nowPlayingItem, for: current)
             nowPlayingItem.handler = { _, completion in
-                PlayerService.shared.togglePlayPause()
+                PlayerService.shared.play()
                 completion()
             }
             sections.append(CPListSection(items: [nowPlayingItem], header: "正在播放", sectionIndexTitle: nil))
@@ -41,6 +41,8 @@ public final class CarPlayTemplateBuilder {
                     detail = "上次观看至 \(SOAPParser.formatUPnPTime(historyItem.resumePosition!)) / \(SOAPParser.formatUPnPTime(historyItem.duration!))"
                 } else if historyItem.sourceType == .personalMedia {
                     detail = "个人媒体库"
+                } else if historyItem.sourceType == .photoLibrary {
+                    detail = "相册视频"
                 } else if historyItem.sourceType == .dlna {
                     detail = "投屏历史"
                 } else {
@@ -55,11 +57,13 @@ public final class CarPlayTemplateBuilder {
                 item.handler = { _, completion in
                     Task {
                         var playItem = historyItem
+                        #if MIVU_PRO
                         if historyItem.sourceType == .personalMedia,
                            let serverID = historyItem.serverID,
                            let client = MediaServerManager.shared.getClient(for: serverID) {
                             playItem = (try? await client.resolvePlaybackItem(historyItem)) ?? historyItem
                         }
+                        #endif
                         await MainActor.run {
                             PlayerService.shared.loadAndPlay(item: playItem, requiresNativePlayback: true)
                         }
@@ -71,6 +75,7 @@ public final class CarPlayTemplateBuilder {
             sections.append(CPListSection(items: recentItems, header: "继续观看与最近播放", sectionIndexTitle: nil))
         }
 
+        #if MIVU_PRO
         // MARK: - 3. Personal Media Servers Section (Emby / Jellyfin / WebDAV / SMB / fnOS)
         let savedServers = MediaServerManager.shared.savedServers
         if !savedServers.isEmpty {
@@ -88,6 +93,7 @@ public final class CarPlayTemplateBuilder {
             }
             sections.append(CPListSection(items: serverItems, header: "个人媒体库", sectionIndexTitle: nil))
         }
+        #endif
 
         // MARK: - 4. Test Streams Section
         let sampleItems = MediaItem.sampleStreams.map { sample in
@@ -123,6 +129,7 @@ public final class CarPlayTemplateBuilder {
         return CPListTemplate(title: "Mivu", sections: sections)
     }
 
+    #if MIVU_PRO
     private static func serverTypeText(for type: MediaServerType) -> String {
         switch type {
         case .emby: return "Emby"
@@ -181,8 +188,9 @@ public final class CarPlayTemplateBuilder {
             }
         }
     }
+    #endif
 
-    private static func configureVideoPlayback(_ item: CPListItem, for media: MediaItem, isCurrentlyPlaying: Bool = false) {
+    private static func configureVideoPlayback(_ item: CPListItem, for media: MediaItem) {
         guard #available(iOS 26.4, *), CarPlaySceneDelegate.shared?.isVideoPlaybackAvailable == true else { return }
         let session = PlayerService.shared.session
         let isCurrentSessionItem = session.currentItem?.id == media.id
@@ -190,7 +198,7 @@ public final class CarPlayTemplateBuilder {
         let elapsedSeconds = (isCurrentSessionItem && session.currentTime > 0) ? session.currentTime : (media.resumePosition ?? 0)
 
         if media.sourceType == .dlna {
-            SSDPService.shared.recordCastDebug("CARPLAY configure elapsed=\(elapsedSeconds) duration=\(durationSeconds) isPlaying=\(isCurrentlyPlaying)")
+            SSDPService.shared.recordCastDebug("CARPLAY configure elapsed=\(elapsedSeconds) duration=\(durationSeconds)")
         }
         let durationTime: CMTime
         if durationSeconds > 0, !durationSeconds.isNaN, !durationSeconds.isInfinite {
@@ -206,12 +214,13 @@ public final class CarPlayTemplateBuilder {
         }
         item.playbackConfiguration = CPPlaybackConfiguration(
             preferredPresentation: .video,
-            playbackAction: isCurrentlyPlaying ? .pause : .play,
+            playbackAction: .play,
             elapsedTime: elapsedTime,
             duration: durationTime
         )
     }
 
+    #if MIVU_PRO
     private static func pushLibraryVideos(client: MediaServerProtocol, library: MediaLibrary, interfaceController: CPInterfaceController) {
         Task {
             do {
@@ -241,4 +250,5 @@ public final class CarPlayTemplateBuilder {
             }
         }
     }
+    #endif
 }

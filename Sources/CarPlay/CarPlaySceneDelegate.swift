@@ -34,7 +34,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.interfaceController = interfaceController
         self.isConnected = true
         PlayerService.shared.isCarPlayConnected = true
+        HTTPServer.shared.start(port: 7890)
+        SSDPService.shared.start()
         PlayerService.shared.requireNativePlaybackForExternalPresentation(origin: "CarPlay.didConnect")
+        if PlayerService.shared.session.currentItem != nil {
+            PlayerService.shared.isShowingPlayer = true
+        }
 
         // Build and present the root template directly
         presentRootTemplate(using: interfaceController)
@@ -50,15 +55,6 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         setupObservers()
     }
 
-    public func templateApplicationScene(
-        _ templateApplicationScene: CPTemplateApplicationScene,
-        didConnect interfaceController: CPInterfaceController,
-        to window: CPWindow
-    ) {
-        logger.info("CarPlay connected with CPWindow.")
-        self.templateApplicationScene(templateApplicationScene, didConnect: interfaceController)
-    }
-
     public func templateApplicationScene(_ templateApplicationScene: CPTemplateApplicationScene, didDisconnectInterfaceController interfaceController: CPInterfaceController) {
         logger.info("CarPlay disconnected from vehicle.")
         SSDPService.shared.recordPlaybackStage("CarPlay 车机已断开")
@@ -71,15 +67,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.needsRootTemplateRefresh = false
         self.shouldPresentIncomingPlayback = false
         cancellables.removeAll()
-    }
-
-    public func templateApplicationScene(
-        _ templateApplicationScene: CPTemplateApplicationScene,
-        didDisconnectInterfaceController interfaceController: CPInterfaceController,
-        from window: CPWindow
-    ) {
-        logger.info("CarPlay disconnected from CPWindow.")
-        self.templateApplicationScene(templateApplicationScene, didDisconnectInterfaceController: interfaceController)
+        PlayerService.shared.stop()
+        SSDPService.shared.stop()
+        // Keep the local HTTP service alive so Wi-Fi uploads remain available on the phone.
     }
 
     // MARK: - CPSessionConfigurationDelegate
@@ -178,6 +168,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
             }
             .store(in: &cancellables)
 
+        #if MIVU_PRO
         // 3. Observe personal media servers list changes
         MediaServerManager.shared.$savedServers
             .map { servers in servers.map(\.id.uuidString).joined(separator: ",") }
@@ -188,6 +179,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
                 self?.refreshCarPlayUI()
             }
             .store(in: &cancellables)
+        #endif
     }
 
     /// A DLNA sender does not select the CarPlay list item. Refresh the root
