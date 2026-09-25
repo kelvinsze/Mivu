@@ -26,7 +26,7 @@ public struct DiagnosticsView: View {
 
                         let webUrl = "http://\(localIP):\(HTTPServer.shared.port)/web"
                         HStack {
-                            Text(webUrl)
+                            Text(verbatim: webUrl)
                                 .font(.subheadline.monospaced())
                                 .foregroundColor(.cyan)
 
@@ -102,7 +102,7 @@ public struct DiagnosticsView: View {
                         .disabled(isProbing || probeUrlInput.trimmingCharacters(in: .whitespaces).isEmpty)
 
                         if let result = probeResult {
-                            Text(result)
+                            Text(verbatim: result)
                                 .font(.caption.monospaced())
                                 .foregroundColor(.secondary)
                                 .padding(8)
@@ -140,7 +140,7 @@ public struct DiagnosticsView: View {
                         HStack {
                             Text("Last Media-Ready Path")
                             Spacer()
-                            Text(lastPath)
+                            Text(verbatim: lastPath)
                                 .font(.caption)
                                 .foregroundColor(.green)
                         }
@@ -182,7 +182,7 @@ public struct DiagnosticsView: View {
                             .foregroundColor(.secondary)
                     } else {
                         ForEach(Array(visibleDiagnosticLogs.prefix(200).enumerated()), id: \.offset) { _, log in
-                            Text(log)
+                            Text(verbatim: log)
                                 .font(.caption2.monospaced())
                                 .textSelection(.enabled)
                         }

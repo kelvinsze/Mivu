@@ -56,7 +56,7 @@ public struct MivuReceiverHomeView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? String(localized: "无法解析或播放所选视频流"))
+                Text(verbatim: errorMessage ?? String(localized: "无法解析或播放所选视频流"))
             }
             .sheet(isPresented: $isShowingExternalCastHelp) {
                 externalCastHelpSheet
@@ -85,7 +85,7 @@ public struct MivuReceiverHomeView: View {
             }
 
             HStack(spacing: 6) {
-                Text(isReceiverActive ? String(localized: "投屏服务已就绪") : String(localized: "等待连接 CarPlay"))
+                Text(verbatim: isReceiverActive ? String(localized: "投屏服务已就绪") : String(localized: "等待连接 CarPlay"))
                     .font(.headline)
                     .foregroundColor(.primary)
                 Circle()
@@ -99,7 +99,7 @@ public struct MivuReceiverHomeView: View {
                     .foregroundColor(Color.mivuAccent)
             }
 
-            Text(isReceiverActive ? String(localized: "等待来自局域网设备的媒体投送") : String(localized: "连接 CarPlay 后自动开启投屏服务"))
+            Text(verbatim: isReceiverActive ? String(localized: "等待来自局域网设备的媒体投送") : String(localized: "连接 CarPlay 后自动开启投屏服务"))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -216,7 +216,7 @@ public struct MivuReceiverHomeView: View {
                     .font(.caption.bold())
                     .foregroundColor(Color.mivuAccent)
                 Spacer()
-            Text(isPlaying ? String(localized: "播放中") : String(localized: "已暂停"))
+            Text(verbatim: isPlaying ? String(localized: "播放中") : String(localized: "已暂停"))
                     .font(.caption2.weight(.medium))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -234,10 +234,11 @@ public struct MivuReceiverHomeView: View {
                 Button {
                     playerService.togglePlayPause()
                 } label: {
-                    Label(
-                        isPlaying ? String(localized: "暂停") : String(localized: "继续"),
-                        systemImage: isPlaying ? "pause.fill" : "play.fill"
-                    )
+                    Label {
+                        Text(verbatim: isPlaying ? String(localized: "暂停") : String(localized: "继续"))
+                    } icon: {
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                    }
                     .font(.subheadline.weight(.medium))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -299,7 +300,7 @@ public struct MivuReceiverHomeView: View {
                 Circle()
                     .fill(Color.mivuAccent)
                     .frame(width: 22, height: 22)
-                Text(index)
+                Text(verbatim: index)
                     .font(.caption2.bold())
                     .foregroundColor(.white)
             }

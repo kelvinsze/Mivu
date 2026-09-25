@@ -76,7 +76,7 @@ public struct HistoryView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? String(localized: "无法解析该媒体，请检查服务器连接"))
+                Text(verbatim: errorMessage ?? String(localized: "无法解析该媒体，请检查服务器连接"))
             }
         }
     }
@@ -176,11 +176,11 @@ public struct HistoryView: View {
                         #endif
 
                         if let resume = item.resumePosition, resume > 0 {
-                            Text(String.localizedStringWithFormat(String(localized: "已看至 %@"), SOAPParser.formatUPnPTime(resume)))
+                    Text(verbatim: String.localizedStringWithFormat(String(localized: "已看至 %@"), SOAPParser.formatUPnPTime(resume)))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         } else if let dur = item.duration, dur > 0 {
-                            Text(String.localizedStringWithFormat(String(localized: "时长 %@"), SOAPParser.formatUPnPTime(dur)))
+                    Text(verbatim: String.localizedStringWithFormat(String(localized: "时长 %@"), SOAPParser.formatUPnPTime(dur)))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }

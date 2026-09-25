@@ -67,11 +67,11 @@ public struct ServersView: View {
 
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
-                                            Text(server.name)
+                                            Text(verbatim: server.name)
                                                 .font(.headline)
                                                 .foregroundColor(.primary)
 
-                                            Text(brand.title)
+                                            Text(verbatim: brand.title)
                                                 .font(.system(size: 10, weight: .semibold))
                                                 .foregroundColor(.secondary)
                                                 .padding(.horizontal, 6)
@@ -79,7 +79,7 @@ public struct ServersView: View {
                                                 .background(Capsule().fill(Color.secondary.opacity(0.12)))
                                         }
 
-                                        Text(server.url.absoluteString)
+                                        Text(verbatim: server.url.absoluteString)
                                             .font(.caption2)
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
@@ -189,9 +189,9 @@ struct AddServerView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(selectedService.title)
+                            Text(verbatim: selectedService.title)
                                 .font(.headline.bold())
-                            Text(selectedService.category.title)
+                            Text(verbatim: selectedService.category.title)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -200,7 +200,7 @@ struct AddServerView: View {
 
                         Picker("", selection: $selectedService) {
                             ForEach(ServiceMenuOption.allCases) { opt in
-                                Text(opt.title).tag(opt)
+                                Text(verbatim: opt.title).tag(opt)
                             }
                         }
                         .labelsHidden()
@@ -209,7 +209,7 @@ struct AddServerView: View {
                     .padding(.vertical, 4)
 
                     if let hint = selectedService.guidanceHint {
-                        Text(hint)
+                        Text(verbatim: hint)
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     }
@@ -237,7 +237,7 @@ struct AddServerView: View {
 
                 if let error = errorMessage {
                     Section {
-                        Text(error)
+                        Text(verbatim: error)
                             .foregroundColor(.red)
                             .font(.caption)
                     }

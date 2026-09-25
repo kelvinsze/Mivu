@@ -306,7 +306,7 @@ public struct WiFiUploadLibraryView: View {
     public var body: some View {
         List {
             Section("网页上传地址") {
-                Text(webAddress)
+                Text(verbatim: webAddress)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
 

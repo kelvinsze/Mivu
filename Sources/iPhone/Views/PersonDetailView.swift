@@ -191,7 +191,7 @@ public struct PersonDetailView: View {
                 // Primary role or department badge
                 HStack(spacing: 8) {
                     if let role = currentPerson.role, !role.isEmpty {
-                        Text(role)
+                        Text(verbatim: role)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 10)
@@ -201,7 +201,7 @@ public struct PersonDetailView: View {
                     }
 
                     if let type = currentPerson.type, !type.isEmpty {
-                        Text(translatePersonType(type))
+                        Text(verbatim: translatePersonType(type))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.white.opacity(0.85))
                             .padding(.horizontal, 10)
@@ -224,7 +224,7 @@ public struct PersonDetailView: View {
                     Image(systemName: "film.stack")
                         .font(.system(size: 12))
                         .foregroundColor(.orange)
-                    Text(String.localizedStringWithFormat(String(localized: "%d Works"), works.count))
+                    Text(verbatim: String.localizedStringWithFormat(String(localized: "%d Works"), works.count))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
@@ -239,7 +239,7 @@ public struct PersonDetailView: View {
                         Image(systemName: "calendar")
                             .font(.system(size: 12))
                             .foregroundColor(.cyan)
-                        Text(formatBirthDate(birthDate))
+                        Text(verbatim: formatBirthDate(birthDate))
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
                     }
@@ -255,7 +255,7 @@ public struct PersonDetailView: View {
                         Image(systemName: "mappin.and.ellipse")
                             .font(.system(size: 12))
                             .foregroundColor(.green)
-                        Text(birthPlace)
+                    Text(verbatim: birthPlace)
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white)
                             .lineLimit(1)
@@ -277,7 +277,7 @@ public struct PersonDetailView: View {
                 .foregroundColor(.white)
 
             if let overview = currentPerson.overview, !overview.isEmpty {
-                Text(overview)
+                Text(verbatim: overview)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(.white.opacity(0.85))
                     .lineSpacing(4)
@@ -288,7 +288,7 @@ public struct PersonDetailView: View {
                         isBioExpanded.toggle()
                     }
                 } label: {
-                    Text(isBioExpanded ? String(localized: "收起") : String(localized: "展开全文"))
+                        Text(verbatim: isBioExpanded ? String(localized: "收起") : String(localized: "展开全文"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.orange)
                 }
@@ -318,7 +318,7 @@ public struct PersonDetailView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    externalLinkPill(title: "豆瓣", icon: "link") {
+                    externalLinkPill(title: String(localized: "豆瓣"), icon: "link") {
                         if let doubanId = currentPerson.providerIds?["Douban"] {
                             openWeb(urlStr: "https://movie.douban.com/celebrity/\(doubanId)/")
                         } else {
@@ -327,7 +327,7 @@ public struct PersonDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "IMDb", icon: "link") {
+                    externalLinkPill(title: String(localized: "IMDb"), icon: "link") {
                         if let imdbId = currentPerson.providerIds?["Imdb"] {
                             openWeb(urlStr: "https://www.imdb.com/name/\(imdbId)/")
                         } else {
@@ -336,7 +336,7 @@ public struct PersonDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "TheMovieDb", icon: "link") {
+                    externalLinkPill(title: String(localized: "TheMovieDb"), icon: "link") {
                         if let tmdbId = currentPerson.providerIds?["Tmdb"] {
                             openWeb(urlStr: "https://www.themoviedb.org/person/\(tmdbId)")
                         } else {
@@ -345,7 +345,7 @@ public struct PersonDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "Trakt", icon: "link") {
+                    externalLinkPill(title: String(localized: "Trakt"), icon: "link") {
                         let encoded = currentPerson.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
                         openWeb(urlStr: "https://trakt.tv/search/people?query=\(encoded)")
                     }

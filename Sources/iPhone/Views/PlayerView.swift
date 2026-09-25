@@ -245,7 +245,7 @@ public struct PlayerView: View {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.down.right.and.arrow.up.left")
                                 .font(.system(size: 11, weight: .bold))
-                            Text(String.localizedStringWithFormat(String(localized: "%.1f× Zoom"), zoomScale))
+                            Text(verbatim: String.localizedStringWithFormat(String(localized: "%.1f× Zoom"), zoomScale))
                                 .font(.caption2.bold().monospacedDigit())
                         }
                         .foregroundColor(.white)
@@ -269,7 +269,7 @@ public struct PlayerView: View {
                             .font(.caption.bold())
                         let aStr = playerService.repeatPointA != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointA!) : "--:--"
                         let bStr = playerService.repeatPointB != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointB!) : "--:--"
-                        Text(String.localizedStringWithFormat(String(localized: "A-B 循环：%@ ~ %@"), aStr, bStr))
+                        Text(verbatim: String.localizedStringWithFormat(String(localized: "A-B 循环：%@ ~ %@"), aStr, bStr))
                             .font(.caption.bold().monospacedDigit())
                             .foregroundColor(.white)
                         Button {
@@ -338,7 +338,7 @@ public struct PlayerView: View {
                         Image(systemName: "camera.fill")
                             .foregroundColor(MivuEdition.primaryTint)
                             .font(.caption.bold())
-                        Text(message)
+                        Text(verbatim: message)
                             .font(.caption.bold())
                             .foregroundColor(.white)
                     }
@@ -730,7 +730,7 @@ public struct PlayerView: View {
             Text("播放遇到异常")
                 .font(.headline)
                 .foregroundColor(.white)
-            Text(message)
+            Text(verbatim: message)
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -789,14 +789,14 @@ public struct PlayerView: View {
             }
 
             VStack(alignment: .leading, spacing: compact ? 1 : 3) {
-                Text(playerService.session.currentItem?.title ?? String(localized: "正在播放"))
+                Text(verbatim: playerService.session.currentItem?.title ?? String(localized: "正在播放"))
                     .font(.system(size: compact ? 14 : 17, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(1)
 
                 HStack(spacing: 5) {
                     if let originator = playerService.session.currentItem?.originator {
-                        Text(originator)
+                        Text(verbatim: originator)
                             .font(.system(size: compact ? 9 : 10))
                             .foregroundColor(.white.opacity(0.7))
                             .lineLimit(1)
@@ -899,7 +899,7 @@ public struct PlayerView: View {
                                 scheduleHideControls()
                             } label: {
                                 HStack {
-                                    Text(subtitleLabel(track))
+                                    Text(verbatim: subtitleLabel(track))
                                     if playerService.selectedSubtitleTrack?.id == track.id { Image(systemName: "checkmark") }
                                 }
                             }
@@ -1514,7 +1514,7 @@ public struct PlayerView: View {
                             scheduleHideControls()
                         } label: {
                             HStack {
-                                Text(subtitleLabel(track))
+                                Text(verbatim: subtitleLabel(track))
                                 if playerService.selectedSubtitleTrack?.id == track.id { Image(systemName: "checkmark") }
                             }
                         }
@@ -1543,7 +1543,7 @@ public struct PlayerView: View {
                             scheduleHideControls()
                         } label: {
                             HStack {
-                                Text(audioTrackLabel(track))
+                                Text(verbatim: audioTrackLabel(track))
                                 if playerService.selectedAudioTrack?.id == track.id {
                                     Image(systemName: "checkmark")
                                 }
@@ -1680,7 +1680,7 @@ public struct PlayerView: View {
     }
 
     private func badgePill(_ text: String, compact: Bool = false) -> some View {
-        Text(text)
+        Text(verbatim: text)
             .font(.system(size: compact ? 7.5 : 9, weight: .bold))
             .foregroundColor(.white.opacity(0.85))
             .padding(.horizontal, compact ? 3 : 4)
@@ -2191,7 +2191,7 @@ struct SubtitleSettingsSheet: View {
                             Text("字幕时间轴微调 (延迟)")
                                 .font(.subheadline.bold())
                             Spacer()
-                            Text(playerService.subtitleDelay == 0 ? String(localized: "0.0s (已对齐)") : String(format: "%+.1fs", playerService.subtitleDelay))
+                            Text(verbatim: playerService.subtitleDelay == 0 ? String(localized: "0.0s (已对齐)") : String(format: "%+.1fs", playerService.subtitleDelay))
                                 .font(.headline.monospacedDigit())
                                 .foregroundColor(playerService.subtitleDelay == 0 ? .secondary : MivuEdition.primaryTint)
                         }
@@ -2301,7 +2301,7 @@ struct EpisodeDrawerSheet: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text(String.localizedStringWithFormat(String(localized: "第 %d 集"), index + 1))
+                                    Text(verbatim: String.localizedStringWithFormat(String(localized: "第 %d 集"), index + 1))
                                         .font(.caption2.bold())
                                         .foregroundColor(isCurrent ? MivuEdition.primaryTint : .secondary)
                                     Spacer()
@@ -2484,7 +2484,7 @@ struct PlaybackSettingsSheet: View {
                             Text("无 (仅单字幕)").tag("")
                             ForEach(playerService.subtitleTracks) { track in
                                 if track.id != playerService.selectedSubtitleTrack?.id {
-                                    Text(track.title ?? track.language ?? String.localizedStringWithFormat(String(localized: "字幕 %@"), track.id)).tag(track.id)
+                                    Text(verbatim: track.title ?? track.language ?? String.localizedStringWithFormat(String(localized: "字幕 %@"), track.id)).tag(track.id)
                                 }
                             }
                         }
@@ -2525,7 +2525,7 @@ struct PlaybackSettingsSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: "a.circle.fill")
-                                Text(String.localizedStringWithFormat(String(localized: "设为 A 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
+                                Text(verbatim: String.localizedStringWithFormat(String(localized: "设为 A 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
                             }
                             .font(.caption.bold())
                             .frame(maxWidth: .infinity)
@@ -2538,7 +2538,7 @@ struct PlaybackSettingsSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: "b.circle.fill")
-                                Text(String.localizedStringWithFormat(String(localized: "设为 B 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
+                                Text(verbatim: String.localizedStringWithFormat(String(localized: "设为 B 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
                             }
                             .font(.caption.bold())
                             .frame(maxWidth: .infinity)

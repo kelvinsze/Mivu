@@ -181,7 +181,7 @@ public struct CarPlayRemoteControlView: View {
             VStack(spacing: MivuSpacing.xs) {
                 Text("正在 CarPlay 播放")
                     .font(.title2.bold())
-                Text(playerService.session.currentItem?.title ?? String(localized: "等待视频"))
+                Text(verbatim: playerService.session.currentItem?.title ?? String(localized: "等待视频"))
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

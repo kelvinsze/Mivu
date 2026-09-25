@@ -51,7 +51,11 @@ public struct ServerDetailView: View {
                 }
 
                 if let error = errorMessage {
-                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                    Label {
+                        Text(verbatim: error)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .padding(.horizontal)
@@ -84,7 +88,11 @@ public struct ServerDetailView: View {
                         libraryItems = []
                         loadItems(for: library)
                     } label: {
-                        Label(library.name, systemImage: iconForCollection(library.collectionType))
+                        Label {
+                            Text(verbatim: library.name)
+                        } icon: {
+                            Image(systemName: iconForCollection(library.collectionType))
+                        }
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
                             .padding(.horizontal, 16)
@@ -151,7 +159,7 @@ public struct ServerDetailView: View {
                                     .frame(width: 125, alignment: .leading)
 
                                 if showsProgress, let remaining = remainingTime(for: item) {
-                                    Text(String.localizedStringWithFormat(String(localized: "剩余 %@"), SOAPParser.formatUPnPTime(remaining)))
+                                    Text(verbatim: String.localizedStringWithFormat(String(localized: "剩余 %@"), SOAPParser.formatUPnPTime(remaining)))
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                         .frame(width: 125, alignment: .leading)
@@ -214,7 +222,7 @@ public struct ServerDetailView: View {
     }
 
     private func sectionTitle(_ title: String) -> some View {
-        Text(title).font(.title3.bold()).padding(.horizontal)
+        Text(verbatim: title).font(.title3.bold()).padding(.horizontal)
     }
 
     private func progress(for item: MediaItem) -> Double? {

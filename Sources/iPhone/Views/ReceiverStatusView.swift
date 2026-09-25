@@ -45,7 +45,7 @@ public struct ReceiverStatusView: View {
                     Text("Local IP:")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    Text(serverIP)
+                    Text(verbatim: serverIP)
                         .font(.subheadline.monospaced())
                 }
 

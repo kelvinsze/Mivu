@@ -94,7 +94,7 @@ public struct VideoDetailView: View {
         .alert("播放错误", isPresented: $isShowingErrorAlert) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? String(localized: "无法解析该媒体流"))
+            Text(verbatim: errorMessage ?? String(localized: "无法解析该媒体流"))
         }
     }
 
@@ -136,13 +136,21 @@ public struct VideoDetailView: View {
                         Button {
                             togglePlayed()
                         } label: {
-                            Label(currentItem.isPlayed == true ? String(localized: "标记为未看") : String(localized: "标记为已看"), systemImage: currentItem.isPlayed == true ? "eye.slash" : "checkmark.circle")
+                            Label {
+                                Text(verbatim: currentItem.isPlayed == true ? String(localized: "标记为未看") : String(localized: "标记为已看"))
+                            } icon: {
+                                Image(systemName: currentItem.isPlayed == true ? "eye.slash" : "checkmark.circle")
+                            }
                         }
 
                         Button {
                             toggleFavorite()
                         } label: {
-                            Label(currentItem.isFavorite == true ? String(localized: "取消收藏") : String(localized: "加入收藏"), systemImage: currentItem.isFavorite == true ? "heart.slash" : "heart")
+                            Label {
+                                Text(verbatim: currentItem.isFavorite == true ? String(localized: "取消收藏") : String(localized: "加入收藏"))
+                            } icon: {
+                                Image(systemName: currentItem.isFavorite == true ? "heart.slash" : "heart")
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -268,7 +276,7 @@ public struct VideoDetailView: View {
                     }
 
                     if let contentRating = currentItem.contentRating, !contentRating.isEmpty {
-                        Text(contentRating)
+                        Text(verbatim: contentRating)
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.white.opacity(0.9))
                             .padding(.horizontal, 6)
@@ -287,13 +295,13 @@ public struct VideoDetailView: View {
                     }
 
                     if let release = currentItem.releaseDate, !release.isEmpty {
-                        Text(release)
+                        Text(verbatim: release)
                     } else if let year = currentItem.year {
                         Text("\(year)")
                     }
 
                     if let res = resolutionString {
-                        Text(res)
+                        Text(verbatim: res)
                     }
 
                     if let dynamicRange = currentItem.videoStreamInfo?.dynamicRange, !dynamicRange.isEmpty {
@@ -347,7 +355,7 @@ public struct VideoDetailView: View {
                         } else {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 16, weight: .bold))
-                            Text(playButtonTitle)
+                            Text(verbatim: playButtonTitle)
                                 .font(.system(size: 16, weight: .bold))
                         }
                     }
@@ -373,7 +381,11 @@ public struct VideoDetailView: View {
                         Button {
                             isShowingVersionsSheet = true
                         } label: {
-                            Label(String.localizedStringWithFormat(String(localized: "选择播放版本 (%d)"), alts.count + 1), systemImage: "film.stack")
+                            Label {
+                                Text(verbatim: String.localizedStringWithFormat(String(localized: "选择播放版本 (%d)"), alts.count + 1))
+                            } icon: {
+                                Image(systemName: "film.stack")
+                            }
                         }
                     }
 
@@ -466,7 +478,7 @@ public struct VideoDetailView: View {
     // MARK: - 3. Plot Overview Section
     private func overviewSection(_ overview: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(overview)
+            Text(verbatim: overview)
                 .font(.system(size: 14, weight: .regular))
                 .foregroundColor(.white.opacity(0.85))
                 .lineSpacing(4)
@@ -477,7 +489,7 @@ public struct VideoDetailView: View {
                     isOverviewExpanded.toggle()
                 }
             } label: {
-                Text(isOverviewExpanded ? String(localized: "收起") : String(localized: "展开全文"))
+                Text(verbatim: isOverviewExpanded ? String(localized: "收起") : String(localized: "展开全文"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(MivuEdition.primaryTint)
             }
@@ -503,21 +515,21 @@ public struct VideoDetailView: View {
                     if let douban = currentItem.effectiveDoubanRating {
                         doubanRatingCard(score: douban)
                     } else {
-                        unavailableRatingCard(name: "豆瓣", tint: Color(red: 0.22, green: 0.82, blue: 0.38))
+                        unavailableRatingCard(name: String(localized: "豆瓣"), tint: Color(red: 0.22, green: 0.82, blue: 0.38))
                     }
 
                     // 2. IMDb 评分
                     if let imdb = currentItem.effectiveImdbRating {
                         imdbRatingCard(score: imdb)
                     } else {
-                        unavailableRatingCard(name: "IMDb", tint: Color(red: 0.96, green: 0.77, blue: 0.19))
+                        unavailableRatingCard(name: String(localized: "IMDb"), tint: Color(red: 0.96, green: 0.77, blue: 0.19))
                     }
 
                     // 3. 烂番茄新鲜度 (Rotten Tomatoes)
                     if let rt = currentItem.effectiveRottenTomatoesRating {
                         rottenTomatoesRatingCard(score: rt)
                     } else {
-                        unavailableRatingCard(name: "烂番茄", tint: Color(red: 0.98, green: 0.22, blue: 0.16))
+                        unavailableRatingCard(name: String(localized: "烂番茄"), tint: Color(red: 0.98, green: 0.22, blue: 0.16))
                     }
                 }
                 .padding(.vertical, 2)
@@ -527,7 +539,7 @@ public struct VideoDetailView: View {
 
     private func unavailableRatingCard(name: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: name))
+            Text(verbatim: name)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(tint)
                 .padding(.horizontal, 6)
@@ -535,11 +547,11 @@ public struct VideoDetailView: View {
                 .background(tint.opacity(0.18))
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
 
-            Text(isLoadingUnifiedRatings ? String(localized: "正在获取评分") : String(localized: "暂无评分"))
+            Text(verbatim: isLoadingUnifiedRatings ? String(localized: "正在获取评分") : String(localized: "暂无评分"))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.white.opacity(0.82))
 
-            Text(isLoadingUnifiedRatings ? String(localized: "请稍候") : String(localized: "暂未收录"))
+            Text(verbatim: isLoadingUnifiedRatings ? String(localized: "请稍候") : String(localized: "暂未收录"))
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.45))
         }
@@ -759,7 +771,7 @@ public struct VideoDetailView: View {
                     HStack(spacing: 3) {
                         Image(systemName: isFresh ? "flame.fill" : "cross.circle.fill")
                             .font(.system(size: 9, weight: .bold))
-                        Text(isFresh ? String(localized: "烂番茄") : String(localized: "番茄酱"))
+                        Text(verbatim: isFresh ? String(localized: "烂番茄") : String(localized: "番茄酱"))
                             .font(.system(size: 11, weight: .bold))
                     }
                     .foregroundColor(tintColor)
@@ -776,7 +788,7 @@ public struct VideoDetailView: View {
                         .foregroundColor(.white)
                 }
 
-                Text(isFresh ? String(localized: "新鲜度认证") : String(localized: "爆米花评价"))
+                Text(verbatim: isFresh ? String(localized: "新鲜度认证") : String(localized: "爆米花评价"))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.white.opacity(0.55))
             }
@@ -881,7 +893,7 @@ public struct VideoDetailView: View {
                                         .lineLimit(1)
 
                                     if let role = person.role, !role.isEmpty {
-                                        Text(role)
+                                        Text(verbatim: role)
                                             .font(.system(size: 10))
                                             .foregroundColor(.white.opacity(0.6))
                                             .lineLimit(1)
@@ -977,7 +989,7 @@ public struct VideoDetailView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    externalLinkPill(title: "豆瓣", icon: "link") {
+                    externalLinkPill(title: String(localized: "豆瓣"), icon: "link") {
                         if let doubanId = currentItem.providerIds?["Douban"] {
                             openWeb(urlStr: "https://movie.douban.com/subject/\(doubanId)/")
                         } else {
@@ -986,7 +998,7 @@ public struct VideoDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "IMDb", icon: "link") {
+                    externalLinkPill(title: String(localized: "IMDb"), icon: "link") {
                         if let imdbId = currentItem.providerIds?["Imdb"] {
                             openWeb(urlStr: "https://www.imdb.com/title/\(imdbId)/")
                         } else {
@@ -995,7 +1007,7 @@ public struct VideoDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "TheMovieDb", icon: "link") {
+                    externalLinkPill(title: String(localized: "TheMovieDb"), icon: "link") {
                         if let tmdbId = currentItem.providerIds?["Tmdb"] {
                             openWeb(urlStr: "https://www.themoviedb.org/movie/\(tmdbId)")
                         } else {
@@ -1004,7 +1016,7 @@ public struct VideoDetailView: View {
                         }
                     }
 
-                    externalLinkPill(title: "Trakt", icon: "link") {
+                    externalLinkPill(title: String(localized: "Trakt"), icon: "link") {
                         if let traktId = currentItem.providerIds?["Trakt"] {
                             openWeb(urlStr: "https://trakt.tv/movies/\(traktId)")
                         } else {
@@ -1022,7 +1034,7 @@ public struct VideoDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 11))
-                Text(String(localized: title))
+                Text(verbatim: title)
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.white.opacity(0.9))
@@ -1136,13 +1148,13 @@ public struct VideoDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func infoRow(key: String, val: String) -> some View {
+    private func infoRow(key: LocalizedStringKey, val: String) -> some View {
         HStack {
-            Text(String(localized: key))
+            Text(key)
                 .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.55))
             Spacer()
-            Text(val)
+            Text(verbatim: val)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.white.opacity(0.9))
                 .lineLimit(1)
@@ -1160,7 +1172,7 @@ public struct VideoDetailView: View {
             }
 
             if let fileName = currentItem.fileName ?? currentItem.url.lastPathComponent as String?, !fileName.isEmpty {
-                Text(fileName)
+                Text(verbatim: fileName)
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.white.opacity(0.4))
                     .multilineTextAlignment(.center)
@@ -1190,9 +1202,9 @@ public struct VideoDetailView: View {
                     ForEach(streams) { stream in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(stream.displayTitle ?? stream.title ?? String(localized: "音轨"))
+                                Text(verbatim: stream.displayTitle ?? stream.title ?? String(localized: "音轨"))
                                     .font(.headline)
-                                Text("\(stream.language ?? String(localized: "未知语言")) · \(stream.codec?.uppercased() ?? "AAC") · \(stream.channelLayout ?? String(localized: "立体声"))")
+                                Text(verbatim: "\(stream.language ?? String(localized: "未知语言")) · \(stream.codec?.uppercased() ?? "AAC") · \(stream.channelLayout ?? String(localized: "立体声"))")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -1226,12 +1238,12 @@ public struct VideoDetailView: View {
                     ForEach(subs) { sub in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(sub.title ?? sub.language ?? String(localized: "未知字幕"))
+                                Text(verbatim: sub.title ?? sub.language ?? String(localized: "未知字幕"))
                                     .font(.headline)
-                                Text(String.localizedStringWithFormat(
+                                Text(verbatim: String.localizedStringWithFormat(
                                     String(localized: "格式：%@ · %@"),
                                     sub.format.rawValue.uppercased(),
-                                    String(localized: sub.isEmbedded ? "内嵌" : "外挂")
+                                    sub.isEmbedded ? String(localized: "内嵌") : String(localized: "外挂")
                                 ))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
@@ -1266,7 +1278,7 @@ public struct VideoDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(currentItem.title)
                             .font(.headline)
-                        Text(String.localizedStringWithFormat(
+                        Text(verbatim: String.localizedStringWithFormat(
                             String(localized: "格式：%@ · 编码：%@"),
                             currentItem.containerHint?.uppercased() ?? "MP4",
                             currentItem.videoCodecHint?.uppercased() ?? "H264"
@@ -1291,10 +1303,10 @@ public struct VideoDetailView: View {
                                 startPlayback(fromBeginning: false)
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(String.localizedStringWithFormat(String(localized: "版本 #%d"), index + 2))
+                                    Text(verbatim: String.localizedStringWithFormat(String(localized: "版本 #%d"), index + 2))
                                         .font(.subheadline.bold())
                                         .foregroundColor(.primary)
-                                    Text(String.localizedStringWithFormat(
+                                    Text(verbatim: String.localizedStringWithFormat(
                                         String(localized: "容器：%@ · 编码：%@"),
                                         alt.containerHint?.uppercased() ?? "HLS/TS",
                                         alt.videoCodecHint?.uppercased() ?? "H264"

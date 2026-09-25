@@ -16,9 +16,10 @@ public final class CarPlayTemplateBuilder {
         // MARK: - 1. Now Playing Section
         if let current = session.currentItem {
             let isPlaying = session.status == .playing
+            let playbackState = isPlaying ? String(localized: "▶ 正在播放") : String(localized: "⏸ 已暂停")
             let nowPlayingItem = CPListItem(
                 text: current.title,
-                detailText: "\(String(localized: isPlaying ? "▶ 正在播放" : "⏸ 已暂停")) · \(SOAPParser.formatUPnPTime(session.currentTime)) / \(SOAPParser.formatUPnPTime(session.duration))",
+                detailText: "\(playbackState) · \(SOAPParser.formatUPnPTime(session.currentTime)) / \(SOAPParser.formatUPnPTime(session.duration))",
                 image: UIImage(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
             )
             configureVideoPlayback(nowPlayingItem, for: current)

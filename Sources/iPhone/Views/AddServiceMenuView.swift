@@ -6,7 +6,10 @@ public enum ServiceCategory: String, CaseIterable, Sendable {
     case mediaServer = "媒体服务器"
 
     public var title: String {
-        String(localized: rawValue)
+        switch self {
+        case .networkProtocol: return String(localized: "协议存储")
+        case .mediaServer: return String(localized: "媒体服务器")
+        }
     }
 }
 

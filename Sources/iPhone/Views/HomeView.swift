@@ -62,7 +62,7 @@ public struct HomeView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? String(localized: "发生未知错误"))
+                Text(verbatim: errorMessage ?? String(localized: "发生未知错误"))
             }
         }
     }
@@ -107,7 +107,7 @@ public struct HomeView: View {
                     // Information Overlay
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text(sourceLabel(item.sourceType))
+                            Text(verbatim: sourceLabel(item.sourceType))
                                 .font(.system(size: 10, weight: .bold))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
@@ -132,7 +132,7 @@ public struct HomeView: View {
 
                         if let resume = item.resumePosition, let duration = item.duration, duration > 0 {
                             let remain = max(duration - resume, 0)
-                            Text(String.localizedStringWithFormat(String(localized: "剩余 %@ · 已看 %d%%"), SOAPParser.formatUPnPTime(remain), Int((resume / duration) * 100)))
+                            Text(verbatim: String.localizedStringWithFormat(String(localized: "剩余 %@ · 已看 %d%%"), SOAPParser.formatUPnPTime(remain), Int((resume / duration) * 100)))
                                 .font(.caption.weight(.medium))
                                 .foregroundColor(.white.opacity(0.85))
 
@@ -446,7 +446,7 @@ private struct HomeMiniPlayerBar: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(playerService.session.currentItem?.title ?? String(localized: "正在播放"))
+                            Text(verbatim: playerService.session.currentItem?.title ?? String(localized: "正在播放"))
                                 .font(.subheadline.bold())
                                 .foregroundColor(.primary)
                                 .lineLimit(1)

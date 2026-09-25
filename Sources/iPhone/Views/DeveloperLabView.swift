@@ -144,7 +144,7 @@ public struct DeveloperLabView: View {
         .alert("播放错误", isPresented: $isShowingErrorAlert) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? String(localized: "发生未知错误"))
+            Text(verbatim: errorMessage ?? String(localized: "发生未知错误"))
         }
     }
 
