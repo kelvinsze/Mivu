@@ -118,7 +118,7 @@ public struct MivuLiteTabView: View {
 
     public var body: some View {
         TabView {
-            MivuReceiverHomeView()
+            MivuReceiverHomeView(isCarPlayWindow: isCarPlayWindow)
                 .tabItem {
                     Label("投屏", systemImage: "rectangle.connected.to.line.below")
                 }

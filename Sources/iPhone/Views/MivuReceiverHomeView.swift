@@ -9,13 +9,16 @@ import UIKit
 /// and casting tutorials.
 public struct MivuReceiverHomeView: View {
     @ObservedObject private var playerService = PlayerService.shared
+    private let isCarPlayWindow: Bool
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var isShowingExternalCastHelp = false
     @State private var selectedPhotoVideo: PhotosPickerItem?
     @State private var isPreparingPhotoVideo = false
 
-    public init() {}
+    public init(isCarPlayWindow: Bool = false) {
+        self.isCarPlayWindow = isCarPlayWindow
+    }
 
     public var body: some View {
         NavigationStack {
@@ -39,10 +42,12 @@ public struct MivuReceiverHomeView: View {
                     castingGuideCard
                         .padding(.horizontal)
 
-                    // MARK: - 5. Mivu Pro Upgrade Hint
-                    mivuProPromoBanner
-                        .padding(.horizontal)
-                        .padding(.bottom, 30)
+                    if !isCarPlayWindow {
+                        // MARK: - 5. Mivu Pro Upgrade Hint
+                        mivuProPromoBanner
+                            .padding(.horizontal)
+                            .padding(.bottom, 30)
+                    }
                 }
                 .padding(.top, MivuSpacing.xs)
             }
@@ -317,14 +322,14 @@ public struct MivuReceiverHomeView: View {
             HStack {
                 Image(systemName: "crown.fill")
                     .foregroundColor(MivuEdition.proIdentityTint)
-                Text("探索 Mivu Pro")
+                Text("敬请期待Mivu Pro")
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
                 Spacer()
                 MivuProBadge()
             }
 
-            Text("敬请期待")
+            Text("需要连接个人私有云或家庭影院？Mivu Pro 支持 Emby、Jellyfin、SMB、WebDAV 媒体库挂载，提供影院级海报墙与元数据刮削。")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .lineSpacing(2)
