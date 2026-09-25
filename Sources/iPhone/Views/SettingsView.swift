@@ -28,10 +28,14 @@ public struct SettingsView: View {
                     HStack {
                         Label("车机显示名称", systemImage: "car.fill")
                             .foregroundColor(MivuEdition.primaryTint)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .layoutPriority(1)
                         Spacer()
                         TextField("Mivu Car", text: $customFriendlyName)
                             .multilineTextAlignment(.trailing)
                             .foregroundColor(.secondary)
+                            .frame(maxWidth: 120)
                             .onChange(of: customFriendlyName) { _, newValue in
                                 if !newValue.isEmpty {
                                     UPnPDevice.shared.friendlyName = newValue
