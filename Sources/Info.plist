@@ -95,17 +95,6 @@
 					<string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
 				</dict>
 			</array>
-			<key>UIWindowSceneSessionRoleCarPlay</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string>UIWindowScene</string>
-					<key>UISceneConfigurationName</key>
-					<string>CarPlay Window Configuration</string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULE_NAME).PhoneSceneDelegate</string>
-				</dict>
-			</array>
 		</dict>
 	</dict>
 	<key>UIBackgroundModes</key>

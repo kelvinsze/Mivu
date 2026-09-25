@@ -46,6 +46,7 @@
 		66E16322699C395612E184F9 /* PlaybackSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BFC9747064979AFA051932 /* PlaybackSession.swift */; };
 		6888D600F10C9DF69B18E7AB /* CarPlayVideoPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2F70DD8884B2AAD1077E2D /* CarPlayVideoPresentation.swift */; };
 		6901226B6D1D5C1E0642B47C /* MediaServerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135C58AAB571C7251CA0CF26 /* MediaServerProtocol.swift */; };
+		A10000000000000000000001 /* MediaServerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135C58AAB571C7251CA0CF26 /* MediaServerProtocol.swift */; };
 		69F25737DDC19538415A410E /* AVTransportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C4E68D964B70B61CE98789 /* AVTransportService.swift */; };
 		6DA8B04D20CF864E63C61919 /* SSDPService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADE3606E944B2EE920D9C0F /* SSDPService.swift */; };
 		790A403CDC6FF7024CF22C6C /* MivuLiteTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A8095DE44EEF1697C1406A0 /* MivuLiteTabView.swift */; };
@@ -631,6 +632,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A10000000000000000000001 /* MediaServerProtocol.swift in Sources */,
 				273D43254AF1B78F73D50C9C /* AVPlayerEngine.swift in Sources */,
 				CBC155672B840A6EAE8D3A79 /* AVTransportService.swift in Sources */,
 				B0945693970E7A899C740CC0 /* CarPlaySceneDelegate.swift in Sources */,

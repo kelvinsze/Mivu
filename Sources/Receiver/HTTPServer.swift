@@ -474,7 +474,6 @@ public final class HTTPServer: @unchecked Sendable {
         Server: iOS/17 UPnP/1.0 Mivu/0.1\r
         Content-Type: \(contentType)\r
         Content-Length: \(bodyData.count)\r
-        Access-Control-Allow-Origin: *\r
         Connection: close\r
         \r\n
         """
