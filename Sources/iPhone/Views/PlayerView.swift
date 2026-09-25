@@ -1462,7 +1462,7 @@ public struct PlayerView: View {
                         playerService.setSubtitleUserScale(scale)
                     } label: {
                         HStack {
-                            Text(label)
+                            Text(String(localized: label))
                             if abs(playerService.subtitleUserScale - scale) < 0.02 {
                                 Image(systemName: "checkmark")
                             }

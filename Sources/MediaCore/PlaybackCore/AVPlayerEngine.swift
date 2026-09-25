@@ -477,7 +477,7 @@ public final class AVPlayerEngine: PlayerEngine {
                         let start = CMTimeGetSeconds(group.timeRange.start)
                         let dur = CMTimeGetSeconds(group.timeRange.duration)
                         guard start.isFinite && !start.isNaN else { continue }
-                        var name = "第 \(idx + 1) 章"
+                        var name = String.localizedStringWithFormat(String(localized: "第 %d 章"), idx + 1)
                         for metaItem in group.items {
                             if let stringVal = try? await metaItem.load(.stringValue), !stringVal.isEmpty {
                                 name = stringVal

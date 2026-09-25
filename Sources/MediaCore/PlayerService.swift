@@ -944,7 +944,7 @@ public final class PlayerService: ObservableObject {
         guard !transcodeFallbackAttempted else {
             logger.error("Transcode fallback already attempted; exhausting candidate fallback to avoid loop.")
             SSDPService.shared.recordPlaybackDebug("FALLBACK circuit_breaker_triggered engine=\(engineName) error=\(session.errorMessage ?? "unknown")")
-            session.errorMessage = "媒体解码失败，已尝试转码仍无法播放"
+            session.errorMessage = String(localized: "媒体解码失败，已尝试转码仍无法播放")
             finishCastDiagnosticSummary(reason: "failed")
             return
         }

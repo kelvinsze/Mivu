@@ -136,13 +136,13 @@ public struct VideoDetailView: View {
                         Button {
                             togglePlayed()
                         } label: {
-                            Label(currentItem.isPlayed == true ? "标记为未看" : "标记为已看", systemImage: currentItem.isPlayed == true ? "eye.slash" : "checkmark.circle")
+                            Label(currentItem.isPlayed == true ? String(localized: "标记为未看") : String(localized: "标记为已看"), systemImage: currentItem.isPlayed == true ? "eye.slash" : "checkmark.circle")
                         }
 
                         Button {
                             toggleFavorite()
                         } label: {
-                            Label(currentItem.isFavorite == true ? "取消收藏" : "加入收藏", systemImage: currentItem.isFavorite == true ? "heart.slash" : "heart")
+                            Label(currentItem.isFavorite == true ? String(localized: "取消收藏") : String(localized: "加入收藏"), systemImage: currentItem.isFavorite == true ? "heart.slash" : "heart")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -477,7 +477,7 @@ public struct VideoDetailView: View {
                     isOverviewExpanded.toggle()
                 }
             } label: {
-                Text(isOverviewExpanded ? "收起" : "展开全文")
+                Text(isOverviewExpanded ? String(localized: "收起") : String(localized: "展开全文"))
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(MivuEdition.primaryTint)
             }
@@ -527,7 +527,7 @@ public struct VideoDetailView: View {
 
     private func unavailableRatingCard(name: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(name)
+            Text(String(localized: name))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(tint)
                 .padding(.horizontal, 6)
@@ -535,11 +535,11 @@ public struct VideoDetailView: View {
                 .background(tint.opacity(0.18))
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
 
-            Text(isLoadingUnifiedRatings ? "正在获取评分" : "暂无评分")
+            Text(isLoadingUnifiedRatings ? String(localized: "正在获取评分") : String(localized: "暂无评分"))
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.white.opacity(0.82))
 
-            Text(isLoadingUnifiedRatings ? "请稍候" : "暂未收录")
+            Text(isLoadingUnifiedRatings ? String(localized: "请稍候") : String(localized: "暂未收录"))
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.45))
         }
@@ -759,7 +759,7 @@ public struct VideoDetailView: View {
                     HStack(spacing: 3) {
                         Image(systemName: isFresh ? "flame.fill" : "cross.circle.fill")
                             .font(.system(size: 9, weight: .bold))
-                        Text(isFresh ? "烂番茄" : "番茄酱")
+                        Text(isFresh ? String(localized: "烂番茄") : String(localized: "番茄酱"))
                             .font(.system(size: 11, weight: .bold))
                     }
                     .foregroundColor(tintColor)
@@ -776,7 +776,7 @@ public struct VideoDetailView: View {
                         .foregroundColor(.white)
                 }
 
-                Text(isFresh ? "新鲜度认证" : "爆米花评价")
+                Text(isFresh ? String(localized: "新鲜度认证") : String(localized: "爆米花评价"))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.white.opacity(0.55))
             }
@@ -1022,7 +1022,7 @@ public struct VideoDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 11))
-                Text(title)
+                Text(String(localized: title))
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.white.opacity(0.9))
@@ -1138,7 +1138,7 @@ public struct VideoDetailView: View {
 
     private func infoRow(key: String, val: String) -> some View {
         HStack {
-            Text(key)
+            Text(String(localized: key))
                 .font(.system(size: 12))
                 .foregroundColor(.white.opacity(0.55))
             Spacer()

@@ -85,7 +85,7 @@ public struct MivuReceiverHomeView: View {
             }
 
             HStack(spacing: 6) {
-                Text(isReceiverActive ? "投屏服务已就绪" : "等待连接 CarPlay")
+                Text(isReceiverActive ? String(localized: "投屏服务已就绪") : String(localized: "等待连接 CarPlay"))
                     .font(.headline)
                     .foregroundColor(.primary)
                 Circle()
@@ -99,7 +99,7 @@ public struct MivuReceiverHomeView: View {
                     .foregroundColor(Color.mivuAccent)
             }
 
-            Text(isReceiverActive ? "等待来自局域网设备的媒体投送" : "连接 CarPlay 后自动开启投屏服务")
+            Text(isReceiverActive ? String(localized: "等待来自局域网设备的媒体投送") : String(localized: "连接 CarPlay 后自动开启投屏服务"))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -194,7 +194,7 @@ public struct MivuReceiverHomeView: View {
 
             Spacer(minLength: MivuSpacing.xxs)
 
-            Text(title)
+            Text(String(localized: title))
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
@@ -216,7 +216,7 @@ public struct MivuReceiverHomeView: View {
                     .font(.caption.bold())
                     .foregroundColor(Color.mivuAccent)
                 Spacer()
-                Text(isPlaying ? "播放中" : "已暂停")
+            Text(isPlaying ? String(localized: "播放中") : String(localized: "已暂停"))
                     .font(.caption2.weight(.medium))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -235,7 +235,7 @@ public struct MivuReceiverHomeView: View {
                     playerService.togglePlayPause()
                 } label: {
                     Label(
-                        isPlaying ? "暂停" : "继续",
+                        isPlaying ? String(localized: "暂停") : String(localized: "继续"),
                         systemImage: isPlaying ? "pause.fill" : "play.fill"
                     )
                     .font(.subheadline.weight(.medium))
@@ -305,10 +305,10 @@ public struct MivuReceiverHomeView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(String(localized: title))
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
-                Text(detail)
+                Text(String(localized: detail))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

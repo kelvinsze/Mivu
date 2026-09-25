@@ -216,7 +216,10 @@ struct AddServerView: View {
                 }
 
                 Section("连接信息") {
-                    TextField("服务器名称 (如: \(selectedService.defaultServerName))", text: $serverName)
+                    TextField(
+                        String.localizedStringWithFormat(String(localized: "服务器名称（例如 %@）"), selectedService.defaultServerName),
+                        text: $serverName
+                    )
 
                     TextField(selectedService.defaultURLPlaceholder, text: $serverUrlStr)
                         .autocapitalization(.none)

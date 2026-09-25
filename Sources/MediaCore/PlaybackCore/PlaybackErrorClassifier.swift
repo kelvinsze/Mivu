@@ -78,7 +78,7 @@ public enum PlaybackErrorClassifier {
         }
 
         guard let error = item.error as NSError? else {
-            return .unclassified("播放器状态异常")
+            return .unclassified(String(localized: "播放器状态异常"))
         }
 
         return classifyNSError(error)

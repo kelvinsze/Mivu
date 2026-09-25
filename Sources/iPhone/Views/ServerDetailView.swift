@@ -35,13 +35,13 @@ public struct ServerDetailView: View {
 
                 // 2. Continue Watching Horizontal Rail
                 if !continueWatching.isEmpty {
-                    posterRow(title: "继续观看", items: continueWatching, showsProgress: true)
+                    posterRow(title: String(localized: "继续观看"), items: continueWatching, showsProgress: true)
                 }
 
                 // 3. Search Results or Selected Library Items
                 if !searchText.isEmpty {
                     if !searchResults.isEmpty {
-                        posterGrid(title: "搜索结果", items: searchResults)
+                        posterGrid(title: String(localized: "搜索结果"), items: searchResults)
                     } else if !isLoading {
                         ContentUnavailableView.search(text: searchText)
                             .padding(.top, 40)

@@ -288,7 +288,7 @@ public struct PersonDetailView: View {
                         isBioExpanded.toggle()
                     }
                 } label: {
-                    Text(isBioExpanded ? "收起" : "展开全文")
+                    Text(isBioExpanded ? String(localized: "收起") : String(localized: "展开全文"))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.orange)
                 }
@@ -359,7 +359,7 @@ public struct PersonDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .bold))
-                Text(title)
+                Text(String(localized: title))
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.white)
@@ -399,7 +399,7 @@ public struct PersonDetailView: View {
                                     selectedFilter = filter
                                 }
                             } label: {
-                                Text(filter)
+                Text(String(localized: filter))
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(selectedFilter == filter ? .white : .white.opacity(0.6))
                                     .padding(.horizontal, 12)
@@ -697,27 +697,27 @@ public struct PersonDetailView: View {
         switch name {
         case "Colin Levy":
             return (
-                overview: "Colin Levy 是美国独立电影导演与视觉特效艺术家，曾就职于皮克斯动画工作室（Pixar Animation Studios），参与制作了多部知名皮克斯长片。作为 Blender 基金会 Durian 开放电影项目核心导演，他执导了享誉全球的开源奇幻动画短片《Sintel》。",
+                overview: String(localized: "Colin Levy 是美国独立电影导演与视觉特效艺术家，曾就职于皮克斯动画工作室（Pixar Animation Studios），参与制作了多部知名皮克斯长片。作为 Blender 基金会 Durian 开放电影项目核心导演，他执导了享誉全球的开源奇幻动画短片《Sintel》。"),
                 birthDate: "1988-12-05",
-                birthPlace: "美国俄亥俄州"
+                birthPlace: String(localized: "美国俄亥俄州")
             )
         case "Halina Reijn":
             return (
-                overview: "Halina Reijn 是荷兰知名女演员、导演及作家，多次荣获荷兰电影节金牛奖（Golden Calf）。她曾在保罗·范霍文执导的二战惊悚片《黑皮书》中奉献了精湛演技，并在 Blender 基金会的动画短片《Sintel》中为女主角 Sintel 倾情献声配音。",
+                overview: String(localized: "Halina Reijn 是荷兰知名女演员、导演及作家，多次荣获荷兰电影节金牛奖（Golden Calf）。她曾在保罗·范霍文执导的二战惊悚片《黑皮书》中奉献了精湛演技，并在 Blender 基金会的动画短片《Sintel》中为女主角 Sintel 倾情献声配音。"),
                 birthDate: "1975-11-10",
-                birthPlace: "荷兰阿姆斯特丹"
+                birthPlace: String(localized: "荷兰阿姆斯特丹")
             )
         case "Sacha Goedegebure":
             return (
-                overview: "Sacha Goedegebure（网名 Saschart）是知名的 3D 动画艺术家与数字插画师，作为核心导演执导了开源 3D 动画电影《大白兔》（Big Buck Bunny），在开源艺术与计算机图形学领域享有盛誉。",
+                overview: String(localized: "Sacha Goedegebure（网名 Saschart）是知名的 3D 动画艺术家与数字插画师，作为核心导演执导了开源 3D 动画电影《大白兔》（Big Buck Bunny），在开源艺术与计算机图形学领域享有盛誉。"),
                 birthDate: "1978-04-10",
-                birthPlace: "荷兰"
+                birthPlace: String(localized: "荷兰")
             )
         case "Ton Roosendaal":
             return (
-                overview: "Ton Roosendaal 是荷兰著名软件开发者与电影制片人，Blender 开源 3D 创作套件的首席创作者，Blender 基金会创始人兼主席。他主导了《Elephants Dream》、《大白兔》、《Sintel》等一系列开源电影项目，推动了全球开放电影与开源 CG 技术的蓬勃发展。",
+                overview: String(localized: "Ton Roosendaal 是荷兰著名软件开发者与电影制片人，Blender 开源 3D 创作套件的首席创作者，Blender 基金会创始人兼主席。他主导了《Elephants Dream》、《大白兔》、《Sintel》等一系列开源电影项目，推动了全球开放电影与开源 CG 技术的蓬勃发展。"),
                 birthDate: "1960-03-20",
-                birthPlace: "荷兰海尔德兰省"
+                birthPlace: String(localized: "荷兰海尔德兰省")
             )
         default:
             return nil
