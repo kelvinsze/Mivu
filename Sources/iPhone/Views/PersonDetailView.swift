@@ -359,7 +359,7 @@ public struct PersonDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: icon)
                     .font(.system(size: 11, weight: .bold))
-                Text(String(localized: title))
+                Text(verbatim: title)
                     .font(.system(size: 13, weight: .semibold))
             }
             .foregroundColor(.white)
@@ -399,7 +399,7 @@ public struct PersonDetailView: View {
                                     selectedFilter = filter
                                 }
                             } label: {
-                Text(String(localized: filter))
+                                Text(verbatim: localizedFilterTitle(filter))
                                     .font(.system(size: 12, weight: .semibold))
                                     .foregroundColor(selectedFilter == filter ? .white : .white.opacity(0.6))
                                     .padding(.horizontal, 12)
@@ -564,6 +564,17 @@ public struct PersonDetailView: View {
         if hasProducer { options.append("制片") }
 
         return options
+    }
+
+    private func localizedFilterTitle(_ filter: String) -> String {
+        switch filter {
+        case "全部": return String(localized: "全部")
+        case "导演": return String(localized: "导演")
+        case "演员": return String(localized: "演员")
+        case "编剧": return String(localized: "编剧")
+        case "制片": return String(localized: "制片")
+        default: return filter
+        }
     }
 
     private var filteredWorks: [MediaItem] {
