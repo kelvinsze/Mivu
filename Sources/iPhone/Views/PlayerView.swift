@@ -1451,12 +1451,12 @@ public struct PlayerView: View {
         Menu {
             Section(String.localizedStringWithFormat(String(localized: "字幕大小 (%lld%%)"), Int(playerService.subtitleUserScale * 100))) {
                 ForEach([
-                    (LocalizedStringKey("极小 (75%)"), 0.75),
-                    (LocalizedStringKey("较小 (85%)"), 0.85),
-                    (LocalizedStringKey("标准 (100%)"), 1.00),
-                    (LocalizedStringKey("较大 (120%)"), 1.20),
-                    (LocalizedStringKey("特大 (140%)"), 1.40),
-                    (LocalizedStringKey("极大 (160%)"), 1.60)
+                    (String(localized: "极小 (75%)"), 0.75),
+                    (String(localized: "较小 (85%)"), 0.85),
+                    (String(localized: "标准 (100%)"), 1.00),
+                    (String(localized: "较大 (120%)"), 1.20),
+                    (String(localized: "特大 (140%)"), 1.40),
+                    (String(localized: "极大 (160%)"), 1.60)
                 ], id: \.1) { label, scale in
                     Button {
                         playerService.setSubtitleUserScale(scale)
