@@ -134,15 +134,37 @@ final class SOAPParserTests: XCTestCase {
 
     func testWebRemoteTemplateRender() {
         let html = WebRemoteTemplate.render(ip: "192.168.1.88", port: 7890, friendlyName: "Mivu Car")
-        XCTAssertTrue(html.contains("Mivu 网页遥控器"))
+        XCTAssertTrue(html.contains("Mivu 遥控与投送"))
         XCTAssertTrue(html.contains("Mivu Car"))
         XCTAssertTrue(html.contains("/api/play"))
+        XCTAssertTrue(html.contains("X-Mivu-Access-Code"))
+        XCTAssertTrue(html.contains("access-code"))
+    }
+
+    func testWebRemoteRequiresAccessCode() async throws {
+        HTTPServer.shared.start()
+        for _ in 0..<20 where !HTTPServer.shared.isRunning {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        XCTAssertTrue(HTTPServer.shared.isRunning)
+
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:\(HTTPServer.shared.port)/api/status"))
+        let (_, unauthenticatedResponse) = try await URLSession.shared.data(from: url)
+        XCTAssertEqual((unauthenticatedResponse as? HTTPURLResponse)?.statusCode, 401)
+
+        var authenticatedRequest = URLRequest(url: url)
+        authenticatedRequest.setValue(HTTPServer.shared.webAccessCode, forHTTPHeaderField: "X-Mivu-Access-Code")
+        let (_, authenticatedResponse) = try await URLSession.shared.data(for: authenticatedRequest)
+        XCTAssertEqual((authenticatedResponse as? HTTPURLResponse)?.statusCode, 200)
     }
 
     func testEscapeXML() {
         XCTAssertEqual(SOAPParser.escapeXML("https://example.test/a?x=1&y=<2"), "https://example.test/a?x=1&amp;y=&lt;2")
     }
 
+    // MARK: - Media Server Tests (Pro Only)
+
+    #if MIVU_PRO
     func testSavedServerInfoDoesNotEncodeToken() throws {
         let info = SavedServerInfo(
             name: "Test",
@@ -213,6 +235,7 @@ final class SOAPParserTests: XCTestCase {
         XCTAssertEqual(try JSONDecoder().decode(MediaServerType.self, from: Data("\"smb\"".utf8)), .smb)
         XCTAssertEqual(try JSONDecoder().decode(MediaServerType.self, from: Data("\"fnos\"".utf8)), .fnos)
     }
+    #endif
 
     func testSSDPMSearchParsingAndResponseConstruction() {
         let packet = "M-SEARCH * HTTP/1.1\r\nMAN: \"ssdp:discover\"\r\nST: ssdp:all\r\n\r\n"

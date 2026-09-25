@@ -1,39 +1,171 @@
 {
-  "sourceLanguage": "zh-Hans",
-  "strings": {
-    "NSPhotoLibraryAddUsageDescription": {
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Mivu 需要保存视频高清截图至您的系统相册。"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Mivu 需要將高畫質影片截圖儲存至您的系統相簿。"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Mivu needs permission to save full-quality video screenshots to your photo library."}},
-        "fr": {"stringUnit": {"state": "translated", "value": "Mivu a besoin d’accéder à votre photothèque pour y enregistrer des captures vidéo en pleine qualité."}},
-        "de": {"stringUnit": {"state": "translated", "value": "Mivu benötigt Zugriff, um Screenshots in voller Videoqualität in deiner Fotomediathek zu sichern."}},
-        "es": {"stringUnit": {"state": "translated", "value": "Mivu necesita permiso para guardar capturas de video en calidad original en tu fototeca."}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "O Mivu precisa de permissão para salvar capturas de vídeo em qualidade original na fototeca."}}
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mivu"
+          }
+        }
       }
     },
-    "NSPhotoLibraryUsageDescription": {
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Mivu 需要访问您的相册，以选择视频并在 CarPlay 上播放。"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Mivu 需要取用您的相簿，以選取影片並在 CarPlay 播放。"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Mivu needs access to your photo library so you can choose videos to play on CarPlay."}},
-        "fr": {"stringUnit": {"state": "translated", "value": "Mivu a besoin d’accéder à votre photothèque pour sélectionner des vidéos à lire sur CarPlay."}},
-        "de": {"stringUnit": {"state": "translated", "value": "Mivu benötigt Zugriff auf deine Fotomediathek, damit du Videos für die Wiedergabe über CarPlay auswählen kannst."}},
-        "es": {"stringUnit": {"state": "translated", "value": "Mivu necesita acceso a tu fototeca para que puedas elegir videos y reproducirlos en CarPlay."}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "O Mivu precisa acessar sua fototeca para você escolher vídeos para reproduzir no CarPlay."}}
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mivu"
+          }
+        }
       }
     },
-    "NSLocalNetworkUsageDescription": {
-      "localizations": {
-        "zh-Hans": {"stringUnit": {"state": "translated", "value": "Mivu 使用本地网络发现媒体服务器，并接收网络中设备和 App 发送的视频投屏请求。"}},
-        "zh-Hant": {"stringUnit": {"state": "translated", "value": "Mivu 會使用區域網路探索媒體伺服器，並接收網路中裝置與 App 傳送的影片投放要求。"}},
-        "en": {"stringUnit": {"state": "translated", "value": "Mivu uses your local network to discover media servers and receive video casting requests from devices and apps on your network."}},
-        "fr": {"stringUnit": {"state": "translated", "value": "Mivu utilise votre réseau local pour détecter les serveurs multimédias et recevoir des demandes de diffusion vidéo des appareils et apps du réseau."}},
-        "de": {"stringUnit": {"state": "translated", "value": "Mivu verwendet dein lokales Netzwerk, um Medienserver zu finden und Videoübertragungen von Geräten und Apps im Netzwerk zu empfangen."}},
-        "es": {"stringUnit": {"state": "translated", "value": "Mivu usa tu red local para detectar servidores multimedia y recibir solicitudes de transmisión de video de dispositivos y apps de la red."}},
-        "pt-BR": {"stringUnit": {"state": "translated", "value": "O Mivu usa sua rede local para encontrar servidores de mídia e receber pedidos de transmissão de vídeo de dispositivos e apps da rede."}}
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "Privacy - Local Network Usage Description",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu verwendet dein lokales Netzwerk, um Medienserver zu finden und Videoübertragungen von Geräten und Apps im Netzwerk zu empfangen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu uses your local network to discover media servers and receive video casting requests from devices and apps on your network."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu usa tu red local para detectar servidores multimedia y recibir solicitudes de transmisión de video de dispositivos y apps de la red."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu utilise votre réseau local pour détecter les serveurs multimédias et recevoir des demandes de diffusion vidéo des appareils et apps du réseau."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Mivu usa sua rede local para encontrar servidores de mídia e receber pedidos de transmissão de vídeo de dispositivos e apps da rede."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 使用本地网络发现媒体服务器，并接收网络中设备和 App 发送的视频投屏请求。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 會使用區域網路探索媒體伺服器，並接收網路中裝置與 App 傳送的影片投放要求。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryAddUsageDescription" : {
+      "comment" : "Privacy - Photo Library Additions Usage Description",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu benötigt Zugriff, um Screenshots in voller Videoqualität in deiner Fotomediathek zu sichern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu needs permission to save full-quality video screenshots to your photo library."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu necesita permiso para guardar capturas de video en calidad original en tu fototeca."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu a besoin d’accéder à votre photothèque pour y enregistrer des captures vidéo en pleine qualité."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Mivu precisa de permissão para salvar capturas de vídeo em qualidade original na fototeca."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 需要保存视频高清截图至您的系统相册。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 需要將高畫質影片截圖儲存至您的系統相簿。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription" : {
+      "comment" : "Privacy - Photo Library Usage Description",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu benötigt Zugriff auf deine Fotomediathek, damit du Videos für die Wiedergabe über CarPlay auswählen kannst."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu needs access to your photo library so you can choose videos to play on CarPlay."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu necesita acceso a tu fototeca para que puedas elegir videos y reproducirlos en CarPlay."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu a besoin d’accéder à votre photothèque pour sélectionner des vidéos à lire sur CarPlay."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O Mivu precisa acessar sua fototeca para você escolher vídeos para reproduzir no CarPlay."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 需要访问您的相册，以选择视频并在 CarPlay 上播放。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mivu 需要取用您的相簿，以選取影片並在 CarPlay 播放。"
+          }
+        }
       }
     }
   },
-  "version": 1
+  "version" : "1.0"
 }

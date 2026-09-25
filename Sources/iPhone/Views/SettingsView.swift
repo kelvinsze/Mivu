@@ -300,7 +300,7 @@ public struct WiFiUploadLibraryView: View {
     public init() {}
 
     private var webAddress: String {
-        "http://\(HTTPServer.shared.localIPAddress):\(HTTPServer.shared.port)"
+        "http://\(HTTPServer.shared.localIPAddress):\(HTTPServer.shared.port)/web#access-code=\(HTTPServer.shared.webAccessCode)"
     }
 
     public var body: some View {

@@ -15,12 +15,17 @@ public final class HTTPServer: @unchecked Sendable {
     public private(set) var port: UInt16 = 7890
 
     private static let maximumUploadSize = 10 * 1024 * 1024 * 1024
+    private static let maximumHeaderSize = 32 * 1024
+    private static let maximumControlRequestSize = 1 * 1024 * 1024
+    public let webAccessCode: String
 
     public var localIPAddress: String {
         return NetworkHelper.getWiFiAddress() ?? "127.0.0.1"
     }
 
-    private init() {}
+    private init() {
+        webAccessCode = String(format: "%06d", Int.random(in: 0..<1_000_000))
+    }
 
     public func start(port: UInt16 = 7890) {
         guard !isRunning else { return }
@@ -82,8 +87,17 @@ public final class HTTPServer: @unchecked Sendable {
                 currentData.append(content)
             }
 
+            guard currentData.count <= Self.maximumHeaderSize || currentData.range(of: Data("\r\n\r\n".utf8)) != nil else {
+                self.sendResponse(connection: connection, statusCode: 431, contentType: "text/plain", body: "Request Header Fields Too Large")
+                return
+            }
+
             // Check if headers are completely received
             if let headerEndRange = currentData.range(of: Data("\r\n\r\n".utf8)) {
+                guard headerEndRange.lowerBound <= Self.maximumHeaderSize else {
+                    self.sendResponse(connection: connection, statusCode: 431, contentType: "text/plain", body: "Request Header Fields Too Large")
+                    return
+                }
                 let headerData = currentData.subdata(in: 0..<headerEndRange.lowerBound)
                 let bodyData = currentData.subdata(in: headerEndRange.upperBound..<currentData.count)
 
@@ -95,6 +109,11 @@ public final class HTTPServer: @unchecked Sendable {
                 let headers = self.parseHeaders(headerString)
                 let contentLength = Int(headers["content-length"] ?? "0") ?? 0
 
+                guard contentLength >= 0 else {
+                    self.sendResponse(connection: connection, statusCode: 400, contentType: "text/plain", body: "Bad Request")
+                    return
+                }
+
                 if self.isUploadRequest(headerString: headerString) {
                     self.receiveUpload(
                         connection: connection,
@@ -103,6 +122,8 @@ public final class HTTPServer: @unchecked Sendable {
                         initialBodyData: bodyData,
                         contentLength: contentLength
                     )
+                } else if contentLength > Self.maximumControlRequestSize {
+                    self.sendResponse(connection: connection, statusCode: 413, contentType: "application/json", body: "{\"error\":\"payload_too_large\"}")
                 } else if bodyData.count >= contentLength {
                     self.processRequest(connection: connection, headerString: headerString, headers: headers, bodyData: bodyData)
                 } else {
@@ -134,6 +155,11 @@ public final class HTTPServer: @unchecked Sendable {
         initialBodyData: Data,
         contentLength: Int
     ) {
+        guard isAuthorizedWebRequest(headers: headers) else {
+            sendResponse(connection: connection, statusCode: 401, contentType: "application/json", body: "{\"error\":\"access_code_required\"}")
+            return
+        }
+
         guard contentLength > 0, contentLength <= Self.maximumUploadSize else {
             sendResponse(connection: connection, statusCode: 413, contentType: "application/json", body: "{\"error\":\"file_too_large\"}")
             return
@@ -261,6 +287,14 @@ public final class HTTPServer: @unchecked Sendable {
         return headers
     }
 
+    private func requiresWebAccess(path: String) -> Bool {
+        path == "/debug/carplay" || path.hasPrefix("/api/")
+    }
+
+    private func isAuthorizedWebRequest(headers: [String: String]) -> Bool {
+        headers["x-mivu-access-code"]?.trimmingCharacters(in: .whitespacesAndNewlines) == webAccessCode
+    }
+
     private func processRequest(connection: NWConnection, headerString: String, headers: [String: String], bodyData: Data) {
         let firstLine = headerString.components(separatedBy: "\r\n").first ?? ""
         let parts = firstLine.split(separator: " ")
@@ -277,6 +311,11 @@ public final class HTTPServer: @unchecked Sendable {
             .first(where: { $0.name == "via" })?
             .value
         logger.info("HTTP Request: \(method) \(requestTarget)")
+
+        if requiresWebAccess(path: path), !isAuthorizedWebRequest(headers: headers) {
+            sendResponse(connection: connection, statusCode: 401, contentType: "application/json", body: "{\"error\":\"access_code_required\"}")
+            return
+        }
 
         switch (method, path) {
         // MARK: - UPnP Device Description & SCPD
@@ -406,7 +445,9 @@ public final class HTTPServer: @unchecked Sendable {
         case ("POST", "/api/play"):
             if let json = try? JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
                let urlStr = json["url"] as? String,
-               let url = URL(string: urlStr) {
+               let url = URL(string: urlStr),
+               let scheme = url.scheme?.lowercased(),
+               scheme == "http" || scheme == "https" {
                 let title = (json["title"] as? String) ?? url.lastPathComponent
                 let item = MediaItem(
                     title: title.isEmpty ? "Web Stream" : title,
@@ -463,9 +504,11 @@ public final class HTTPServer: @unchecked Sendable {
         switch statusCode {
         case 200: statusText = "OK"
         case 400: statusText = "Bad Request"
+        case 401: statusText = "Unauthorized"
         case 404: statusText = "Not Found"
         case 413: statusText = "Payload Too Large"
         case 415: statusText = "Unsupported Media Type"
+        case 431: statusText = "Request Header Fields Too Large"
         default: statusText = "Internal Server Error"
         }
         let bodyData = Data(body.utf8)
@@ -563,7 +606,7 @@ enum WebRemoteTemplate {
               color: var(--muted);
               margin-bottom: 0.75rem;
             }
-            input[type="text"] {
+            input[type="text"], input[type="password"] {
               width: 100%;
               padding: 0.75rem 1rem;
               background: rgba(0,0,0,0.3);
@@ -636,6 +679,13 @@ enum WebRemoteTemplate {
             </header>
 
             <div class="card">
+              <div class="card-title" data-i18n="accessTitle">Access Code</div>
+              <input type="password" id="accessCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" data-i18n-placeholder="accessPlaceholder" placeholder="Enter the 6-digit code shown in Mivu">
+              <button class="btn-primary" onclick="unlockWebRemote()" data-i18n="unlock">Unlock Remote</button>
+              <div class="upload-status" id="accessCodeStatus" data-i18n="accessHint">Enter the code from Mivu to control or upload.</div>
+            </div>
+
+            <div class="card">
               <div class="card-title" data-i18n="nowPlaying">Now Playing</div>
               <div class="status-text" id="mediaTitle" data-i18n="loading">Loading...</div>
               <div class="time-bar" id="mediaTime">00:00:00 / 00:00:00</div>
@@ -672,14 +722,60 @@ enum WebRemoteTemplate {
               es: { heading:'Control remoto y envío de Mivu', nowPlaying:'Reproduciendo', loading:'Cargando…', toggle:'⏯ Reproducir/Pausar', stop:'⏹ Detener', pushTitle:'Enviar URL de video a CarPlay / Mivu', urlPlaceholder:'Introduce una URL HTTP/HTTPS o HLS m3u8', push:'🚀 Reproducir en Mivu', uploadTitle:'Subir a Mivu por Wi-Fi', upload:'⬆️ Subir a la biblioteca', uploadHint:'Los videos se guardan en la biblioteca Mivu de este dispositivo.', playing:'Reproduciendo video', noMedia:'Sin contenido', enterURL:'Introduce una URL de video', chooseFile:'Selecciona un archivo de video', uploading:'Subiendo', uploaded:'Carga completada. Guardado en la biblioteca Mivu.', failed:'Error al subir. Usa un video compatible de menos de 10 GB.', offline:'Conexión interrumpida. La carga no se completó.', preparing:'Preparando la carga…' },
               'pt-BR': { heading:'Controle remoto e transmissão Mivu', nowPlaying:'Reproduzindo agora', loading:'Carregando…', toggle:'⏯ Reproduzir/Pausar', stop:'⏹ Parar', pushTitle:'Enviar URL de vídeo para CarPlay / Mivu', urlPlaceholder:'Digite uma URL HTTP/HTTPS ou HLS m3u8', push:'🚀 Reproduzir no Mivu', uploadTitle:'Enviar para o Mivu via Wi-Fi', upload:'⬆️ Enviar para a biblioteca', uploadHint:'Os vídeos são salvos na biblioteca Mivu deste dispositivo.', playing:'Reproduzindo vídeo', noMedia:'Sem mídia', enterURL:'Digite uma URL de vídeo', chooseFile:'Selecione um arquivo de vídeo', uploading:'Enviando', uploaded:'Envio concluído. Salvo na biblioteca Mivu.', failed:'Falha no envio. Use um vídeo compatível com menos de 10 GB.', offline:'Conexão interrompida. Envio incompleto.', preparing:'Preparando envio…' }
             };
-            const tr = (key) => (messages[language] || messages.en)[key];
+            const accessMessages = {
+              en: { accessTitle:'Access Code', accessPlaceholder:'Enter the 6-digit code shown in Mivu', unlock:'Unlock Remote', accessHint:'Enter the code from Mivu to control or upload.', accessDenied:'Incorrect access code.' },
+              'zh-Hans': { accessTitle:'访问码', accessPlaceholder:'输入 Mivu 中显示的 6 位访问码', unlock:'解锁遥控器', accessHint:'输入 Mivu 中的访问码后即可控制或上传。', accessDenied:'访问码错误。' },
+              'zh-Hant': { accessTitle:'存取碼', accessPlaceholder:'輸入 Mivu 中顯示的 6 位存取碼', unlock:'解鎖遙控器', accessHint:'輸入 Mivu 中的存取碼後即可控制或上傳。', accessDenied:'存取碼錯誤。' },
+              fr: { accessTitle:'Code d’accès', accessPlaceholder:'Saisissez le code à 6 chiffres affiché dans Mivu', unlock:'Déverrouiller la télécommande', accessHint:'Saisissez le code de Mivu pour contrôler ou importer.', accessDenied:'Code d’accès incorrect.' },
+              de: { accessTitle:'Zugangscode', accessPlaceholder:'Gib den in Mivu angezeigten 6-stelligen Code ein', unlock:'Fernbedienung entsperren', accessHint:'Gib den Code aus Mivu ein, um zu steuern oder hochzuladen.', accessDenied:'Falscher Zugangscode.' },
+              es: { accessTitle:'Código de acceso', accessPlaceholder:'Introduce el código de 6 dígitos mostrado en Mivu', unlock:'Desbloquear control remoto', accessHint:'Introduce el código de Mivu para controlar o subir archivos.', accessDenied:'Código de acceso incorrecto.' },
+              'pt-BR': { accessTitle:'Código de acesso', accessPlaceholder:'Digite o código de 6 dígitos exibido no Mivu', unlock:'Desbloquear controle remoto', accessHint:'Digite o código do Mivu para controlar ou enviar arquivos.', accessDenied:'Código de acesso incorreto.' }
+            };
+            const tr = (key) => (messages[language] || messages.en)[key] || (accessMessages[language] || accessMessages.en)[key];
             document.documentElement.lang = language;
             document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = tr(el.dataset.i18n));
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = tr(el.dataset.i18nPlaceholder));
             document.title = 'Mivu ' + tr('heading');
+            const accessCodeKey = 'mivu-web-access-code';
+            const accessCodeInput = document.getElementById('accessCodeInput');
+            const accessCodeStatus = document.getElementById('accessCodeStatus');
+            const accessCodeFromFragment = new URLSearchParams(window.location.hash.slice(1)).get('access-code');
+            if (/^\\d{6}$/.test(accessCodeFromFragment || '')) {
+              sessionStorage.setItem(accessCodeKey, accessCodeFromFragment);
+              history.replaceState(null, '', window.location.pathname);
+            }
+            accessCodeInput.value = sessionStorage.getItem(accessCodeKey) || '';
+            const currentAccessCode = () => accessCodeInput.value.trim();
+            async function authenticatedFetch(url, options = {}) {
+              const headers = new Headers(options.headers || {});
+              const code = currentAccessCode();
+              if (code) headers.set('X-Mivu-Access-Code', code);
+              return fetch(url, { ...options, headers });
+            }
+            async function unlockWebRemote() {
+              const code = currentAccessCode();
+              if (!/^\\d{6}$/.test(code)) {
+                accessCodeStatus.textContent = tr('accessHint');
+                return;
+              }
+              sessionStorage.setItem(accessCodeKey, code);
+              try {
+                const response = await authenticatedFetch('/api/status');
+                if (response.status === 401) {
+                  sessionStorage.removeItem(accessCodeKey);
+                  accessCodeStatus.textContent = tr('accessDenied');
+                  return;
+                }
+                accessCodeStatus.textContent = '';
+                fetchStatus();
+              } catch (_) {
+                accessCodeStatus.textContent = tr('offline');
+              }
+            }
             async function fetchStatus() {
               try {
-                const res = await fetch('/api/status');
+                const res = await authenticatedFetch('/api/status');
+                if (!res.ok) return;
                 const data = await res.json();
                 document.getElementById('mediaTitle').innerText = data.title || (data.status === 'PLAYING' ? tr('playing') : tr('noMedia'));
                 const formatTime = (s) => {
@@ -692,11 +788,11 @@ enum WebRemoteTemplate {
                 document.getElementById('mediaTime').innerText = formatTime(data.currentTime) + ' / ' + formatTime(data.duration) + ' (' + data.status + ')';
               } catch(e) {}
             }
-            setInterval(fetchStatus, 1500);
-            fetchStatus();
+            setInterval(() => { if (currentAccessCode()) fetchStatus(); }, 1500);
+            if (currentAccessCode()) unlockWebRemote();
 
             async function sendControl(action, value) {
-              await fetch('/api/control', {
+              await authenticatedFetch('/api/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, value })
@@ -707,7 +803,7 @@ enum WebRemoteTemplate {
             async function pushVideo() {
               const url = document.getElementById('videoUrlInput').value.trim();
               if (!url) return alert(tr('enterURL'));
-              await fetch('/api/play', {
+              await authenticatedFetch('/api/play', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })
@@ -724,9 +820,15 @@ enum WebRemoteTemplate {
               const button = document.getElementById('uploadButton');
               const progress = document.getElementById('uploadProgress');
               const status = document.getElementById('uploadStatus');
+              const accessCode = currentAccessCode();
+              if (!accessCode) {
+                status.textContent = tr('accessHint');
+                return;
+              }
               const request = new XMLHttpRequest();
               request.open('POST', '/api/upload?filename=' + encodeURIComponent(file.name));
               request.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+              request.setRequestHeader('X-Mivu-Access-Code', accessCode);
               request.upload.onprogress = (event) => {
                 if (!event.lengthComputable) return;
                 const percent = Math.round(event.loaded / event.total * 100);

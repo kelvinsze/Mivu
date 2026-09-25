@@ -24,7 +24,7 @@ public struct DiagnosticsView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        let webUrl = "http://\(localIP):\(HTTPServer.shared.port)/web"
+                        let webUrl = "http://\(localIP):\(HTTPServer.shared.port)/web#access-code=\(HTTPServer.shared.webAccessCode)"
                         HStack {
                             Text(verbatim: webUrl)
                                 .font(.subheadline.monospaced())

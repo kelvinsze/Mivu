@@ -109,11 +109,15 @@ targets:
         PRODUCT_MODULE_NAME: Mivu
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_FILE: Sources/Info.plist
+        MARKETING_VERSION: "1.0"
         OTHER_SWIFT_FLAGS:
           - "$(inherited)"
           - "-Xcc"
           - "-DGLES_SILENCE_DEPRECATION=1"
           - "-DMIVU_LITE"
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: "Apple Distribution"
 
   MivuPro:
     templates:
