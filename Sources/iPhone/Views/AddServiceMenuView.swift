@@ -4,6 +4,10 @@ import SwiftUI
 public enum ServiceCategory: String, CaseIterable, Sendable {
     case networkProtocol = "协议存储"
     case mediaServer = "媒体服务器"
+
+    public var title: String {
+        String(localized: rawValue)
+    }
 }
 
 /// All services supported in the add-service dropdown menu.
@@ -25,7 +29,7 @@ public enum ServiceMenuOption: String, CaseIterable, Identifiable, Sendable {
         case .smb: return "SMB"
         case .emby: return "Emby"
         case .jellyfin: return "Jellyfin"
-        case .fnos: return "飞牛影视"
+        case .fnos: return String(localized: "飞牛影视")
         }
     }
 
@@ -50,11 +54,11 @@ public enum ServiceMenuOption: String, CaseIterable, Identifiable, Sendable {
 
     public var defaultServerName: String {
         switch self {
-        case .webDAV: return "我的 WebDAV"
-        case .smb: return "局域网共享 (SMB)"
-        case .emby: return "客厅 Emby"
-        case .jellyfin: return "Jellyfin 影视库"
-        case .fnos: return "飞牛私有云"
+        case .webDAV: return String(localized: "我的 WebDAV")
+        case .smb: return String(localized: "局域网共享 (SMB)")
+        case .emby: return String(localized: "客厅 Emby")
+        case .jellyfin: return String(localized: "Jellyfin 影视库")
+        case .fnos: return String(localized: "飞牛私有云")
         }
     }
 
@@ -71,9 +75,9 @@ public enum ServiceMenuOption: String, CaseIterable, Identifiable, Sendable {
     public var guidanceHint: String? {
         switch self {
         case .fnos:
-            return "飞牛私有云 (fnOS) 推荐使用内置 WebDAV 协议进行高速挂载与流媒体直链播放。"
+            return String(localized: "飞牛私有云 (fnOS) 推荐使用内置 WebDAV 协议进行高速挂载与流媒体直链播放。")
         case .smb:
-            return "支持直接输入 IP 地址（如 192.168.1.100）或完整路径（如 smb://192.168.1.100/video）。未指定共享名时将自动列出所有共享文件夹。"
+            return String(localized: "支持直接输入 IP 地址（如 192.168.1.100）或完整路径（如 smb://192.168.1.100/video）。未指定共享名时将自动列出所有共享文件夹。")
         default:
             return nil
         }

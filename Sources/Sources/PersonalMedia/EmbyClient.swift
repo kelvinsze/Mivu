@@ -441,11 +441,14 @@ public final class EmbyClient: MediaServerProtocol, @unchecked Sendable {
     private static func formatPremiereDate(_ raw: String?) -> String? {
         guard let raw, !raw.isEmpty else { return nil }
         let prefix = String(raw.prefix(10))
-        let parts = prefix.split(separator: "-")
-        if parts.count == 3 {
-            return "\(parts[0])年 \(Int(parts[1]) ?? 1)月\(Int(parts[2]) ?? 1)日"
-        }
-        return prefix
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+        guard let date = parser.date(from: prefix) else { return prefix }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
     }
 
     public func fetchPlaybackInfo(itemId: String) async throws -> MediaPlaybackInfo {

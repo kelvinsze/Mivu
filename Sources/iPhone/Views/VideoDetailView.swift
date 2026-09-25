@@ -94,7 +94,7 @@ public struct VideoDetailView: View {
         .alert("播放错误", isPresented: $isShowingErrorAlert) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(errorMessage ?? "无法解析该媒体流")
+            Text(errorMessage ?? String(localized: "无法解析该媒体流"))
         }
     }
 
@@ -373,7 +373,7 @@ public struct VideoDetailView: View {
                         Button {
                             isShowingVersionsSheet = true
                         } label: {
-                            Label("选择播放版本 (\(alts.count + 1))", systemImage: "film.stack")
+                            Label(String.localizedStringWithFormat(String(localized: "选择播放版本 (%d)"), alts.count + 1), systemImage: "film.stack")
                         }
                     }
 
@@ -458,9 +458,9 @@ public struct VideoDetailView: View {
     private var playButtonTitle: String {
         if let resume = currentItem.resumePosition, let duration = currentItem.duration, duration > 0, resume > 0 {
             let pct = Int((resume / duration) * 100)
-            return "继续播放 (\(pct)%)"
+            return String.localizedStringWithFormat(String(localized: "继续播放 (%d%%)"), pct)
         }
-        return "播放"
+        return String(localized: "播放")
     }
 
     // MARK: - 3. Plot Overview Section
@@ -1052,7 +1052,7 @@ public struct VideoDetailView: View {
                             audioInfoCard(audio)
                         }
                     } else {
-                        audioInfoCard(AudioStreamInfo(id: "default", title: "音频", isDefault: true))
+                        audioInfoCard(AudioStreamInfo(id: "default", title: String(localized: "音频"), isDefault: true))
                     }
                 }
             }
@@ -1072,7 +1072,7 @@ public struct VideoDetailView: View {
             .padding(.bottom, 4)
 
             VStack(alignment: .leading, spacing: 6) {
-                infoRow(key: "标题", val: v?.title ?? resolutionString ?? "自适应流")
+                infoRow(key: "标题", val: v?.title ?? resolutionString ?? String(localized: "自适应流"))
                 infoRow(key: "编码", val: v?.codec ?? currentItem.videoCodecHint ?? "h264")
                 if let w = v?.width, let h = v?.height {
                     infoRow(key: "分辨率", val: "\(w)x\(h)")
@@ -1087,7 +1087,7 @@ public struct VideoDetailView: View {
                 if let prof = v?.profile { infoRow(key: "配置", val: prof) }
                 if let lvl = v?.level { infoRow(key: "等级", val: String(format: "%.1f", lvl)) }
                 if let aspect = v?.aspectRatio { infoRow(key: "长宽比", val: aspect) }
-                if let interlaced = v?.isInterlaced { infoRow(key: "交错", val: interlaced ? "是" : "否") }
+                if let interlaced = v?.isInterlaced { infoRow(key: "交错", val: interlaced ? String(localized: "是") : String(localized: "否")) }
                 if let primaries = v?.colorPrimaries { infoRow(key: "基色", val: primaries) }
                 if let space = v?.colorSpace { infoRow(key: "色域", val: space) }
                 if let transfer = v?.colorTransfer { infoRow(key: "色偏", val: transfer) }
@@ -1118,7 +1118,7 @@ public struct VideoDetailView: View {
             .padding(.bottom, 4)
 
             VStack(alignment: .leading, spacing: 6) {
-                infoRow(key: "标题", val: a.displayTitle ?? a.title ?? "默认音轨")
+                infoRow(key: "标题", val: a.displayTitle ?? a.title ?? String(localized: "默认音轨"))
                 if let title = a.title { infoRow(key: "内嵌标题", val: title) }
                 if let lang = a.language { infoRow(key: "语言", val: lang) }
                 if let layout = a.channelLayout { infoRow(key: "布局", val: layout) }
@@ -1126,8 +1126,8 @@ public struct VideoDetailView: View {
                 if let codec = a.codec { infoRow(key: "编码", val: codec) }
                 if let bitRate = a.bitRate { infoRow(key: "比特率", val: "\(bitRate / 1000) kbps") }
                 if let sampleRate = a.sampleRate { infoRow(key: "采样率", val: "\(sampleRate) Hz") }
-                infoRow(key: "外部", val: a.isExternal ? "是" : "否")
-                infoRow(key: "默认", val: a.isDefault ? "是" : "否")
+                infoRow(key: "外部", val: a.isExternal ? String(localized: "是") : String(localized: "否"))
+                infoRow(key: "默认", val: a.isDefault ? String(localized: "是") : String(localized: "否"))
             }
         }
         .padding(16)
@@ -1190,9 +1190,9 @@ public struct VideoDetailView: View {
                     ForEach(streams) { stream in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(stream.displayTitle ?? stream.title ?? "音轨")
+                                Text(stream.displayTitle ?? stream.title ?? String(localized: "音轨"))
                                     .font(.headline)
-                                Text("\(stream.language ?? "未知语言") · \(stream.codec?.uppercased() ?? "AAC") · \(stream.channelLayout ?? "立体声")")
+                                Text("\(stream.language ?? String(localized: "未知语言")) · \(stream.codec?.uppercased() ?? "AAC") · \(stream.channelLayout ?? String(localized: "立体声"))")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -1226,9 +1226,13 @@ public struct VideoDetailView: View {
                     ForEach(subs) { sub in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(sub.title ?? sub.language ?? "未知字幕")
+                                Text(sub.title ?? sub.language ?? String(localized: "未知字幕"))
                                     .font(.headline)
-                                Text("格式: \(sub.format.rawValue.uppercased()) · \(sub.isEmbedded ? "内嵌" : "外挂")")
+                                Text(String.localizedStringWithFormat(
+                                    String(localized: "格式：%@ · %@"),
+                                    sub.format.rawValue.uppercased(),
+                                    String(localized: sub.isEmbedded ? "内嵌" : "外挂")
+                                ))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -1262,7 +1266,11 @@ public struct VideoDetailView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(currentItem.title)
                             .font(.headline)
-                        Text("格式: \(currentItem.containerHint?.uppercased() ?? "MP4") · 编码: \(currentItem.videoCodecHint?.uppercased() ?? "H264")")
+                        Text(String.localizedStringWithFormat(
+                            String(localized: "格式：%@ · 编码：%@"),
+                            currentItem.containerHint?.uppercased() ?? "MP4",
+                            currentItem.videoCodecHint?.uppercased() ?? "H264"
+                        ))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -1283,10 +1291,14 @@ public struct VideoDetailView: View {
                                 startPlayback(fromBeginning: false)
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("版本 #\(index + 2)")
+                                    Text(String.localizedStringWithFormat(String(localized: "版本 #%d"), index + 2))
                                         .font(.subheadline.bold())
                                         .foregroundColor(.primary)
-                                    Text("容器: \(alt.containerHint?.uppercased() ?? "HLS/TS") · 编码: \(alt.videoCodecHint?.uppercased() ?? "H264")")
+                                    Text(String.localizedStringWithFormat(
+                                        String(localized: "容器：%@ · 编码：%@"),
+                                        alt.containerHint?.uppercased() ?? "HLS/TS",
+                                        alt.videoCodecHint?.uppercased() ?? "H264"
+                                    ))
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -1428,7 +1440,8 @@ public struct VideoDetailView: View {
         if let audioTracks = try? await asset.loadTracks(withMediaType: .audio) {
             for (index, track) in audioTracks.enumerated() {
                 let lang = try? await track.load(.extendedLanguageTag)
-                audioList.append(AudioStreamInfo(id: "\(index)", title: lang ?? "Audio \(index + 1)", language: lang, isDefault: index == 0))
+                let fallbackTitle = String.localizedStringWithFormat(String(localized: "Audio %d"), index + 1)
+                audioList.append(AudioStreamInfo(id: "\(index)", title: lang ?? fallbackTitle, language: lang, isDefault: index == 0))
             }
         }
 
@@ -1465,9 +1478,9 @@ public struct VideoDetailView: View {
         let hrs = Int(seconds) / 3600
         let mins = (Int(seconds) % 3600) / 60
         if hrs > 0 {
-            return "\(hrs)小时 \(mins)分钟"
+            return String.localizedStringWithFormat(String(localized: "%d h %d min"), hrs, mins)
         } else {
-            return "\(mins)分钟"
+            return String.localizedStringWithFormat(String(localized: "%d min"), mins)
         }
     }
 
@@ -1482,10 +1495,10 @@ public struct VideoDetailView: View {
 
     private func translatePersonType(_ type: String) -> String {
         switch type.lowercased() {
-        case "actor": return "演员"
-        case "director": return "导演"
-        case "writer": return "编剧"
-        case "producer": return "制片"
+        case "actor": return String(localized: "演员")
+        case "director": return String(localized: "导演")
+        case "writer": return String(localized: "编剧")
+        case "producer": return String(localized: "制片")
         default: return type
         }
     }

@@ -432,11 +432,14 @@ public final class JellyfinClient: MediaServerProtocol, @unchecked Sendable {
     private static func formatPremiereDate(_ raw: String?) -> String? {
         guard let raw, !raw.isEmpty else { return nil }
         let prefix = String(raw.prefix(10))
-        let parts = prefix.split(separator: "-")
-        if parts.count == 3 {
-            return "\(parts[0])年 \(Int(parts[1]) ?? 1)月\(Int(parts[2]) ?? 1)日"
-        }
-        return prefix
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.dateFormat = "yyyy-MM-dd"
+        guard let date = parser.date(from: prefix) else { return prefix }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
     }
 
     public func fetchPlaybackInfo(itemId: String) async throws -> MediaPlaybackInfo {
@@ -530,11 +533,12 @@ public enum MediaServerError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .authenticationFailed: return "服务器认证失败，请检查用户名和密码"
-        case .notAuthenticated: return "未通过身份验证"
-        case .invalidResponse: return "服务器返回了无效的数据格式"
-        case .invalidURL: return "服务器地址不合法，请检查输入的 URL 格式"
-        case .requestFailed(let code): return "服务器请求失败 (HTTP \(code))"
+        case .authenticationFailed: return String(localized: "服务器认证失败，请检查用户名和密码")
+        case .notAuthenticated: return String(localized: "未通过身份验证")
+        case .invalidResponse: return String(localized: "服务器返回了无效的数据格式")
+        case .invalidURL: return String(localized: "服务器地址不合法，请检查输入的 URL 格式")
+        case .requestFailed(let code):
+            return String.localizedStringWithFormat(String(localized: "服务器请求失败 (HTTP %d)"), code)
         }
     }
 }

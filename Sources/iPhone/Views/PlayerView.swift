@@ -245,7 +245,7 @@ public struct PlayerView: View {
                         HStack(spacing: 5) {
                             Image(systemName: "arrow.down.right.and.arrow.up.left")
                                 .font(.system(size: 11, weight: .bold))
-                            Text(String(format: "%.1fx 复位", zoomScale))
+                            Text(String.localizedStringWithFormat(String(localized: "%.1f× Zoom"), zoomScale))
                                 .font(.caption2.bold().monospacedDigit())
                         }
                         .foregroundColor(.white)
@@ -269,7 +269,7 @@ public struct PlayerView: View {
                             .font(.caption.bold())
                         let aStr = playerService.repeatPointA != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointA!) : "--:--"
                         let bStr = playerService.repeatPointB != nil ? SOAPParser.formatUPnPTime(playerService.repeatPointB!) : "--:--"
-                        Text("A-B 循环: \(aStr) ~ \(bStr)")
+                        Text(String.localizedStringWithFormat(String(localized: "A-B 循环：%@ ~ %@"), aStr, bStr))
                             .font(.caption.bold().monospacedDigit())
                             .foregroundColor(.white)
                         Button {
@@ -789,7 +789,7 @@ public struct PlayerView: View {
             }
 
             VStack(alignment: .leading, spacing: compact ? 1 : 3) {
-                Text(playerService.session.currentItem?.title ?? "正在播放")
+                Text(playerService.session.currentItem?.title ?? String(localized: "正在播放"))
                     .font(.system(size: compact ? 14 : 17, weight: .semibold))
                     .foregroundColor(.white)
                     .lineLimit(1)
@@ -1218,7 +1218,9 @@ public struct PlayerView: View {
                                 df.dateFormat = "HH:mm"
                                 return df
                             }()
-                            Text(compact ? "完播 \(formatter.string(from: finishDate))" : "预计 \(formatter.string(from: finishDate)) 完播")
+                            Text(compact
+                                 ? String.localizedStringWithFormat(String(localized: "完播 %@"), formatter.string(from: finishDate))
+                                 : String.localizedStringWithFormat(String(localized: "预计 %@ 完播"), formatter.string(from: finishDate)))
                                 .font(.system(size: compact ? 11 : 12, design: .monospaced))
                                 .foregroundColor(MivuEdition.primaryTint.opacity(0.95))
                         } else {
@@ -1366,7 +1368,7 @@ public struct PlayerView: View {
 
     private var chapterMenuButton: some View {
         Menu {
-            Section("章节列表 (\(playerService.chapters.count))") {
+            Section(String.localizedStringWithFormat(String(localized: "章节列表 (%d)"), playerService.chapters.count)) {
                 ForEach(playerService.chapters) { chapter in
                     Button {
                         playerService.seek(to: chapter.startTime)
@@ -1447,7 +1449,7 @@ public struct PlayerView: View {
 
     private var subtitlesMenuButton: some View {
         Menu {
-            Section("字幕大小 (\(Int(playerService.subtitleUserScale * 100))%)") {
+            Section(String.localizedStringWithFormat(String(localized: "字幕大小 (%lld%%)"), Int(playerService.subtitleUserScale * 100))) {
                 ForEach([
                     ("极小 (75%)", 0.75),
                     ("较小 (85%)", 0.85),
@@ -1469,7 +1471,8 @@ public struct PlayerView: View {
                 }
             }
 
-            Section("字幕同步 (\(playerService.subtitleDelay == 0 ? "已对齐" : String(format: "%+.1fs", playerService.subtitleDelay)))") {
+            let subtitleSyncStatus = playerService.subtitleDelay == 0 ? String(localized: "已对齐") : String(format: "%+.1fs", playerService.subtitleDelay)
+            Section(String.localizedStringWithFormat(String(localized: "字幕同步 (%@)"), subtitleSyncStatus)) {
                 Button {
                     playerService.setSubtitleDelay(playerService.subtitleDelay - 0.5)
                 } label: {
@@ -1648,15 +1651,17 @@ public struct PlayerView: View {
     }
 
     private func subtitleLabel(_ track: SubtitleTrack) -> String {
-        let base = track.title ?? track.language ?? "字幕 \(track.id)"
-        let flags = [track.isDefault ? "默认" : nil, track.isForced ? "强制" : nil].compactMap { $0 }
-        let capability = track.format == .pgs || track.format == .vobsub ? "图片" : track.format.rawValue.uppercased()
-        return flags.isEmpty ? "\(base) · \(capability)" : "\(base)（\(flags.joined(separator: "、"))）· \(capability)"
+        let base = track.title ?? track.language ?? String.localizedStringWithFormat(String(localized: "字幕 %@"), track.id)
+        let flags = [track.isDefault ? String(localized: "默认") : nil, track.isForced ? String(localized: "强制") : nil].compactMap { $0 }
+        let capability = track.format == .pgs || track.format == .vobsub ? String(localized: "图片") : track.format.rawValue.uppercased()
+        return flags.isEmpty
+            ? String.localizedStringWithFormat(String(localized: "%@ · %@"), base, capability)
+            : String.localizedStringWithFormat(String(localized: "%@ (%@) · %@"), base, flags.joined(separator: ", "), capability)
     }
 
     private func audioTrackLabel(_ track: AudioTrack) -> String {
-        let base = track.title ?? track.language ?? "音轨 \(track.id)"
-        return track.isDefault ? "\(base)（默认）" : base
+        let base = track.title ?? track.language ?? String.localizedStringWithFormat(String(localized: "音轨 %@"), track.id)
+        return track.isDefault ? String.localizedStringWithFormat(String(localized: "%@ (Default)"), base) : base
     }
 
     // MARK: - Media Badges & Chapter Helpers
@@ -2186,7 +2191,7 @@ struct SubtitleSettingsSheet: View {
                             Text("字幕时间轴微调 (延迟)")
                                 .font(.subheadline.bold())
                             Spacer()
-                            Text(playerService.subtitleDelay == 0 ? "0.0s (已对齐)" : String(format: "%+.1fs", playerService.subtitleDelay))
+                            Text(playerService.subtitleDelay == 0 ? String(localized: "0.0s (已对齐)") : String(format: "%+.1fs", playerService.subtitleDelay))
                                 .font(.headline.monospacedDigit())
                                 .foregroundColor(playerService.subtitleDelay == 0 ? .secondary : MivuEdition.primaryTint)
                         }
@@ -2296,7 +2301,7 @@ struct EpisodeDrawerSheet: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text("第 \(index + 1) 集")
+                                    Text(String.localizedStringWithFormat(String(localized: "第 %d 集"), index + 1))
                                         .font(.caption2.bold())
                                         .foregroundColor(isCurrent ? MivuEdition.primaryTint : .secondary)
                                     Spacer()
@@ -2329,7 +2334,7 @@ struct EpisodeDrawerSheet: View {
                 }
                 .padding(16)
             }
-            .navigationTitle("选集 (\(playerService.currentPlaylist.count) 集)")
+            .navigationTitle(String.localizedStringWithFormat(String(localized: "选集 (%d 集)"), playerService.currentPlaylist.count))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -2452,7 +2457,9 @@ struct PlaybackSettingsSheet: View {
                             Text("字幕垂直高度偏移")
                             Spacer()
                             let offsetPercent = 100 - playerService.subtitleVerticalOffset
-                            Text(offsetPercent == 0 ? "置底 (0%)" : "+\(offsetPercent)% 向上")
+                        Text(offsetPercent == 0
+                             ? String(localized: "置底 (0%)")
+                             : String.localizedStringWithFormat(String(localized: "+%d%% 向上"), offsetPercent))
                                 .font(.subheadline.bold().monospacedDigit())
                                 .foregroundColor(offsetPercent > 0 ? MivuEdition.primaryTint : .secondary)
                         }
@@ -2477,7 +2484,7 @@ struct PlaybackSettingsSheet: View {
                             Text("无 (仅单字幕)").tag("")
                             ForEach(playerService.subtitleTracks) { track in
                                 if track.id != playerService.selectedSubtitleTrack?.id {
-                                    Text(track.title ?? track.language ?? "字幕 \(track.id)").tag(track.id)
+                                    Text(track.title ?? track.language ?? String.localizedStringWithFormat(String(localized: "字幕 %@"), track.id)).tag(track.id)
                                 }
                             }
                         }
@@ -2518,7 +2525,7 @@ struct PlaybackSettingsSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: "a.circle.fill")
-                                Text("设为 A 点 (\(SOAPParser.formatUPnPTime(currentTime)))")
+                                Text(String.localizedStringWithFormat(String(localized: "设为 A 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
                             }
                             .font(.caption.bold())
                             .frame(maxWidth: .infinity)
@@ -2531,7 +2538,7 @@ struct PlaybackSettingsSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: "b.circle.fill")
-                                Text("设为 B 点 (\(SOAPParser.formatUPnPTime(currentTime)))")
+                                Text(String.localizedStringWithFormat(String(localized: "设为 B 点 (%@)"), SOAPParser.formatUPnPTime(currentTime)))
                             }
                             .font(.caption.bold())
                             .frame(maxWidth: .infinity)

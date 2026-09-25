@@ -151,7 +151,7 @@ public struct ServerDetailView: View {
                                     .frame(width: 125, alignment: .leading)
 
                                 if showsProgress, let remaining = remainingTime(for: item) {
-                                    Text("剩余 \(SOAPParser.formatUPnPTime(remaining))")
+                                    Text(String.localizedStringWithFormat(String(localized: "剩余 %@"), SOAPParser.formatUPnPTime(remaining)))
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                         .frame(width: 125, alignment: .leading)

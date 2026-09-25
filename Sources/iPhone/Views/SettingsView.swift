@@ -14,9 +14,9 @@ public struct SettingsView: View {
 
     private var aboutSectionTitle: String {
         #if MIVU_LITE
-        return "关于 Mivu"
+        return String(localized: "关于 Mivu")
         #else
-        return "关于 Mivu Pro"
+        return String(localized: "关于 Mivu Pro")
         #endif
     }
 
@@ -271,7 +271,7 @@ public struct SettingsView: View {
                     HStack {
                         Text("版本")
                         Spacer()
-                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "未知")
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? String(localized: "未知"))
                             .foregroundColor(.secondary)
                     }
 

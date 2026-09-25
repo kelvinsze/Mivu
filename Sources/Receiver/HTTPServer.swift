@@ -510,11 +510,11 @@ enum WebRemoteTemplate {
     static func render(ip: String, port: UInt16, friendlyName: String) -> String {
         return """
         <!DOCTYPE html>
-        <html lang="zh-CN">
+        <html lang="en">
         <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <title>Mivu 网页遥控器</title>
+          <title>Mivu Web Remote</title>
           <style>
             :root {
               --bg: #0b0f19;
@@ -631,41 +631,57 @@ enum WebRemoteTemplate {
         <body>
           <div class="app-container">
             <header>
-              <h1>Mivu 遥控与投送</h1>
+              <h1 data-i18n="heading">Mivu Remote & Casting</h1>
               <div class="badge">\(friendlyName)</div>
             </header>
 
             <div class="card">
-              <div class="card-title">当前播放</div>
-              <div class="status-text" id="mediaTitle">加载中...</div>
+              <div class="card-title" data-i18n="nowPlaying">Now Playing</div>
+              <div class="status-text" id="mediaTitle" data-i18n="loading">Loading...</div>
               <div class="time-bar" id="mediaTime">00:00:00 / 00:00:00</div>
               <div class="controls-row">
-                <button class="btn-ctrl" onclick="sendControl('toggle')">⏯ 播放/暂停</button>
-                <button class="btn-ctrl" onclick="sendControl('stop')">⏹ 停止</button>
+                <button class="btn-ctrl" onclick="sendControl('toggle')" data-i18n="toggle">⏯ Play/Pause</button>
+                <button class="btn-ctrl" onclick="sendControl('stop')" data-i18n="stop">⏹ Stop</button>
               </div>
             </div>
 
             <div class="card">
-              <div class="card-title">推送视频 URL 到 CarPlay / Mivu</div>
-              <input type="text" id="videoUrlInput" placeholder="输入 HTTP/HTTPS 或 HLS m3u8 链接">
-              <button class="btn-primary" onclick="pushVideo()">🚀 立即投送播放</button>
+              <div class="card-title" data-i18n="pushTitle">Send a video URL to CarPlay / Mivu</div>
+              <input type="text" id="videoUrlInput" data-i18n-placeholder="urlPlaceholder" placeholder="Enter an HTTP/HTTPS or HLS m3u8 URL">
+              <button class="btn-primary" onclick="pushVideo()" data-i18n="push">🚀 Play on Mivu</button>
             </div>
 
             <div class="card">
-              <div class="card-title">通过 Wi-Fi 上传到 Mivu</div>
+              <div class="card-title" data-i18n="uploadTitle">Upload to Mivu over Wi-Fi</div>
               <input type="file" id="videoFileInput" accept="video/*,.mkv,.webm,.avi,.m2ts,.ts">
-              <button class="btn-primary" id="uploadButton" onclick="uploadVideo()">⬆️ 上传到视频库</button>
+              <button class="btn-primary" id="uploadButton" onclick="uploadVideo()" data-i18n="upload">⬆️ Upload to Library</button>
               <progress id="uploadProgress" value="0" max="100" hidden></progress>
-              <div class="upload-status" id="uploadStatus">视频会保存在此设备的 Mivu 文件库中。</div>
+              <div class="upload-status" id="uploadStatus" data-i18n="uploadHint">Videos are saved to this device's Mivu library.</div>
             </div>
           </div>
 
           <script>
+            const locale = (navigator.language || 'en').toLowerCase();
+            const language = locale.startsWith('zh') ? ((locale.includes('hant') || /zh-(tw|hk|mo)/.test(locale)) ? 'zh-Hant' : 'zh-Hans') : locale.startsWith('fr') ? 'fr' : locale.startsWith('de') ? 'de' : locale.startsWith('es') ? 'es' : locale.startsWith('pt') ? 'pt-BR' : 'en';
+            const messages = {
+              en: { heading:'Mivu Remote & Casting', nowPlaying:'Now Playing', loading:'Loading...', toggle:'⏯ Play/Pause', stop:'⏹ Stop', pushTitle:'Send a video URL to CarPlay / Mivu', urlPlaceholder:'Enter an HTTP/HTTPS or HLS m3u8 URL', push:'🚀 Play on Mivu', uploadTitle:'Upload to Mivu over Wi-Fi', upload:'⬆️ Upload to Library', uploadHint:"Videos are saved to this device's Mivu library.", playing:'Playing video', noMedia:'No media', enterURL:'Enter a video URL', chooseFile:'Choose a video file', uploading:'Uploading', uploaded:'Upload complete. Saved to the Mivu library.', failed:'Upload failed. Use a supported video under 10 GB.', offline:'Connection lost. Upload incomplete.', preparing:'Preparing upload…' },
+              'zh-Hans': { heading:'Mivu 遥控与投送', nowPlaying:'当前播放', loading:'加载中...', toggle:'⏯ 播放/暂停', stop:'⏹ 停止', pushTitle:'推送视频 URL 到 CarPlay / Mivu', urlPlaceholder:'输入 HTTP/HTTPS 或 HLS m3u8 链接', push:'🚀 立即投送播放', uploadTitle:'通过 Wi-Fi 上传到 Mivu', upload:'⬆️ 上传到视频库', uploadHint:'视频会保存在此设备的 Mivu 文件库中。', playing:'正在播放视频', noMedia:'无媒体', enterURL:'请输入视频链接', chooseFile:'请选择视频文件', uploading:'正在上传', uploaded:'上传完成，已保存到 Mivu 视频库。', failed:'上传失败，请确认文件受支持且小于 10 GB。', offline:'网络连接中断，上传未完成。', preparing:'正在准备上传…' },
+              'zh-Hant': { heading:'Mivu 遙控與投放', nowPlaying:'目前播放', loading:'載入中...', toggle:'⏯ 播放/暫停', stop:'⏹ 停止', pushTitle:'傳送影片 URL 至 CarPlay / Mivu', urlPlaceholder:'輸入 HTTP/HTTPS 或 HLS m3u8 連結', push:'🚀 立即投放播放', uploadTitle:'透過 Wi-Fi 上傳至 Mivu', upload:'⬆️ 上傳至媒體庫', uploadHint:'影片會儲存在此裝置的 Mivu 媒體庫。', playing:'正在播放影片', noMedia:'沒有媒體', enterURL:'請輸入影片連結', chooseFile:'請選擇影片檔案', uploading:'正在上傳', uploaded:'上傳完成，已儲存至 Mivu 媒體庫。', failed:'上傳失敗，請確認檔案格式受支援且小於 10 GB。', offline:'網路連線中斷，上傳未完成。', preparing:'正在準備上傳…' },
+              fr: { heading:'Télécommande et diffusion Mivu', nowPlaying:'Lecture en cours', loading:'Chargement…', toggle:'⏯ Lecture/Pause', stop:'⏹ Arrêter', pushTitle:'Envoyer une URL vidéo vers CarPlay / Mivu', urlPlaceholder:'Saisissez une URL HTTP/HTTPS ou HLS m3u8', push:'🚀 Lire sur Mivu', uploadTitle:'Importer sur Mivu via Wi-Fi', upload:'⬆️ Importer dans la bibliothèque', uploadHint:'Les vidéos sont enregistrées dans la bibliothèque Mivu de cet appareil.', playing:'Lecture vidéo', noMedia:'Aucun média', enterURL:'Saisissez une URL vidéo', chooseFile:'Choisissez un fichier vidéo', uploading:'Importation', uploaded:'Importation terminée. Vidéo enregistrée dans la bibliothèque Mivu.', failed:'Échec de l’importation. Utilisez une vidéo compatible de moins de 10 Go.', offline:'Connexion interrompue. Importation incomplète.', preparing:'Préparation de l’importation…' },
+              de: { heading:'Mivu Fernbedienung & Übertragung', nowPlaying:'Wiedergabe', loading:'Wird geladen…', toggle:'⏯ Wiedergabe/Pause', stop:'⏹ Stoppen', pushTitle:'Video-URL an CarPlay / Mivu senden', urlPlaceholder:'HTTP/HTTPS- oder HLS-m3u8-URL eingeben', push:'🚀 Auf Mivu abspielen', uploadTitle:'Über WLAN auf Mivu laden', upload:'⬆️ In die Mediathek laden', uploadHint:'Videos werden in der Mivu-Mediathek dieses Geräts gespeichert.', playing:'Video wird abgespielt', noMedia:'Keine Medien', enterURL:'Video-URL eingeben', chooseFile:'Videodatei auswählen', uploading:'Wird hochgeladen', uploaded:'Upload abgeschlossen. In der Mivu-Mediathek gespeichert.', failed:'Upload fehlgeschlagen. Unterstütztes Video unter 10 GB verwenden.', offline:'Verbindung unterbrochen. Upload unvollständig.', preparing:'Upload wird vorbereitet…' },
+              es: { heading:'Control remoto y envío de Mivu', nowPlaying:'Reproduciendo', loading:'Cargando…', toggle:'⏯ Reproducir/Pausar', stop:'⏹ Detener', pushTitle:'Enviar URL de video a CarPlay / Mivu', urlPlaceholder:'Introduce una URL HTTP/HTTPS o HLS m3u8', push:'🚀 Reproducir en Mivu', uploadTitle:'Subir a Mivu por Wi-Fi', upload:'⬆️ Subir a la biblioteca', uploadHint:'Los videos se guardan en la biblioteca Mivu de este dispositivo.', playing:'Reproduciendo video', noMedia:'Sin contenido', enterURL:'Introduce una URL de video', chooseFile:'Selecciona un archivo de video', uploading:'Subiendo', uploaded:'Carga completada. Guardado en la biblioteca Mivu.', failed:'Error al subir. Usa un video compatible de menos de 10 GB.', offline:'Conexión interrumpida. La carga no se completó.', preparing:'Preparando la carga…' },
+              'pt-BR': { heading:'Controle remoto e transmissão Mivu', nowPlaying:'Reproduzindo agora', loading:'Carregando…', toggle:'⏯ Reproduzir/Pausar', stop:'⏹ Parar', pushTitle:'Enviar URL de vídeo para CarPlay / Mivu', urlPlaceholder:'Digite uma URL HTTP/HTTPS ou HLS m3u8', push:'🚀 Reproduzir no Mivu', uploadTitle:'Enviar para o Mivu via Wi-Fi', upload:'⬆️ Enviar para a biblioteca', uploadHint:'Os vídeos são salvos na biblioteca Mivu deste dispositivo.', playing:'Reproduzindo vídeo', noMedia:'Sem mídia', enterURL:'Digite uma URL de vídeo', chooseFile:'Selecione um arquivo de vídeo', uploading:'Enviando', uploaded:'Envio concluído. Salvo na biblioteca Mivu.', failed:'Falha no envio. Use um vídeo compatível com menos de 10 GB.', offline:'Conexão interrompida. Envio incompleto.', preparing:'Preparando envio…' }
+            };
+            const tr = (key) => (messages[language] || messages.en)[key];
+            document.documentElement.lang = language;
+            document.querySelectorAll('[data-i18n]').forEach(el => el.textContent = tr(el.dataset.i18n));
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => el.placeholder = tr(el.dataset.i18nPlaceholder));
+            document.title = 'Mivu ' + tr('heading');
             async function fetchStatus() {
               try {
                 const res = await fetch('/api/status');
                 const data = await res.json();
-                document.getElementById('mediaTitle').innerText = data.title || (data.status === 'PLAYING' ? '正在播放视频' : '无媒体');
+                document.getElementById('mediaTitle').innerText = data.title || (data.status === 'PLAYING' ? tr('playing') : tr('noMedia'));
                 const formatTime = (s) => {
                   if (!s || isNaN(s)) return '00:00:00';
                   const sec = Math.floor(s);
@@ -690,7 +706,7 @@ enum WebRemoteTemplate {
 
             async function pushVideo() {
               const url = document.getElementById('videoUrlInput').value.trim();
-              if (!url) return alert('请输入视频链接');
+              if (!url) return alert(tr('enterURL'));
               await fetch('/api/play', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -703,7 +719,7 @@ enum WebRemoteTemplate {
             function uploadVideo() {
               const input = document.getElementById('videoFileInput');
               const file = input.files[0];
-              if (!file) return alert('请选择视频文件');
+              if (!file) return alert(tr('chooseFile'));
 
               const button = document.getElementById('uploadButton');
               const progress = document.getElementById('uploadProgress');
@@ -715,27 +731,27 @@ enum WebRemoteTemplate {
                 if (!event.lengthComputable) return;
                 const percent = Math.round(event.loaded / event.total * 100);
                 progress.value = percent;
-                status.textContent = '正在上传 ' + percent + '%';
+                status.textContent = tr('uploading') + ' ' + percent + '%';
               };
               request.onload = () => {
                 button.disabled = false;
                 progress.hidden = true;
                 if (request.status === 200) {
-                  status.textContent = '上传完成，已保存到 Mivu 视频库。';
+                  status.textContent = tr('uploaded');
                   input.value = '';
                 } else {
-                  status.textContent = '上传失败，请确认文件是受支持的视频且小于 10 GB。';
+                  status.textContent = tr('failed');
                 }
               };
               request.onerror = () => {
                 button.disabled = false;
                 progress.hidden = true;
-                status.textContent = '网络连接中断，上传未完成。';
+                status.textContent = tr('offline');
               };
               button.disabled = true;
               progress.value = 0;
               progress.hidden = false;
-              status.textContent = '正在准备上传…';
+              status.textContent = tr('preparing');
               request.send(file);
             }
           </script>

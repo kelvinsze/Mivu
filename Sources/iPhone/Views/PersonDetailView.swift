@@ -86,7 +86,7 @@ public struct PersonDetailView: View {
 
                 // Share person
                 ShareLink(
-                    item: "\(currentPerson.name) - Mivu 演职人员详情",
+                    item: String.localizedStringWithFormat(String(localized: "%@ - Mivu Cast & Crew"), currentPerson.name),
                     subject: Text(currentPerson.name),
                     message: Text(currentPerson.overview ?? currentPerson.name)
                 ) {
@@ -224,7 +224,7 @@ public struct PersonDetailView: View {
                     Image(systemName: "film.stack")
                         .font(.system(size: 12))
                         .foregroundColor(.orange)
-                    Text("\(works.count) 部作品")
+                    Text(String.localizedStringWithFormat(String(localized: "%d Works"), works.count))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.white)
                 }
@@ -663,13 +663,13 @@ public struct PersonDetailView: View {
     // MARK: - Helpers
     private func translatePersonType(_ type: String) -> String {
         switch type.lowercased() {
-        case "actor": return "演员"
-        case "director": return "导演"
-        case "writer": return "编剧"
-        case "producer": return "制片"
-        case "composer": return "配乐"
-        case "cinematographer": return "摄影"
-        case "editor": return "剪辑"
+        case "actor": return String(localized: "演员")
+        case "director": return String(localized: "导演")
+        case "writer": return String(localized: "编剧")
+        case "producer": return String(localized: "制片")
+        case "composer": return String(localized: "配乐")
+        case "cinematographer": return String(localized: "摄影")
+        case "editor": return String(localized: "剪辑")
         default: return type
         }
     }
@@ -682,7 +682,7 @@ public struct PersonDetailView: View {
         if let date = formatter.date(from: prefix) {
             let age = Calendar.current.dateComponents([.year], from: date, to: Date()).year ?? 0
             if age > 0 {
-                return "\(prefix) (\(age)岁)"
+                return String.localizedStringWithFormat(String(localized: "%@ (%d years old)"), prefix, age)
             }
         }
         return prefix

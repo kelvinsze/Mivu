@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		111111111111111111111101 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111103 /* Localizable.xcstrings */; };
 		111111111111111111111102 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111103 /* Localizable.xcstrings */; };
+		111111111111111111111104 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* InfoPlist.xcstrings */; };
+		111111111111111111111105 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 111111111111111111111106 /* InfoPlist.xcstrings */; };
 		023B811D380EF63A05E5A9D7 /* AVPlayerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC90A7E0F61FF392B8796615 /* AVPlayerEngine.swift */; };
 		093A2E1FBFCA98560586C46C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9D95DEE150C0992DAC39C04E /* Assets.xcassets */; };
 		0A566DCDE110A28684B3E09C /* PlaybackErrorClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A5B846E77A22F381838C8AC /* PlaybackErrorClassifier.swift */; };
@@ -113,6 +115,7 @@
 
 /* Begin PBXFileReference section */
 		111111111111111111111103 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		111111111111111111111106 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		042A4A51D1B57A2966D6DC60 /* PlaybackHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackHistory.swift; sourceTree = "<group>"; };
 		11EB3F07520AF133D3A25B6A /* PhoneSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSceneDelegate.swift; sourceTree = "<group>"; };
 		1255C4ABB3088512F3C8BDEC /* MivuApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MivuApp.swift; sourceTree = "<group>"; };
@@ -302,6 +305,7 @@
 		D640679E739AC4293CF30152 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				111111111111111111111106 /* InfoPlist.xcstrings */,
 				111111111111111111111103 /* Localizable.xcstrings */,
 				E53F2115543AC50B694798D8 /* LaunchScreen.storyboard */,
 				7EB11B61B4535D7FE6B9098C /* subfont.ttf */,
@@ -498,6 +502,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				111111111111111111111104 /* InfoPlist.xcstrings in Resources */,
 				111111111111111111111101 /* Localizable.xcstrings in Resources */,
 				BCFC1C93222AD2E764BB2BDA /* Assets.xcassets in Resources */,
 				7AB58271875F8BCE9D37B5C2 /* LaunchScreen.storyboard in Resources */,
@@ -509,6 +514,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				111111111111111111111105 /* InfoPlist.xcstrings in Resources */,
 				111111111111111111111102 /* Localizable.xcstrings in Resources */,
 				093A2E1FBFCA98560586C46C /* Assets.xcassets in Resources */,
 				A49BAE03C135CBED05288207 /* LaunchScreen.storyboard in Resources */,

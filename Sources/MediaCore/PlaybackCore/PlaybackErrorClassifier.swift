@@ -31,13 +31,13 @@ public enum PlaybackFailureReason: Equatable, Sendable {
     public var userFacingMessage: String {
         switch self {
         case .mediaFormatOrDecode(let desc, _):
-            return "当前格式无法解码，正在尝试备用流：\(desc)"
+            return String.localizedStringWithFormat(String(localized: "当前格式无法解码，正在尝试备用流：%@"), desc)
         case .network(let desc, _):
-            return "网络连接失败，请检查网络设置 (\(desc))"
+            return String.localizedStringWithFormat(String(localized: "网络连接失败，请检查网络设置 (%@)"), desc)
         case .authentication(let desc, _):
-            return "媒体服务器鉴权失败，请重新登录 (\(desc))"
+            return String.localizedStringWithFormat(String(localized: "媒体服务器鉴权失败，请重新登录 (%@)"), desc)
         case .server(let desc, let code):
-            return "媒体服务器响应异常 (HTTP \(code ?? 500)): \(desc)"
+            return String.localizedStringWithFormat(String(localized: "媒体服务器响应异常 (HTTP %d): %@"), code ?? 500, desc)
         case .unclassified(let desc):
             return desc
         }

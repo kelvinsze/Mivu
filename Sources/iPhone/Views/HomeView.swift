@@ -62,7 +62,7 @@ public struct HomeView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? "发生未知错误")
+                Text(errorMessage ?? String(localized: "发生未知错误"))
             }
         }
     }
@@ -132,7 +132,7 @@ public struct HomeView: View {
 
                         if let resume = item.resumePosition, let duration = item.duration, duration > 0 {
                             let remain = max(duration - resume, 0)
-                            Text("剩余 \(SOAPParser.formatUPnPTime(remain)) · 已看 \(Int((resume / duration) * 100))%")
+                            Text(String.localizedStringWithFormat(String(localized: "剩余 %@ · 已看 %d%%"), SOAPParser.formatUPnPTime(remain), Int((resume / duration) * 100)))
                                 .font(.caption.weight(.medium))
                                 .foregroundColor(.white.opacity(0.85))
 
@@ -342,7 +342,7 @@ public struct HomeView: View {
 
             Spacer()
 
-            Button("播放") {
+            Button(String(localized: "播放")) {
                 let item = MediaItem(
                     title: url.lastPathComponent.isEmpty ? "剪贴板视频" : url.lastPathComponent,
                     url: url,
@@ -366,11 +366,11 @@ public struct HomeView: View {
 
     private func sourceLabel(_ source: MediaSourceType) -> String {
         switch source {
-        case .personalMedia: return "媒体库"
-        case .photoLibrary: return "相册视频"
+        case .personalMedia: return String(localized: "媒体库")
+        case .photoLibrary: return String(localized: "相册视频")
         case .dlna: return "DLNA"
-        case .directUrl: return "网络流"
-        case .testStream: return "测试源"
+        case .directUrl: return String(localized: "网络流")
+        case .testStream: return String(localized: "测试源")
         }
     }
 
@@ -446,7 +446,7 @@ private struct HomeMiniPlayerBar: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(playerService.session.currentItem?.title ?? "正在播放")
+                            Text(playerService.session.currentItem?.title ?? String(localized: "正在播放"))
                                 .font(.subheadline.bold())
                                 .foregroundColor(.primary)
                                 .lineLimit(1)

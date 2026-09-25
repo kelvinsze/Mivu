@@ -191,7 +191,7 @@ struct AddServerView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(selectedService.title)
                                 .font(.headline.bold())
-                            Text(selectedService.category.rawValue)
+                            Text(selectedService.category.title)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -268,7 +268,7 @@ struct AddServerView: View {
                     serverUrlStr = newService.defaultURLPlaceholder
                 }
             }
-            .navigationTitle("添加 \(selectedService.title)")
+            .navigationTitle(String.localizedStringWithFormat(String(localized: "添加 %@"), selectedService.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

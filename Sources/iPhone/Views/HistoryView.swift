@@ -76,7 +76,7 @@ public struct HistoryView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? "无法解析该媒体，请检查服务器连接")
+                Text(errorMessage ?? String(localized: "无法解析该媒体，请检查服务器连接"))
             }
         }
     }
@@ -176,11 +176,11 @@ public struct HistoryView: View {
                         #endif
 
                         if let resume = item.resumePosition, resume > 0 {
-                            Text("已看至 \(SOAPParser.formatUPnPTime(resume))")
+                            Text(String.localizedStringWithFormat(String(localized: "已看至 %@"), SOAPParser.formatUPnPTime(resume)))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         } else if let dur = item.duration, dur > 0 {
-                            Text("时长 \(SOAPParser.formatUPnPTime(dur))")
+                            Text(String.localizedStringWithFormat(String(localized: "时长 %@"), SOAPParser.formatUPnPTime(dur)))
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
@@ -221,11 +221,11 @@ public struct HistoryView: View {
 
     private func badgeText(for source: MediaSourceType) -> String {
         switch source {
-        case .personalMedia: return "媒体库"
-        case .photoLibrary: return "相册视频"
-        case .dlna: return "DLNA 投送"
-        case .directUrl: return "网络流"
-        case .testStream: return "测试源"
+        case .personalMedia: return String(localized: "媒体库")
+        case .photoLibrary: return String(localized: "相册视频")
+        case .dlna: return String(localized: "DLNA 投送")
+        case .directUrl: return String(localized: "网络流")
+        case .testStream: return String(localized: "测试源")
         }
     }
 

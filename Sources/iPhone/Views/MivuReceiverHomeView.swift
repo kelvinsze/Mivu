@@ -56,7 +56,7 @@ public struct MivuReceiverHomeView: View {
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {
-                Text(errorMessage ?? "无法解析或播放所选视频流")
+                Text(errorMessage ?? String(localized: "无法解析或播放所选视频流"))
             }
             .sheet(isPresented: $isShowingExternalCastHelp) {
                 externalCastHelpSheet
@@ -480,7 +480,7 @@ private enum PhotoLibraryVideoError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .carPlayDisconnected:
-            return "请先连接 CarPlay，再选择视频。"
+            return String(localized: "请先连接 CarPlay，再选择视频。")
         }
     }
 }

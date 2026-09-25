@@ -18,7 +18,7 @@ public final class CarPlayTemplateBuilder {
             let isPlaying = session.status == .playing
             let nowPlayingItem = CPListItem(
                 text: current.title,
-                detailText: "\(isPlaying ? "▶ 正在播放" : "⏸ 已暂停") · \(SOAPParser.formatUPnPTime(session.currentTime)) / \(SOAPParser.formatUPnPTime(session.duration))",
+                detailText: "\(String(localized: isPlaying ? "▶ 正在播放" : "⏸ 已暂停")) · \(SOAPParser.formatUPnPTime(session.currentTime)) / \(SOAPParser.formatUPnPTime(session.duration))",
                 image: UIImage(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
             )
             configureVideoPlayback(nowPlayingItem, for: current)
@@ -26,7 +26,7 @@ public final class CarPlayTemplateBuilder {
                 PlayerService.shared.play()
                 completion()
             }
-            sections.append(CPListSection(items: [nowPlayingItem], header: "正在播放", sectionIndexTitle: nil))
+            sections.append(CPListSection(items: [nowPlayingItem], header: String(localized: "正在播放"), sectionIndexTitle: nil))
         }
 
         // MARK: - 2. Continue Watching / Playback History Section
@@ -38,15 +38,15 @@ public final class CarPlayTemplateBuilder {
                 let hasProgress = (historyItem.resumePosition ?? 0) > 0 && (historyItem.duration ?? 0) > 0
                 let detail: String
                 if hasProgress {
-                    detail = "上次观看至 \(SOAPParser.formatUPnPTime(historyItem.resumePosition!)) / \(SOAPParser.formatUPnPTime(historyItem.duration!))"
+                    detail = "\(String(localized: "上次观看至")) \(SOAPParser.formatUPnPTime(historyItem.resumePosition!)) / \(SOAPParser.formatUPnPTime(historyItem.duration!))"
                 } else if historyItem.sourceType == .personalMedia {
-                    detail = "个人媒体库"
+                    detail = String(localized: "个人媒体库")
                 } else if historyItem.sourceType == .photoLibrary {
-                    detail = "相册视频"
+                    detail = String(localized: "相册视频")
                 } else if historyItem.sourceType == .dlna {
-                    detail = "投屏历史"
+                    detail = String(localized: "投屏历史")
                 } else {
-                    detail = "历史播放"
+                    detail = String(localized: "历史播放")
                 }
 
                 let item = CPListItem(
@@ -72,7 +72,7 @@ public final class CarPlayTemplateBuilder {
                 }
                 return item
             }
-            sections.append(CPListSection(items: recentItems, header: "继续观看与最近播放", sectionIndexTitle: nil))
+            sections.append(CPListSection(items: recentItems, header: String(localized: "继续观看与最近播放"), sectionIndexTitle: nil))
         }
 
         #if MIVU_PRO
@@ -82,7 +82,7 @@ public final class CarPlayTemplateBuilder {
             let serverItems = savedServers.map { server in
                 let item = CPListItem(
                     text: server.name,
-                    detailText: serverTypeText(for: server.serverType) + " 媒体库",
+                    detailText: serverTypeText(for: server.serverType) + " " + String(localized: "媒体库"),
                     image: UIImage(systemName: icon(for: server.serverType))
                 )
                 item.handler = { _, completion in
@@ -91,7 +91,7 @@ public final class CarPlayTemplateBuilder {
                 }
                 return item
             }
-            sections.append(CPListSection(items: serverItems, header: "个人媒体库", sectionIndexTitle: nil))
+            sections.append(CPListSection(items: serverItems, header: String(localized: "个人媒体库"), sectionIndexTitle: nil))
         }
         #endif
 
@@ -99,7 +99,7 @@ public final class CarPlayTemplateBuilder {
         let sampleItems = MediaItem.sampleStreams.map { sample in
             let item = CPListItem(
                 text: sample.title,
-                detailText: sample.mimeType?.contains("mpegURL") == true ? "HLS 视频流" : "MP4 视频",
+                detailText: sample.mimeType?.contains("mpegURL") == true ? String(localized: "HLS 视频流") : String(localized: "MP4 视频"),
                 image: UIImage(systemName: "film.fill")
             )
             item.handler = { _, completion in
@@ -108,18 +108,18 @@ public final class CarPlayTemplateBuilder {
             }
             return item
         }
-        sections.append(CPListSection(items: sampleItems, header: "内置测试源 (实车验证)", sectionIndexTitle: nil))
+        sections.append(CPListSection(items: sampleItems, header: String(localized: "内置测试源 (实车验证)"), sectionIndexTitle: nil))
 
         // MARK: - 5. Receiver Status Section
         let statusItem = CPListItem(
             text: UPnPDevice.shared.friendlyName,
-            detailText: "DLNA 接收端已就绪 (端口 :\(HTTPServer.shared.port))",
+            detailText: "\(String(localized: "DLNA 接收端已就绪")) (\(String(localized: "端口")): \(HTTPServer.shared.port))",
             image: UIImage(systemName: "antenna.radiowaves.left.and.right")
         )
         statusItem.handler = { _, completion in
             completion()
         }
-        sections.append(CPListSection(items: [statusItem], header: "车载投送状态", sectionIndexTitle: nil))
+        sections.append(CPListSection(items: [statusItem], header: String(localized: "车载投送状态"), sectionIndexTitle: nil))
 
         return sections
     }
@@ -135,8 +135,8 @@ public final class CarPlayTemplateBuilder {
         case .emby: return "Emby"
         case .jellyfin: return "Jellyfin"
         case .webDAV: return "WebDAV"
-        case .smb: return "SMB 共享"
-        case .fnos: return "飞牛私有云"
+        case .smb: return String(localized: "SMB 共享")
+        case .fnos: return String(localized: "飞牛私有云")
         }
     }
 
@@ -169,7 +169,7 @@ public final class CarPlayTemplateBuilder {
                 let items = libs.map { lib in
                     let item = CPListItem(
                         text: lib.name,
-                        detailText: lib.collectionType?.capitalized ?? "媒体库",
+                        detailText: lib.collectionType?.capitalized ?? String(localized: "媒体库"),
                         image: UIImage(systemName: iconForCollection(lib.collectionType))
                     )
                     item.handler = { _, completion in
@@ -228,7 +228,7 @@ public final class CarPlayTemplateBuilder {
                 let items = videos.map { video in
                     let item = CPListItem(
                         text: video.title,
-                        detailText: video.duration != nil && video.duration! > 0 ? SOAPParser.formatUPnPTime(video.duration!) : "视频",
+                        detailText: video.duration != nil && video.duration! > 0 ? SOAPParser.formatUPnPTime(video.duration!) : String(localized: "视频"),
                         image: UIImage(systemName: "play.circle.fill")
                     )
                     item.handler = { _, completion in
