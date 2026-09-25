@@ -1451,18 +1451,18 @@ public struct PlayerView: View {
         Menu {
             Section(String.localizedStringWithFormat(String(localized: "字幕大小 (%lld%%)"), Int(playerService.subtitleUserScale * 100))) {
                 ForEach([
-                    ("极小 (75%)", 0.75),
-                    ("较小 (85%)", 0.85),
-                    ("标准 (100%)", 1.00),
-                    ("较大 (120%)", 1.20),
-                    ("特大 (140%)", 1.40),
-                    ("极大 (160%)", 1.60)
+                    (LocalizedStringKey("极小 (75%)"), 0.75),
+                    (LocalizedStringKey("较小 (85%)"), 0.85),
+                    (LocalizedStringKey("标准 (100%)"), 1.00),
+                    (LocalizedStringKey("较大 (120%)"), 1.20),
+                    (LocalizedStringKey("特大 (140%)"), 1.40),
+                    (LocalizedStringKey("极大 (160%)"), 1.60)
                 ], id: \.1) { label, scale in
                     Button {
                         playerService.setSubtitleUserScale(scale)
                     } label: {
                         HStack {
-                            Text(String(localized: label))
+                            Text(label)
                             if abs(playerService.subtitleUserScale - scale) < 0.02 {
                                 Image(systemName: "checkmark")
                             }
