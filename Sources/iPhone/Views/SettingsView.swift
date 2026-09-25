@@ -290,6 +290,7 @@ public struct SettingsView: View {
                     Link("用户隐私政策", destination: URL(string: "https://mivu.app/privacy")!)
                 }
             }
+            .formStyle(.grouped)
             .navigationTitle("设置")
         }
     }
