@@ -2415,33 +2415,33 @@ struct PlaybackSettingsSheet: View {
                         get: { playerService.rewindOnResumeSeconds },
                         set: { playerService.setRewindOnResumeSeconds($0) }
                     )) {
-                        Text("关闭").tag(0)
-                        Text("3 秒").tag(3)
-                        Text("5 秒").tag(5)
+                        Text("关闭").tag(0.0)
+                        Text("3 秒").tag(3.0)
+                        Text("5 秒").tag(5.0)
                     }
 
                     Picker("智能跳过片头", selection: Binding(
                         get: { playerService.skipIntroSeconds },
                         set: { playerService.setSkipIntroSeconds($0) }
                     )) {
-                        Text("关闭").tag(0)
-                        Text("15 秒").tag(15)
-                        Text("30 秒").tag(30)
-                        Text("60 秒").tag(60)
-                        Text("90 秒").tag(90)
-                        Text("120 秒").tag(120)
+                        Text("关闭").tag(0.0)
+                        Text("15 秒").tag(15.0)
+                        Text("30 秒").tag(30.0)
+                        Text("60 秒").tag(60.0)
+                        Text("90 秒").tag(90.0)
+                        Text("120 秒").tag(120.0)
                     }
 
                     Picker("智能跳过片尾", selection: Binding(
                         get: { playerService.skipOutroSeconds },
                         set: { playerService.setSkipOutroSeconds($0) }
                     )) {
-                        Text("关闭").tag(0)
-                        Text("30 秒").tag(30)
-                        Text("60 秒").tag(60)
-                        Text("90 秒").tag(90)
-                        Text("120 秒").tag(120)
-                        Text("180 秒").tag(180)
+                        Text("关闭").tag(0.0)
+                        Text("30 秒").tag(30.0)
+                        Text("60 秒").tag(60.0)
+                        Text("90 秒").tag(90.0)
+                        Text("120 秒").tag(120.0)
+                        Text("180 秒").tag(180.0)
                     }
                 } header: {
                     Text("智能跳过与播放记忆")

@@ -15,6 +15,17 @@ final class SMBLocalHTTPProxy: @unchecked Sendable {
     private struct Resource {
         let configuration: SMBPlaybackConfiguration
         let remotePath: String
+        let reader: SMBRangeReader
+
+        func matches(configuration: SMBPlaybackConfiguration, remotePath: String) -> Bool {
+            self.remotePath == remotePath
+                && self.configuration.host == configuration.host
+                && self.configuration.port == configuration.port
+                && self.configuration.share == configuration.share
+                && self.configuration.rootPath == configuration.rootPath
+                && self.configuration.username == configuration.username
+                && self.configuration.password == configuration.password
+        }
     }
 
     private let lock = NSLock()
@@ -95,7 +106,13 @@ final class SMBLocalHTTPProxy: @unchecked Sendable {
         guard let port = listeningPort else { return nil }
         let key = sourceURL.absoluteString
         let token = resourceTokens[key] ?? UUID().uuidString.lowercased()
-        resources[token] = Resource(configuration: configuration, remotePath: remotePath)
+        if resources[token]?.matches(configuration: configuration, remotePath: remotePath) != true {
+            resources[token] = Resource(
+                configuration: configuration,
+                remotePath: remotePath,
+                reader: SMBRangeReader(configuration: configuration, remotePath: remotePath)
+            )
+        }
         resourceTokens[key] = token
         let extensionName = URL(fileURLWithPath: remotePath).pathExtension
             .lowercased()
@@ -144,7 +161,7 @@ final class SMBLocalHTTPProxy: @unchecked Sendable {
             guard fields.count == 2 else { return nil }
             return (fields[0].trimmingCharacters(in: .whitespaces).lowercased(), fields[1].trimmingCharacters(in: .whitespaces))
         })
-        let reader = SMBRangeReader(configuration: resource.configuration, remotePath: resource.remotePath)
+        let reader = resource.reader
         do {
             let metadata = try await reader.metadata()
             guard let responseRange = Self.range(headers["range"], fileLength: metadata.length) else {
