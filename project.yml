@@ -115,9 +115,6 @@ targets:
           - "-Xcc"
           - "-DGLES_SILENCE_DEPRECATION=1"
           - "-DMIVU_LITE"
-      configs:
-        Release:
-          CODE_SIGN_IDENTITY: "Apple Distribution"
 
   MivuPro:
     templates:
