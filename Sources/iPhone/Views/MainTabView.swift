@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Main TabView for Mivu:
-/// [Home, Servers, History, Settings]
+/// [Home, Library, History, Settings]
 public struct MainTabView: View {
     @ObservedObject private var playerService = PlayerService.shared
     private let isCarPlayWindow: Bool
@@ -14,12 +14,12 @@ public struct MainTabView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("首页", systemImage: "sparkles.tv")
+                    Label("首页", systemImage: "house.fill")
                 }
 
             ServersView()
                 .tabItem {
-                    Label("资源库", systemImage: "externaldrive.fill")
+                    Label("资源库", systemImage: "rectangle.stack.fill")
                 }
 
             HistoryView()
@@ -32,7 +32,7 @@ public struct MainTabView: View {
                     Label("设置", systemImage: "gearshape.fill")
                 }
         }
-        .tint(.orange)
+        .tint(MivuEdition.primaryTint)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
             if isCarPlayWindow {
                 PlayerView()

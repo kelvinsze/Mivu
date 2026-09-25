@@ -35,7 +35,7 @@ public struct VideoDetailView: View {
                     backdropHeroHeader
 
                     // MARK: - 2. Content Body
-                    VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: MivuSpacing.l) {
                         // Playback CTA Button & Action Bar
                         playbackControlsSection
 
@@ -60,8 +60,8 @@ public struct VideoDetailView: View {
                         // Technical Metadata & Footer Release Info
                         footerReleaseSection
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 14)
+                    .padding(.horizontal, MivuSpacing.m)
+                    .padding(.top, MivuSpacing.s)
                     .padding(.bottom, 60)
                 }
             }
@@ -111,7 +111,6 @@ public struct VideoDetailView: View {
                         .frame(width: 40, height: 40)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
-                        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
                 }
 
                 Spacer()
@@ -152,7 +151,6 @@ public struct VideoDetailView: View {
                             .frame(width: 40, height: 40)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 3)
                     }
                 }
             }
@@ -218,7 +216,7 @@ public struct VideoDetailView: View {
                         .padding(.bottom, 2)
                 } else {
                     Text(currentItem.title)
-                        .font(.system(size: 28, weight: .black, design: .rounded))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
@@ -327,14 +325,10 @@ public struct VideoDetailView: View {
 
     private var fallbackBackdrop: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.orange.opacity(0.35), Color.purple.opacity(0.25), Color.black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color.mivuSurfaceSecondary
             Image(systemName: "film")
                 .font(.system(size: 60))
-                .foregroundColor(.white.opacity(0.12))
+                .foregroundColor(.white.opacity(0.22))
         }
     }
 
@@ -349,7 +343,7 @@ public struct VideoDetailView: View {
                     HStack(spacing: 8) {
                         if isResolvingPlayback {
                             ProgressView()
-                                .tint(.black)
+                                .tint(.white)
                         } else {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 16, weight: .bold))
@@ -359,9 +353,9 @@ public struct VideoDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Color(white: 0.92))
-                    .foregroundColor(.black)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(MivuEdition.primaryTint)
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                 }
                 .disabled(isResolvingPlayback)
 
@@ -400,7 +394,7 @@ public struct VideoDetailView: View {
                         .foregroundColor(.white)
                         .frame(width: 50, height: 50)
                         .background(Color.white.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                 }
             }
 
@@ -409,7 +403,7 @@ public struct VideoDetailView: View {
                 // Watched toggle
                 actionCircleButton(
                     icon: currentItem.isPlayed == true ? "checkmark.circle.fill" : "checkmark.circle",
-                    tint: currentItem.isPlayed == true ? .orange : .white
+                    tint: currentItem.isPlayed == true ? MivuEdition.primaryTint : .white
                 ) {
                     togglePlayed()
                 }
@@ -485,7 +479,7 @@ public struct VideoDetailView: View {
             } label: {
                 Text(isOverviewExpanded ? "收起" : "展开全文")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(MivuEdition.primaryTint)
             }
         }
         .contentShape(Rectangle())
@@ -1070,7 +1064,7 @@ public struct VideoDetailView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "video")
-                    .foregroundColor(.orange)
+                    .foregroundColor(MivuEdition.primaryTint)
                 Text("视频")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
@@ -1111,14 +1105,14 @@ public struct VideoDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "speaker.wave.2")
-                    .foregroundColor(.orange)
+                    .foregroundColor(MivuEdition.primaryTint)
                 Text("音频")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
                 if a.isDefault {
                     Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(MivuEdition.primaryTint)
                 }
             }
             .padding(.bottom, 4)
@@ -1205,7 +1199,7 @@ public struct VideoDetailView: View {
                             Spacer()
                             if stream.isDefault {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(MivuEdition.primaryTint)
                             }
                         }
                     }
@@ -1241,7 +1235,7 @@ public struct VideoDetailView: View {
                             Spacer()
                             if sub.isDefault {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(MivuEdition.primaryTint)
                             }
                         }
                     }

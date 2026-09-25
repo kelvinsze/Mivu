@@ -209,9 +209,11 @@ public struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Image(systemName: "crown.fill")
-                                .foregroundColor(MivuEdition.primaryTint)
+                                .foregroundColor(MivuEdition.proIdentityTint)
                             Text("Mivu Pro 全能媒体中心")
                                 .font(.subheadline.bold())
+                            Spacer()
+                            MivuProBadge()
                         }
                         Text("支持 Emby、Jellyfin、WebDAV、SMB 私有媒体库挂载，精美影视海报墙与智能刮削。")
                             .font(.caption)
@@ -222,6 +224,15 @@ public struct SettingsView: View {
                 #endif
 
                 Section(aboutSectionTitle) {
+                    #if MIVU_PRO
+                    HStack {
+                        Label("Mivu Pro", systemImage: "crown.fill")
+                            .foregroundStyle(MivuEdition.proIdentityTint)
+                        Spacer()
+                        MivuProBadge()
+                    }
+                    #endif
+
                     HStack {
                         Text("应用名称")
                         Spacer()

@@ -44,10 +44,8 @@ public struct HistoryView: View {
                         }
                     }
                     .listStyle(.plain)
-                    #if MIVU_LITE
                     .scrollContentBackground(.hidden)
                     .background(Color.mivuBackground)
-                    #endif
                     .searchable(text: $searchText, prompt: "搜索观看历史")
                 }
             }
@@ -100,9 +98,7 @@ public struct HistoryView: View {
                 .padding(.horizontal, 32)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        #if MIVU_LITE
         .background(Color.mivuBackground)
-        #endif
     }
 
     private func historyRow(_ item: MediaItem) -> some View {
@@ -234,45 +230,19 @@ public struct HistoryView: View {
     }
 
     private var historyRowPadding: CGFloat {
-        #if MIVU_LITE
         return MivuSpacing.s
-        #else
-        return 10
-        #endif
     }
 
     private var historyRowBackground: Color {
-        #if MIVU_LITE
         return .mivuSurface
-        #else
-        return Color(.secondarySystemBackground)
-        #endif
     }
 
     private func badgeBackground(for source: MediaSourceType) -> Color {
-        #if MIVU_LITE
         return .mivuSurfaceSecondary
-        #else
-        return badgeColor(for: source).opacity(0.15)
-        #endif
     }
 
     private func badgeForeground(for source: MediaSourceType) -> Color {
-        #if MIVU_LITE
         return .secondary
-        #else
-        return badgeColor(for: source)
-        #endif
-    }
-
-    private func badgeColor(for source: MediaSourceType) -> Color {
-        switch source {
-        case .personalMedia: return .orange
-        case .photoLibrary: return .pink
-        case .dlna: return .cyan
-        case .directUrl: return .purple
-        case .testStream: return .blue
-        }
     }
 
     private func playHistoryItem(_ item: MediaItem) {

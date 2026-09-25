@@ -316,17 +316,12 @@ public struct MivuReceiverHomeView: View {
         VStack(alignment: .leading, spacing: MivuSpacing.s) {
             HStack {
                 Image(systemName: "crown.fill")
-                    .foregroundColor(Color.mivuAccent)
+                    .foregroundColor(MivuEdition.proIdentityTint)
                 Text("探索 Mivu Pro")
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
                 Spacer()
-                Text("专业版")
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.mivuSurfaceSecondary, in: RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
-                    .foregroundColor(.secondary)
+                MivuProBadge()
             }
 
             Text("敬请期待")

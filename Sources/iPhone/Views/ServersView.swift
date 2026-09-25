@@ -17,11 +17,11 @@ public struct ServersView: View {
                         VStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.orange.opacity(0.12))
+                                    .fill(MivuEdition.primaryTint.opacity(0.12))
                                     .frame(width: 80, height: 80)
                                 Image(systemName: "server.rack")
                                     .font(.system(size: 38))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(MivuEdition.primaryTint)
                             }
                             .padding(.top, 20)
 
@@ -44,7 +44,7 @@ public struct ServersView: View {
                                     .padding(.horizontal, 8)
                             }
                             .buttonStyle(.borderedProminent)
-                            .tint(.orange)
+                            .tint(MivuEdition.primaryTint)
                             .padding(.bottom, 20)
                         }
                         .frame(maxWidth: .infinity)
@@ -107,11 +107,11 @@ public struct ServersView: View {
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(isShowingAddMenu ? .white : .orange)
+                            .foregroundColor(isShowingAddMenu ? .white : MivuEdition.primaryTint)
                             .frame(width: 32, height: 32)
                             .background(
                                 Circle()
-                                    .fill(isShowingAddMenu ? Color.orange : Color.orange.opacity(0.12))
+                                    .fill(isShowingAddMenu ? MivuEdition.primaryTint : MivuEdition.primaryTint.opacity(0.12))
                             )
                     }
                 }
@@ -256,7 +256,7 @@ struct AddServerView: View {
                         }
                     }
                     .disabled(isAuthenticating || serverUrlStr.isEmpty)
-                    .tint(.orange)
+                    .tint(MivuEdition.primaryTint)
                 }
             }
             .onChange(of: selectedService) { _, newService in

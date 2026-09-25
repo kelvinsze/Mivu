@@ -20,7 +20,7 @@ public struct HomeView: View {
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: MivuSpacing.l) {
                     // MARK: - 1. Clipboard Detected Banner (Sleek Capsule)
                     if let detected = clipboardURL {
                         clipboardBanner(detected)
@@ -49,7 +49,7 @@ public struct HomeView: View {
                 }
                 .padding(.top, 10)
             }
-            .background(Color(.systemBackground))
+            .background(Color.mivuBackground)
             .navigationTitle("Mivu")
             .safeAreaInset(edge: .bottom) {
                 HomeMiniPlayerBar(
@@ -111,17 +111,18 @@ public struct HomeView: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(Color.orange.opacity(0.85))
+                                .background(MivuEdition.primaryTint.opacity(0.9))
                                 .foregroundColor(.white)
                                 .clipShape(Capsule())
 
                             Spacer()
 
                             // Circular Play Button
-                            Image(systemName: "play.circle.fill")
-                                .font(.system(size: 38))
+                            Image(systemName: "play.fill")
+                                .font(.title3.weight(.semibold))
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial, in: Circle())
                                 .foregroundColor(.white)
-                                .shadow(radius: 4)
                         }
 
                         Text(item.title)
@@ -136,7 +137,7 @@ public struct HomeView: View {
                                 .foregroundColor(.white.opacity(0.85))
 
                             ProgressView(value: min(resume / duration, 1.0))
-                                .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                .progressViewStyle(LinearProgressViewStyle(tint: MivuEdition.primaryTint))
                                 .scaleEffect(x: 1, y: 1.5, anchor: .center)
                                 .clipShape(RoundedRectangle(cornerRadius: 2))
                         } else {
@@ -149,8 +150,7 @@ public struct HomeView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 190)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                .clipShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
             }
             .buttonStyle(.plain)
         }
@@ -158,14 +158,10 @@ public struct HomeView: View {
 
     private var fallbackHeroBackdrop: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.orange.opacity(0.4), Color.purple.opacity(0.3), Color.black.opacity(0.9)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            Color.mivuSurfaceSecondary
             Image(systemName: "film")
                 .font(.system(size: 50))
-                .foregroundColor(.white.opacity(0.15))
+                .foregroundColor(.secondary.opacity(0.45))
         }
     }
 
@@ -181,7 +177,7 @@ public struct HomeView: View {
                 } label: {
                     Text("全部")
                         .font(.subheadline)
-                        .foregroundColor(.orange)
+                        .foregroundColor(MivuEdition.primaryTint)
                 }
             }
 
@@ -194,7 +190,7 @@ public struct HomeView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(MivuEdition.primaryTint)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("添加个人媒体源")
                                         .font(.subheadline.bold())
@@ -206,8 +202,8 @@ public struct HomeView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .background(Color.mivuSurface)
+                            .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                         }
                     } else {
                         ForEach(serverManager.savedServers) { server in
@@ -217,7 +213,7 @@ public struct HomeView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: iconForServer(server.serverType))
                                         .font(.title3)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(MivuEdition.primaryTint)
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(server.name)
@@ -231,8 +227,8 @@ public struct HomeView: View {
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(Color.mivuSurface)
+                                .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                             }
                         }
                     }
@@ -253,7 +249,7 @@ public struct HomeView: View {
                 } label: {
                     Text("查看全部")
                         .font(.subheadline)
-                        .foregroundColor(.orange)
+                        .foregroundColor(MivuEdition.primaryTint)
                 }
             }
             .padding(.horizontal)
@@ -275,27 +271,25 @@ public struct HomeView: View {
                                         }
                                         .frame(width: 110, height: 165)
                                         .clipped()
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .clipShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
+                                        .contentShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
                                     } else {
                                         posterPlaceholder(item)
                                             .frame(width: 110, height: 165)
-                                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                            .clipShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
+                                            .contentShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
                                     }
 
                                     // Small bottom progress bar on poster
                                     if let resume = item.resumePosition, let dur = item.duration, dur > 0 {
                                         ProgressView(value: min(resume / dur, 1.0))
-                                            .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                            .progressViewStyle(LinearProgressViewStyle(tint: MivuEdition.primaryTint))
                                             .scaleEffect(x: 1, y: 2, anchor: .center)
                                             .clipShape(RoundedRectangle(cornerRadius: 2))
                                             .padding(.horizontal, 6)
                                             .padding(.bottom, 4)
                                     }
                                 }
-                                .shadow(color: .black.opacity(0.15), radius: 5, x: 0, y: 3)
-
                                 Text(item.title)
                                     .font(.caption.bold())
                                     .foregroundColor(.primary)
@@ -315,7 +309,7 @@ public struct HomeView: View {
 
     private func posterPlaceholder(_ item: MediaItem) -> some View {
         ZStack {
-            Color(.secondarySystemBackground)
+            Color.mivuSurfaceSecondary
             VStack(spacing: 6) {
                 Image(systemName: "film")
                     .font(.title2)
@@ -334,12 +328,12 @@ public struct HomeView: View {
         HStack(spacing: 12) {
             Image(systemName: "link.badge.plus")
                 .font(.title3)
-                .foregroundColor(.orange)
+                .foregroundColor(MivuEdition.primaryTint)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("剪贴板视频流已捕获")
                     .font(.caption.bold())
-                    .foregroundColor(.orange)
+                    .foregroundColor(MivuEdition.primaryTint)
                 Text(url.absoluteString)
                     .font(.caption2)
                     .lineLimit(1)
@@ -360,12 +354,12 @@ public struct HomeView: View {
                 clipboardURL = nil
             }
             .buttonStyle(.borderedProminent)
-            .tint(.orange)
+            .tint(MivuEdition.primaryTint)
             .controlSize(.small)
         }
         .padding(12)
-        .background(Color.orange.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(MivuEdition.primaryTint.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
     }
 
     // MARK: - Helpers
@@ -443,12 +437,12 @@ private struct HomeMiniPlayerBar: View {
                     HStack(spacing: 12) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.orange.opacity(0.15))
+                                .fill(MivuEdition.primaryTint.opacity(0.15))
                                 .frame(width: 42, height: 42)
 
                             Image(systemName: "film.fill")
                                 .font(.subheadline)
-                                .foregroundColor(.orange)
+                                .foregroundColor(MivuEdition.primaryTint)
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
@@ -488,8 +482,7 @@ private struct HomeMiniPlayerBar: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
             .padding(.horizontal, 16)
             .padding(.bottom, 6)
         }

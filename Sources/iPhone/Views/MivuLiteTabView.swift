@@ -22,27 +22,21 @@ public enum MivuRadius {
 
 public enum MivuEdition {
     public static var primaryTint: Color {
-        #if MIVU_LITE
         return .mivuAccent
-        #else
-        return .orange
-        #endif
     }
 
     public static var utilityTint: Color {
-        #if MIVU_LITE
         return .mivuAccent
-        #else
-        return .blue
-        #endif
+    }
+
+    /// Kept separate from Amber: this identifies the Pro edition and must not
+    /// become a second primary interaction color.
+    public static var proIdentityTint: Color {
+        .mivuProTitanium
     }
 
     public static var secondarySurface: Color {
-        #if MIVU_LITE
         return .mivuSurface
-        #else
-        return Color(.secondarySystemBackground)
-        #endif
     }
 }
 
@@ -67,6 +61,28 @@ public extension Color {
             ? UIColor(red: 41 / 255, green: 41 / 255, blue: 44 / 255, alpha: 1)
             : UIColor(red: 236 / 255, green: 234 / 255, blue: 230 / 255, alpha: 1)
     })
+    static let mivuProTitanium = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 210 / 255, green: 179 / 255, blue: 113 / 255, alpha: 1)
+            : UIColor(red: 143 / 255, green: 111 / 255, blue: 56 / 255, alpha: 1)
+    })
+}
+
+/// A restrained edition marker for membership and upgrade surfaces only.
+public struct MivuProBadge: View {
+    public init() {}
+
+    public var body: some View {
+        Label("Pro", systemImage: "crown.fill")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(MivuEdition.proIdentityTint)
+            .padding(.horizontal, MivuSpacing.xs)
+            .padding(.vertical, MivuSpacing.xxs)
+            .background(
+                MivuEdition.proIdentityTint.opacity(0.12),
+                in: Capsule()
+            )
+    }
 }
 
 public struct MivuSurface<Content: View>: View {
