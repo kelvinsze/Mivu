@@ -54,6 +54,7 @@ public final class PlayerService: ObservableObject {
     @Published public private(set) var showSkipOutroPrompt: Bool = false
     @Published public var isShowingPlayer: Bool = false
     @Published public var isCarPlayConnected: Bool = false
+    @Published public private(set) var isCarPlayVideoPlaybackAvailable: Bool = false
     @Published public private(set) var isExternalPlaybackActive: Bool = false
 
     /// Indicates whether CarPlay projection, external display, or CarPlay casting is active.
@@ -64,6 +65,10 @@ public final class PlayerService: ObservableObject {
             scene.session.role == .carTemplateApplication
                 || scene.session.role.rawValue == "CPTemplateApplicationSceneSessionRoleApplication"
         }
+    }
+
+    public func setCarPlayVideoPlaybackAvailable(_ isAvailable: Bool) {
+        isCarPlayVideoPlaybackAvailable = isAvailable
     }
 
     // AB Repeat

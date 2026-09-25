@@ -136,7 +136,11 @@ public struct MivuLiteTabView: View {
         .tint(Color.mivuAccent)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
             if isCarPlayWindow {
-                PlayerView()
+                if playerService.isCarPlayVideoPlaybackAvailable {
+                    PlayerView()
+                } else {
+                    CarPlayRemoteControlView()
+                }
             } else {
                 MivuPlaybackPresentation()
             }
@@ -181,7 +185,9 @@ public struct CarPlayRemoteControlView: View {
                     .font(.headline)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                Text("视频仅显示在车机屏幕，手机作为遥控器使用")
+                Text(playerService.isCarPlayVideoPlaybackAvailable
+                    ? "视频仅显示在车机屏幕，手机作为遥控器使用"
+                    : "车辆行驶中，已切换为仅音频播放")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

@@ -63,6 +63,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.sessionConfiguration = nil
         self.isConnected = false
         PlayerService.shared.isCarPlayConnected = false
+        PlayerService.shared.setCarPlayVideoPlaybackAvailable(false)
         self.isPresentingRootTemplate = false
         self.needsRootTemplateRefresh = false
         self.shouldPresentIncomingPlayback = false
@@ -83,11 +84,9 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     // MARK: - Vehicle State Inspection
 
     private func updateVehicleCapabilities() {
-        guard let sessionConfiguration else {
-            self.isVideoPlaybackAvailable = false
-            return
-        }
-        self.isVideoPlaybackAvailable = CarPlayVideoPresentation.isVideoPlaybackSupported(sessionConfiguration: sessionConfiguration)
+        let isAvailable = CarPlayVideoPresentation.isVideoPlaybackSupported(sessionConfiguration: sessionConfiguration)
+        self.isVideoPlaybackAvailable = isAvailable
+        PlayerService.shared.setCarPlayVideoPlaybackAvailable(isAvailable)
     }
 
     // MARK: - UI Updates
