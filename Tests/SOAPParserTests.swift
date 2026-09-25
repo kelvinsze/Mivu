@@ -115,11 +115,21 @@ final class SOAPParserTests: XCTestCase {
     }
 
     func testDeepLinkParsing() {
-        let url = URL(string: "mivu://play?url=https%3A%2F%2Fexample.com%2Fstream.m3u8&title=TestStream")!
+        #if MIVU_PRO
+        let scheme = "mivupro"
+        let unsupportedScheme = "mivu"
+        #else
+        let scheme = "mivu"
+        let unsupportedScheme = "mivupro"
+        #endif
+        let url = URL(string: "\(scheme)://play?url=https%3A%2F%2Fexample.com%2Fstream.m3u8&title=TestStream")!
         let item = URLSource.parseDeepLink(url: url)
         XCTAssertNotNil(item)
         XCTAssertEqual(item?.title, "TestStream")
         XCTAssertEqual(item?.url.absoluteString, "https://example.com/stream.m3u8")
+
+        let unsupportedURL = URL(string: "\(unsupportedScheme)://play?url=https%3A%2F%2Fexample.com%2Fstream.m3u8")!
+        XCTAssertNil(URLSource.parseDeepLink(url: unsupportedURL))
     }
 
     func testWebRemoteTemplateRender() {

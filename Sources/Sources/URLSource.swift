@@ -23,9 +23,9 @@ public final class URLSource {
         return nil
     }
 
-    /// Parses URL Scheme deep link (e.g. `mivu://play?url=http://...&title=Sample`)
+    /// Parses the app-specific URL Scheme deep link (e.g. `mivu://play?url=http://...&title=Sample`).
     public static func parseDeepLink(url: URL) -> MediaItem? {
-        guard url.scheme == "mivu" else { return nil }
+        guard url.scheme?.lowercased() == deepLinkScheme else { return nil }
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
 
         var targetUrlString: String?
@@ -52,4 +52,12 @@ public final class URLSource {
             originator: "Deep Link"
         )
     }
+
+    private static let deepLinkScheme: String = {
+        #if MIVU_PRO
+        "mivupro"
+        #else
+        "mivu"
+        #endif
+    }()
 }

@@ -46,7 +46,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let sceneRole = connectingSceneSession.role
         let isCarPlayTemplateScene = sceneRole == .carTemplateApplication
             || sceneRole.rawValue == "CPTemplateApplicationSceneSessionRoleApplication"
-        let isCarPlayWindowScene = sceneRole.rawValue == "UIWindowSceneSessionRoleCarPlay"
 
         logger.info("Connecting scene with role: \(sceneRole.rawValue, privacy: .public)")
 
@@ -55,12 +54,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             let config = UISceneConfiguration(name: "CarPlay Configuration", sessionRole: connectingSceneSession.role)
             config.sceneClass = CPTemplateApplicationScene.self
             config.delegateClass = CarPlaySceneDelegate.self
-            return config
-        } else if isCarPlayWindowScene {
-            logger.info("Connecting CarPlay window scene configuration for role: \(sceneRole.rawValue, privacy: .public)")
-            let config = UISceneConfiguration(name: "CarPlay Window Configuration", sessionRole: sceneRole)
-            config.sceneClass = UIWindowScene.self
-            config.delegateClass = PhoneSceneDelegate.self
             return config
         } else {
             logger.info("Connecting Phone UIWindowScene configuration...")
