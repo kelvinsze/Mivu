@@ -171,7 +171,7 @@ public struct MivuReceiverHomeView: View {
     }
 
     private func castingSourceCard(
-        title: String,
+        title: LocalizedStringKey,
         icon: String,
         usesMulticolorSymbol: Bool = false
     ) -> some View {
@@ -194,7 +194,7 @@ public struct MivuReceiverHomeView: View {
 
             Spacer(minLength: MivuSpacing.xxs)
 
-            Text(String(localized: title))
+            Text(title)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
@@ -293,7 +293,7 @@ public struct MivuReceiverHomeView: View {
         .mivuSurface()
     }
 
-    private func guideStepRow(index: String, title: String, detail: String) -> some View {
+    private func guideStepRow(index: String, title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: MivuSpacing.s) {
             ZStack {
                 Circle()
@@ -305,10 +305,10 @@ public struct MivuReceiverHomeView: View {
             }
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: title))
+                Text(title)
                     .font(.subheadline.bold())
                     .foregroundColor(.primary)
-                Text(String(localized: detail))
+                Text(detail)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
