@@ -18,6 +18,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
 
     @Published public private(set) var isConnected: Bool = false
     @Published public private(set) var isVideoPlaybackAvailable: Bool = false
+    @Published public private(set) var isSystemVideoPlaybackAvailable: Bool = false
 
     private var isPresentingRootTemplate = false
     private var needsRootTemplateRefresh = false
@@ -47,6 +48,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         SSDPService.shared.recordPlaybackStage("CarPlay 车机连接就绪")
         self.sessionConfiguration = CPSessionConfiguration(delegate: self)
         updateVehicleCapabilities()
+        refreshCarPlayUI()
 
         if PlayerService.shared.session.currentItem?.sourceType == .dlna {
             shouldPresentIncomingPlayback = true
@@ -62,6 +64,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self.rootTemplate = nil
         self.sessionConfiguration = nil
         self.isConnected = false
+        self.isSystemVideoPlaybackAvailable = false
         PlayerService.shared.isCarPlayConnected = false
         PlayerService.shared.setCarPlayVideoPlaybackAvailable(false)
         self.isPresentingRootTemplate = false
@@ -84,10 +87,18 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     // MARK: - Vehicle State Inspection
 
     private func updateVehicleCapabilities() {
+        self.isSystemVideoPlaybackAvailable = CarPlayVideoPresentation.isSystemVideoPlaybackSupported(sessionConfiguration: sessionConfiguration)
         let isAvailable = CarPlayVideoPresentation.isVideoPlaybackSupported(sessionConfiguration: sessionConfiguration)
         self.isVideoPlaybackAvailable = isAvailable
         PlayerService.shared.setCarPlayVideoPlaybackAvailable(isAvailable)
     }
+
+#if DEBUG
+    public func refreshVideoPlaybackAvailabilityForTesting() {
+        updateVehicleCapabilities()
+        refreshCarPlayUI()
+    }
+#endif
 
     // MARK: - UI Updates
 

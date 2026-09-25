@@ -334,6 +334,7 @@ public final class HTTPServer: @unchecked Sendable {
                 let hasInterface = cpDelegate?.interfaceController != nil
                 let hasRoot = cpDelegate?.rootTemplate != nil
                 let videoAvail = cpDelegate?.isVideoPlaybackAvailable ?? false
+                let systemVideoAvail = cpDelegate?.isSystemVideoPlaybackAvailable ?? false
                 let sectionsCount = cpDelegate?.rootTemplate?.sections.count ?? 0
 
                 let json: [String: Any] = [
@@ -344,6 +345,7 @@ public final class HTTPServer: @unchecked Sendable {
                     "hasRootTemplate": hasRoot,
                     "rootTemplateSectionsCount": sectionsCount,
                     "isVideoPlaybackAvailable": videoAvail,
+                    "isSystemVideoPlaybackAvailable": systemVideoAvail,
                     "playerStatus": PlayerService.shared.session.status.rawValue,
                     "hasCurrentItem": PlayerService.shared.session.currentItem?.title ?? "none"
                 ]

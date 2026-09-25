@@ -5,6 +5,10 @@ import Combine
 public struct SettingsView: View {
     @AppStorage("mivu_custom_friendly_name") private var customFriendlyName: String = ""
     @ObservedObject private var playerService = PlayerService.shared
+#if DEBUG
+    @AppStorage(CarPlayVideoPresentation.drivingVideoRestrictionDetectionKey) private var isDrivingVideoRestrictionDetectionEnabled: Bool = true
+    @State private var isShowingDrivingVideoRestrictionConfirmation = false
+#endif
 
     public init() {}
 
@@ -98,6 +102,30 @@ public struct SettingsView: View {
                     }
                     #endif
 
+                    #if DEBUG
+                    Toggle("检测行驶中视频限制", isOn: Binding(
+                        get: { isDrivingVideoRestrictionDetectionEnabled },
+                        set: { enabled in
+                            if enabled {
+                                isDrivingVideoRestrictionDetectionEnabled = true
+                                CarPlaySceneDelegate.shared?.refreshVideoPlaybackAvailabilityForTesting()
+                            } else {
+                                isShowingDrivingVideoRestrictionConfirmation = true
+                            }
+                        }
+                    ))
+                    .tint(MivuEdition.primaryTint)
+                    .alert("关闭行驶中视频限制检测？", isPresented: $isShowingDrivingVideoRestrictionConfirmation) {
+                        Button("继续检测", role: .cancel) {}
+                        Button("仅用于测试", role: .destructive) {
+                            isDrivingVideoRestrictionDetectionEnabled = false
+                            CarPlaySceneDelegate.shared?.refreshVideoPlaybackAvailabilityForTesting()
+                        }
+                    } message: {
+                        Text("此开关仅存在于 Debug 构建，用于验证应用的降级路径。车机系统仍可能拒绝视频播放。")
+                    }
+                    #endif
+
                     Toggle("默认开启人声增强", isOn: Binding(
                         get: { playerService.isVoiceBoostEnabled },
                         set: { playerService.setVoiceBoost($0) }
@@ -110,7 +138,7 @@ public struct SettingsView: View {
                     Text("设置回退秒数以便暂停恢复时温习前情；开启片头片尾智能跳过，将在连播时更省心；人声增强可动态平衡对白响度。")
                         .font(.caption2)
                     #else
-                    Text("人声增强可动态平衡对白响度。")
+                    Text("人声增强可动态平衡对白响度。Debug 构建可临时关闭行驶中视频限制检测，用于验证 CarPlay 降级逻辑。")
                         .font(.caption2)
                     #endif
                 }
