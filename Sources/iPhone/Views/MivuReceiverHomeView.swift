@@ -24,6 +24,12 @@ public struct MivuReceiverHomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: MivuSpacing.l) {
+                    if let current = playerService.session.currentItem,
+                       playerService.session.status != .idle {
+                        activePlaybackCard(current)
+                            .padding(.horizontal)
+                    }
+
                     // MARK: - 1. Live Receiver Status Card
                     receiverStatusCard
                         .padding(.horizontal)
@@ -32,8 +38,9 @@ public struct MivuReceiverHomeView: View {
                     castingContentSection
                         .padding(.horizontal)
 
-                    // MARK: - 3. Active Casting Session (if playing)
-                    if let current = playerService.session.currentItem {
+                    // Keep the previous card position when a session item exists but is idle.
+                    if let current = playerService.session.currentItem,
+                       playerService.session.status == .idle {
                         activePlaybackCard(current)
                             .padding(.horizontal)
                     }
@@ -208,20 +215,55 @@ public struct MivuReceiverHomeView: View {
 
     // MARK: - 2. Active Playback Card
     private func activePlaybackCard(_ item: MediaItem) -> some View {
-        let isPlaying = playerService.session.status == .playing
+        let status = playerService.session.status
+        let canTogglePlayback = status == .playing || status == .paused
+        let statusTitle: String
+        let statusColor: Color
+        switch status {
+        case .loading:
+            statusTitle = String(localized: "正在缓冲")
+            statusColor = .orange
+        case .playing:
+            statusTitle = String(localized: "播放中")
+            statusColor = .green
+        case .paused:
+            statusTitle = String(localized: "已暂停")
+            statusColor = .orange
+        case .failed:
+            statusTitle = String(localized: "播放失败")
+            statusColor = .red
+        case .stopped:
+            statusTitle = String(localized: "已停止")
+            statusColor = .secondary
+        case .idle:
+            statusTitle = String(localized: "未播放")
+            statusColor = .secondary
+        }
+        let playbackControlTitle = status == .playing
+            ? String(localized: "暂停")
+            : (status == .paused ? String(localized: "继续") : statusTitle)
+        let playbackControlIcon: String
+        switch status {
+        case .playing: playbackControlIcon = "pause.fill"
+        case .paused: playbackControlIcon = "play.fill"
+        case .loading: playbackControlIcon = "hourglass"
+        case .failed: playbackControlIcon = "exclamationmark.triangle.fill"
+        case .stopped: playbackControlIcon = "stop.fill"
+        case .idle: playbackControlIcon = "play.circle"
+        }
 
         return VStack(alignment: .leading, spacing: MivuSpacing.s) {
             HStack {
-                Label("正在 CarPlay 播放", systemImage: "car.play.fill")
+                Label("CarPlay 播放", systemImage: "car.play.fill")
                     .font(.caption.bold())
                     .foregroundColor(Color.mivuAccent)
                 Spacer()
-            Text(verbatim: isPlaying ? String(localized: "播放中") : String(localized: "已暂停"))
+            Text(verbatim: statusTitle)
                     .font(.caption2.weight(.medium))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(isPlaying ? Color.green.opacity(0.15) : Color.mivuSurfaceSecondary)
-                    .foregroundColor(isPlaying ? .green : .orange)
+                    .background(statusColor.opacity(0.15))
+                    .foregroundColor(statusColor)
                     .cornerRadius(6)
             }
 
@@ -235,9 +277,9 @@ public struct MivuReceiverHomeView: View {
                     playerService.togglePlayPause()
                 } label: {
                     Label {
-                        Text(verbatim: isPlaying ? String(localized: "暂停") : String(localized: "继续"))
+                        Text(verbatim: playbackControlTitle)
                     } icon: {
-                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        Image(systemName: playbackControlIcon)
                     }
                     .font(.subheadline.weight(.medium))
                     .frame(maxWidth: .infinity)
@@ -245,6 +287,7 @@ public struct MivuReceiverHomeView: View {
                     .background(Color(.tertiarySystemFill))
                     .cornerRadius(8)
                 }
+                .disabled(!canTogglePlayback)
 
                 Button {
                     playerService.isShowingPlayer = true
@@ -254,7 +297,7 @@ public struct MivuReceiverHomeView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     .background(Color.mivuAccent)
-                        .foregroundColor(.white)
+                        .foregroundColor(.mivuOnAccent)
                         .cornerRadius(8)
                 }
             }

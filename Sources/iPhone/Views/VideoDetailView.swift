@@ -12,6 +12,8 @@ public struct VideoDetailView: View {
     @State private var similarItems: [MediaItem] = []
     @State private var isOverviewExpanded = false
     @State private var isResolvingPlayback = false
+    @State private var playbackResolveTask: Task<Void, Never>?
+    @State private var playbackResolveID: UUID?
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var isLoadingUnifiedRatings = true
@@ -82,6 +84,12 @@ public struct VideoDetailView: View {
             await similar
             await mediaInspection
         }
+        .onDisappear {
+            playbackResolveTask?.cancel()
+            playbackResolveTask = nil
+            playbackResolveID = nil
+            isResolvingPlayback = false
+        }
         .sheet(isPresented: $isShowingAudioSheet) {
             audioTracksSheet
         }
@@ -92,7 +100,8 @@ public struct VideoDetailView: View {
             versionsSheet
         }
         .alert("播放错误", isPresented: $isShowingErrorAlert) {
-            Button("好", role: .cancel) {}
+            Button("重试") { startPlayback(fromBeginning: false) }
+            Button("取消", role: .cancel) {}
         } message: {
             Text(verbatim: errorMessage ?? String(localized: "无法解析该媒体流"))
         }
@@ -351,7 +360,9 @@ public struct VideoDetailView: View {
                     HStack(spacing: 8) {
                         if isResolvingPlayback {
                             ProgressView()
-                                .tint(.white)
+                                .tint(.mivuOnAccent)
+                            Text("正在准备播放")
+                                .font(.system(size: 16, weight: .bold))
                         } else {
                             Image(systemName: "play.fill")
                                 .font(.system(size: 16, weight: .bold))
@@ -362,7 +373,7 @@ public struct VideoDetailView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .background(MivuEdition.primaryTint)
-                    .foregroundColor(.white)
+                    .foregroundColor(.mivuOnAccent)
                     .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                 }
                 .disabled(isResolvingPlayback)
@@ -1332,6 +1343,7 @@ public struct VideoDetailView: View {
 
     // MARK: - Playback Handling
     private func startPlayback(fromBeginning: Bool) {
+        guard !isResolvingPlayback else { return }
         if fromBeginning {
             currentItem.resumePosition = 0
         }
@@ -1345,17 +1357,28 @@ public struct VideoDetailView: View {
         }
 
         isResolvingPlayback = true
-        Task {
+        let resolveID = UUID()
+        playbackResolveID = resolveID
+        playbackResolveTask = Task {
             do {
                 let resolved = try await client.resolvePlaybackItem(currentItem)
+                guard !Task.isCancelled else { return }
                 await MainActor.run {
+                    guard playbackResolveID == resolveID else { return }
                     isResolvingPlayback = false
+                    playbackResolveTask = nil
+                    playbackResolveID = nil
                     playerService.loadAndPlay(item: resolved)
                     playerService.isShowingPlayer = true
                 }
             } catch {
+                let wasCancelled = Task.isCancelled
                 await MainActor.run {
+                    guard playbackResolveID == resolveID else { return }
                     isResolvingPlayback = false
+                    playbackResolveTask = nil
+                    playbackResolveID = nil
+                    guard !wasCancelled else { return }
                     errorMessage = error.localizedDescription
                     isShowingErrorAlert = true
                 }

@@ -41,6 +41,7 @@ public enum MivuEdition {
 }
 
 public extension Color {
+    static let mivuOnAccent = Color(red: 23 / 255, green: 23 / 255, blue: 25 / 255)
     static let mivuAccent = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 240 / 255, green: 164 / 255, blue: 58 / 255, alpha: 1)

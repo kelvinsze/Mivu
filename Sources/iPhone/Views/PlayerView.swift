@@ -47,6 +47,7 @@ public struct PlayerView: View {
     @State private var showSubtitleSettingsSheet = false
     @State private var showEpisodeDrawer = false
     @State private var showPlaybackSettingsSheet = false
+    @State private var showTechnicalPlaybackError = false
 
     // Snapshot toast & flash
     @State private var snapshotToastMessage: String?
@@ -132,12 +133,6 @@ public struct PlayerView: View {
 
                 // Gesture interaction layer (tap, double-tap, vertical drag brightness/volume, horizontal pan seek)
                 gestureLayer(geometry: geometry)
-
-                // Error overlay if playback failed
-                if playerService.session.status == .failed,
-                   let errorMessage = playerService.session.errorMessage {
-                    playbackErrorOverlay(errorMessage)
-                }
 
                 // On-screen HUD for Brightness (Left side)
                 if showBrightnessHUD {
@@ -356,6 +351,16 @@ public struct PlayerView: View {
                 if isControlsVisible && !isLocked {
                     controlsOverlay(geometry: geometry)
                         .transition(.opacity)
+                }
+
+                if playerService.session.status == .failed {
+                    playbackErrorOverlay(
+                        playerService.session.errorMessage ?? String(localized: "播放失败，请检查网络或重试。"),
+                        maxHeight: max(160, geometry.size.height - geometry.safeAreaInsets.top - geometry.safeAreaInsets.bottom - 32)
+                    )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color.black.opacity(0.55).ignoresSafeArea())
+                        .zIndex(10)
                 }
             }
             .onAppear {
@@ -722,24 +727,85 @@ public struct PlayerView: View {
             .allowsHitTesting(false)
     }
 
-    private func playbackErrorOverlay(_ message: String) -> some View {
-        VStack(spacing: 14) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundColor(MivuEdition.primaryTint)
-            Text("播放遇到异常")
-                .font(.headline)
-                .foregroundColor(.white)
-            Text(verbatim: message)
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-                .lineLimit(4)
+    private func playbackErrorOverlay(_ message: String, maxHeight: CGFloat) -> some View {
+        VStack(spacing: 12) {
+            ScrollView {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 32))
+                        .foregroundColor(MivuEdition.primaryTint)
+                    Text("播放遇到异常")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("播放失败，请检查网络或重试。")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.85))
+                        .multilineTextAlignment(.center)
+                    DisclosureGroup("技术详情", isExpanded: $showTechnicalPlaybackError) {
+                        Text(verbatim: message)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(5)
+                            .textSelection(.enabled)
+                            .padding(.top, 6)
+                    }
+                    .font(.caption.weight(.medium))
+                    .tint(.white.opacity(0.85))
+                    .foregroundStyle(.white)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .frame(maxHeight: max(44, maxHeight - 88))
+
+            HStack(spacing: 12) {
+                Button {
+                    retryCurrentItem()
+                } label: {
+                    Label("重试", systemImage: "arrow.clockwise")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minWidth: 112, minHeight: 44)
+                        .background(MivuEdition.primaryTint, in: Capsule())
+                        .foregroundStyle(Color.mivuOnAccent)
+                }
+                Button {
+                    playerService.stop()
+                    dismiss()
+                } label: {
+                    Text("返回")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(minWidth: 92, minHeight: 44)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .foregroundStyle(.white)
+                }
+            }
         }
-        .padding(24)
+        .padding(16)
+        .frame(maxWidth: 360)
+        .frame(maxHeight: maxHeight)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(32)
+        .padding(.horizontal, 16)
+    }
+
+    private func retryCurrentItem() {
+        guard var item = playerService.session.currentItem else {
+            dismiss()
+            return
+        }
+        let duration = item.duration ?? playerService.session.duration
+        let rawCurrentTime = playerService.session.currentTime
+        let currentTime = rawCurrentTime.isFinite ? rawCurrentTime : max(item.resumePosition ?? 0, 0)
+        item.resumePosition = duration.isFinite && duration > 0
+            ? min(max(currentTime, 0), duration)
+            : max(currentTime, 0)
+        showTechnicalPlaybackError = false
+        playerService.loadAndPlay(
+            item: item,
+            recordHistory: false,
+            requiresNativePlayback: playerService.isCarPlayActive
+        )
+        playerService.isShowingPlayer = true
     }
 
     // MARK: - Responsive Layout Helpers
@@ -926,6 +992,10 @@ public struct PlayerView: View {
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
             }
+
+            if !playerService.isCarPlayActive {
+                moreActionsMenu(compact: true)
+            }
         }
     }
 
@@ -934,16 +1004,16 @@ public struct PlayerView: View {
     private func centerControls(geometry: GeometryProxy) -> some View {
         let compact = isCompact(geometry: geometry)
         let ultraCompact = isUltraCompact(geometry: geometry)
-        let isPaused = playerService.session.status == .paused
         let hasPlaylist = playerService.currentPlaylist.count > 1
 
+        let isCarPlayPaused = playerService.isCarPlayActive && playerService.session.status == .paused
         let controlSpacing: CGFloat = compact
-            ? (isPaused ? (hasPlaylist ? 10 : 16) : (hasPlaylist ? 16 : 28))
-            : (isPaused ? (hasPlaylist ? 16 : 24) : (hasPlaylist ? 32 : 50))
+            ? (isCarPlayPaused ? (hasPlaylist ? 10 : 16) : (hasPlaylist ? 16 : 28))
+            : (hasPlaylist ? 32 : 50)
 
         let playIconSize: CGFloat = compact ? (ultraCompact ? 24 : 28) : 44
         let playPadding: CGFloat = compact ? (ultraCompact ? 11 : 14) : 22
-        let seekIconSize: CGFloat = compact ? (isPaused ? 18 : 22) : (isPaused ? 28 : 34)
+        let seekIconSize: CGFloat = compact ? (isCarPlayPaused ? 18 : 22) : 34
         let playlistIconSize: CGFloat = compact ? 18 : 24
 
         return ZStack {
@@ -993,22 +1063,16 @@ public struct PlayerView: View {
                         .foregroundColor(.white)
                 }
 
-                // Paused state: Frame Step Backward
-                if isPaused {
+                if isCarPlayPaused {
                     Button {
                         playerService.stepFrame(forward: false)
                     } label: {
-                        VStack(spacing: compact ? 1 : 2) {
-                            Image(systemName: "backward.frame")
-                                .font(.system(size: compact ? 13 : 17, weight: .semibold))
-                            Text("逐帧")
-                                .font(.system(size: compact ? 7 : 8, weight: .bold))
-                        }
-                        .foregroundColor(.white.opacity(0.9))
-                        .padding(compact ? 5 : 8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                        Image(systemName: "backward.frame")
+                            .font(.system(size: compact ? 13 : 17, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 44, height: 44)
                     }
+                    .accessibilityLabel("上一帧")
                 }
 
                 Button {
@@ -1021,22 +1085,16 @@ public struct PlayerView: View {
                         .padding(playPadding)
                 }
 
-                // Paused state: Frame Step Forward
-                if isPaused {
+                if isCarPlayPaused {
                     Button {
                         playerService.stepFrame(forward: true)
                     } label: {
-                        VStack(spacing: compact ? 1 : 2) {
-                            Image(systemName: "forward.frame")
-                                .font(.system(size: compact ? 13 : 17, weight: .semibold))
-                            Text("逐帧")
-                                .font(.system(size: compact ? 7 : 8, weight: .bold))
-                        }
-                        .foregroundColor(.white.opacity(0.9))
-                        .padding(compact ? 5 : 8)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
+                        Image(systemName: "forward.frame")
+                            .font(.system(size: compact ? 13 : 17, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.9))
+                            .frame(width: 44, height: 44)
                     }
+                    .accessibilityLabel("下一帧")
                 }
 
                 Button {
@@ -1324,46 +1382,71 @@ public struct PlayerView: View {
                 subtitlesMenuButton
             }
             audioTracksMenuButton
-            snapshotButton
-            playbackSettingsButton
-            aspectRatioButton
             if playerService.renderSurfaceKind == .nativeAVPlayer,
                (PictureInPictureManager.shared.isPiPPossible || AVPictureInPictureController.isPictureInPictureSupported()) {
                 pipButton
             }
-            diagnosticsButton
+            moreActionsMenu(compact: false)
             if playerService.renderSurfaceKind == .nativeAVPlayer {
                 AirPlayRoutePickerView()
-                    .frame(width: 30, height: 30)
+                    .frame(width: 44, height: 44)
             }
         }
         .padding(.top, 4)
     }
 
-    private var snapshotButton: some View {
-        Button {
-            takeSnapshot()
-        } label: {
-            Image(systemName: "camera")
-                .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.9))
-                .padding(7)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-        }
-    }
+    private func moreActionsMenu(compact: Bool) -> some View {
+        Menu {
+            Button {
+                takeSnapshot()
+            } label: {
+                Label("截图", systemImage: "camera")
+            }
 
-    private var playbackSettingsButton: some View {
-        Button {
-            showPlaybackSettingsSheet = true
+            if !compact {
+                Button {
+                    playerService.toggleVideoGravity()
+                    scheduleHideControls()
+                } label: {
+                    Label("画面比例", systemImage: "arrow.up.left.and.arrow.down.right")
+                }
+
+                Button {
+                    showPlaybackSettingsSheet = true
+                } label: {
+                    Label("播放设置", systemImage: "gearshape")
+                }
+            }
+
+            Button {
+                withAnimation { showDiagnosticsHUD.toggle() }
+                scheduleHideControls()
+            } label: {
+                Label("诊断信息", systemImage: "info.circle")
+            }
+
+            if playerService.session.status == .paused {
+                Section("逐帧") {
+                    Button {
+                        playerService.stepFrame(forward: false)
+                    } label: {
+                        Label("上一帧", systemImage: "backward.frame")
+                    }
+                    Button {
+                        playerService.stepFrame(forward: true)
+                    } label: {
+                        Label("下一帧", systemImage: "forward.frame")
+                    }
+                }
+            }
         } label: {
-            Image(systemName: "gearshape")
-                .font(.system(size: 14))
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: compact ? 16 : 18))
                 .foregroundColor(.white.opacity(0.9))
-                .padding(7)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
         }
+        .accessibilityLabel("更多")
     }
 
     private var chapterMenuButton: some View {
@@ -1397,7 +1480,9 @@ public struct PlayerView: View {
             .padding(.vertical, 6)
             .background(.ultraThinMaterial)
             .clipShape(Capsule())
+            .frame(minHeight: 44)
         }
+        .accessibilityLabel("章节")
     }
 
     private var playlistMenuButton: some View {
@@ -1416,7 +1501,9 @@ public struct PlayerView: View {
             .padding(.vertical, 6)
             .background(.ultraThinMaterial)
             .clipShape(Capsule())
+            .frame(minHeight: 44)
         }
+        .accessibilityLabel("选集")
     }
 
     private var speedMenuButton: some View {
@@ -1435,15 +1522,16 @@ public struct PlayerView: View {
                 }
             }
         } label: {
-            Text(formatSpeedPill(playerService.selectedSpeed))
-                .font(.caption.bold())
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
+                Text(formatSpeedPill(playerService.selectedSpeed))
+                    .font(.caption.bold())
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                .frame(minHeight: 44)
         }
     }
 
@@ -1528,7 +1616,9 @@ public struct PlayerView: View {
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
+                .frame(width: 44, height: 44)
         }
+        .accessibilityLabel("字幕")
     }
 
     private var audioTracksMenuButton: some View {
@@ -1559,21 +1649,9 @@ public struct PlayerView: View {
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
+                .frame(width: 44, height: 44)
         }
-    }
-
-    private var aspectRatioButton: some View {
-        Button {
-            playerService.toggleVideoGravity()
-            scheduleHideControls()
-        } label: {
-            Image(systemName: playerService.videoGravity == .resizeAspect ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
-                .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.9))
-                .padding(7)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-        }
+        .accessibilityLabel("音轨")
     }
 
     private var pipButton: some View {
@@ -1586,23 +1664,9 @@ public struct PlayerView: View {
                 .padding(7)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
+                .frame(width: 44, height: 44)
         }
-    }
-
-    private var diagnosticsButton: some View {
-        Button {
-            withAnimation {
-                showDiagnosticsHUD.toggle()
-            }
-            scheduleHideControls()
-        } label: {
-            Image(systemName: "info.circle")
-                .font(.system(size: 14))
-                .foregroundColor(showDiagnosticsHUD ? MivuEdition.primaryTint : .white.opacity(0.9))
-                .padding(7)
-                .background(.ultraThinMaterial)
-                .clipShape(Circle())
-        }
+        .accessibilityLabel("画中画")
     }
 
     private func scheduleHideControls() {
