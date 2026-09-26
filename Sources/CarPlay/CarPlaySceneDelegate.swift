@@ -104,7 +104,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
 
     private func presentRootTemplate(using interfaceController: CPInterfaceController) {
         let newSections = CarPlayTemplateBuilder.buildRootSections(interfaceController: interfaceController)
-        let root = CPListTemplate(title: nil, sections: newSections)
+        let root = CPListTemplate(title: "Mivu", sections: newSections)
         self.rootTemplate = root
         self.isPresentingRootTemplate = true
 

@@ -68,7 +68,7 @@ public struct MivuReceiverHomeView: View {
                 .padding(.top, MivuSpacing.xs)
             }
             .background(Color.mivuBackground)
-            .navigationTitle("Mivu")
+            .navigationTitle(isCarPlayWindow ? "" : "Mivu")
             .alert("播放错误", isPresented: $isShowingErrorAlert) {
                 Button("好", role: .cancel) {}
             } message: {

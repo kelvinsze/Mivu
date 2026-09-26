@@ -127,7 +127,7 @@ public final class CarPlayTemplateBuilder {
 
     public static func buildRootTemplate(interfaceController: CPInterfaceController) -> CPListTemplate {
         let sections = buildRootSections(interfaceController: interfaceController)
-        return CPListTemplate(title: nil, sections: sections)
+        return CPListTemplate(title: "Mivu", sections: sections)
     }
 
     #if MIVU_PRO
