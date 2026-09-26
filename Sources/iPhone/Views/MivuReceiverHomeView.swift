@@ -9,12 +9,15 @@ import UIKit
 /// and casting tutorials.
 public struct MivuReceiverHomeView: View {
     @ObservedObject private var playerService = PlayerService.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let isCarPlayWindow: Bool
     @State private var errorMessage: String?
     @State private var isShowingErrorAlert = false
     @State private var isShowingExternalCastHelp = false
     @State private var selectedPhotoVideo: PhotosPickerItem?
     @State private var isPreparingPhotoVideo = false
+    @State private var isCastingGuideExpanded = true
+    @AppStorage("mivu.receiver.didSuccessfullyPlay") private var didSuccessfullyPlay = false
 
     public init(isCarPlayWindow: Bool = false) {
         self.isCarPlayWindow = isCarPlayWindow
@@ -24,30 +27,34 @@ public struct MivuReceiverHomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: MivuSpacing.l) {
-                    if let current = playerService.session.currentItem,
-                       playerService.session.status != .idle {
+                    if let current = pinnedPlaybackItem {
                         activePlaybackCard(current)
                             .padding(.horizontal)
                     }
 
-                    // MARK: - 1. Live Receiver Status Card
-                    receiverStatusCard
-                        .padding(.horizontal)
+                    if playerService.isCarPlayConnected {
+                        receiverStatusSummary
+                            .padding(.horizontal)
+                        castingContentSection
+                            .padding(.horizontal)
+                    } else {
+                        receiverStatusCard
+                            .padding(.horizontal)
+                        castingGuideCard
+                            .padding(.horizontal)
+                        castingContentSection
+                            .padding(.horizontal)
+                    }
 
-                    // MARK: - 2. Primary casting sources
-                    castingContentSection
-                        .padding(.horizontal)
-
-                    // Keep the previous card position when a session item exists but is idle.
-                    if let current = playerService.session.currentItem,
-                       playerService.session.status == .idle {
+                    if let current = inactivePlaybackItem {
                         activePlaybackCard(current)
                             .padding(.horizontal)
                     }
 
-                    // MARK: - 4. Casting Tutorial Guide
-                    castingGuideCard
+                    if playerService.isCarPlayConnected {
+                        castingGuideCard
                         .padding(.horizontal)
+                    }
 
                     if !isCarPlayWindow {
                         // MARK: - 5. Mivu Pro Upgrade Hint
@@ -74,10 +81,66 @@ public struct MivuReceiverHomeView: View {
                     await playPhotoVideo(selection)
                 }
             }
+            .onAppear {
+                if didSuccessfullyPlay {
+                    isCastingGuideExpanded = false
+                } else if playerService.isCarPlayConnected && playerService.session.status == .playing {
+                    didSuccessfullyPlay = true
+                    isCastingGuideExpanded = false
+                }
+            }
+            .onChange(of: playerService.session.status) { _, status in
+                collapseGuideAfterFirstCarPlayPlayback(status: status)
+            }
+            .onChange(of: playerService.isCarPlayConnected) { _, isConnected in
+                guard isConnected else { return }
+                collapseGuideAfterFirstCarPlayPlayback(status: playerService.session.status)
+            }
         }
     }
 
     // MARK: - 1. Receiver Status Card
+    private var pinnedPlaybackItem: MediaItem? {
+        guard let item = playerService.session.currentItem else { return nil }
+        switch playerService.session.status {
+        case .loading, .playing, .paused, .failed: return item
+        case .idle, .stopped: return nil
+        }
+    }
+
+    private var inactivePlaybackItem: MediaItem? {
+        guard let item = playerService.session.currentItem else { return nil }
+        return playerService.session.status == .idle || playerService.session.status == .stopped ? item : nil
+    }
+
+    private var receiverStatusSummary: some View {
+        HStack(spacing: MivuSpacing.s) {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(Color.mivuAccent)
+                .frame(width: 30, height: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("投屏服务已就绪")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+                Text(UPnPDevice.shared.friendlyName)
+                    .font(.caption)
+                    .foregroundColor(Color.mivuAccent)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 4)
+            Circle()
+                .fill(Color.mivuAccent)
+                .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, MivuSpacing.m)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .mivuSurface()
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - 1. Live Receiver Status Card
     private var receiverStatusCard: some View {
         let isReceiverActive = playerService.isCarPlayConnected
 
@@ -122,20 +185,18 @@ public struct MivuReceiverHomeView: View {
             Label("选择投屏内容", systemImage: "rectangle.connected.to.line.below")
                 .font(.title3.bold())
 
-            GeometryReader { geometry in
-                let cardWidth = (geometry.size.width - (MivuSpacing.s * 2)) / 3
-                HStack(spacing: MivuSpacing.s) {
-                    localVideoSource
-                        .frame(width: cardWidth)
-                    photoVideoSource
-                        .frame(width: cardWidth)
-                    externalAppSource
-                        .frame(width: cardWidth)
-                }
-                .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
-                .opacity(playerService.isCarPlayConnected ? 1 : 0.45)
+            LazyVGrid(
+                columns: dynamicTypeSize.isAccessibilitySize
+                    ? [GridItem(.flexible(), spacing: MivuSpacing.s)]
+                    : [GridItem(.adaptive(minimum: 145), spacing: MivuSpacing.s)],
+                spacing: MivuSpacing.s
+            ) {
+                localVideoSource
+                photoVideoSource
+                externalAppSource
             }
-            .frame(height: 136)
+            .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
+            .opacity(playerService.isCarPlayConnected ? 1 : 0.45)
         }
         .padding(MivuSpacing.m)
         .mivuSurface(radius: MivuRadius.xl)
@@ -186,7 +247,7 @@ public struct MivuReceiverHomeView: View {
             HStack(alignment: .top) {
                 Image(systemName: icon)
                     .symbolRenderingMode(usesMulticolorSymbol ? .multicolor : .monochrome)
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.title2.weight(.semibold))
                     .foregroundStyle(Color.mivuAccent)
                     .frame(width: 44, height: 44)
                     .background(Color.mivuSurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
@@ -202,15 +263,22 @@ public struct MivuReceiverHomeView: View {
             Spacer(minLength: MivuSpacing.xxs)
 
             Text(title)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(MivuSpacing.xs)
-        .frame(maxWidth: .infinity, minHeight: 136, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 0 : 136, alignment: .leading)
         .background(Color.mivuSurfaceSecondary, in: RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
+    }
+
+    private func collapseGuideAfterFirstCarPlayPlayback(status: PlaybackStatus) {
+        guard !didSuccessfullyPlay, playerService.isCarPlayConnected, status == .playing else { return }
+        didSuccessfullyPlay = true
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isCastingGuideExpanded = false
+        }
     }
 
     // MARK: - 2. Active Playback Card
@@ -309,28 +377,44 @@ public struct MivuReceiverHomeView: View {
     // MARK: - 3. Casting Guide Card
     private var castingGuideCard: some View {
         VStack(alignment: .leading, spacing: MivuSpacing.s) {
-            Label("如何在 CarPlay 投屏？", systemImage: "questionmark.circle.fill")
-                .font(.headline)
-                .foregroundColor(.primary)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isCastingGuideExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Label(isCastingGuideExpanded ? "收起投屏帮助" : "投屏帮助", systemImage: isCastingGuideExpanded ? "chevron.up" : "questionmark.circle.fill")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+                .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isCastingGuideExpanded ? "已展开" : "已收起")
 
-            VStack(spacing: MivuSpacing.s) {
-                guideStepRow(
-                    index: "1",
-                    title: "连接 CarPlay",
-                    detail: "连接后，Mivu 将自动开启投屏服务。"
-                )
+            if isCastingGuideExpanded {
+                VStack(spacing: MivuSpacing.s) {
+                    guideStepRow(
+                        index: "1",
+                        title: "连接 CarPlay",
+                        detail: "连接后，Mivu 将自动开启投屏服务。"
+                    )
 
-                guideStepRow(
-                    index: "2",
-                    title: "选择视频",
-                    detail: "从本地视频列表、相册选择，或从支持的视频 App 投屏。"
-                )
+                    guideStepRow(
+                        index: "2",
+                        title: "选择视频",
+                        detail: "从本地视频列表、相册选择，或从支持的视频 App 投屏。"
+                    )
 
-                guideStepRow(
-                    index: "3",
-                    title: "在 CarPlay 播放",
-                    detail: "视频将在车机屏幕播放，并可通过 iPhone 控制。"
-                )
+                    guideStepRow(
+                        index: "3",
+                        title: "在 CarPlay 播放",
+                        detail: "视频将在车机屏幕播放，并可通过 iPhone 控制。"
+                    )
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(MivuSpacing.m)

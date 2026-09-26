@@ -127,6 +127,18 @@ public final class JellyfinClient: MediaServerProtocol, @unchecked Sendable {
         ])
     }
 
+    public func fetchRecentlyAdded(limit: Int = 12) async throws -> [MediaItem] {
+        guard let uid = userId else { throw MediaServerError.notAuthenticated }
+        return try await fetchMappedItems(userID: uid, queryItems: [
+            URLQueryItem(name: "Limit", value: "\(limit)"),
+            URLQueryItem(name: "Recursive", value: "true"),
+            URLQueryItem(name: "SortBy", value: "DateCreated"),
+            URLQueryItem(name: "SortOrder", value: "Descending"),
+            URLQueryItem(name: "IncludeItemTypes", value: "Movie,Episode,Video"),
+            URLQueryItem(name: "Fields", value: Self.detailedFields)
+        ])
+    }
+
     public func fetchItemDetail(itemId: String) async throws -> MediaItem? {
         guard let uid = userId else { throw MediaServerError.notAuthenticated }
         var components = URLComponents(url: serverBaseURL.appendingPathComponent("Users/\(uid)/Items/\(itemId)"), resolvingAgainstBaseURL: false)

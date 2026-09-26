@@ -28,49 +28,57 @@ public struct VideoDetailView: View {
     }
 
     public var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
+        GeometryReader { viewport in
+            ZStack {
+                Color.black.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    // MARK: - 1. Cinematic Backdrop & Title Overlay
-                    backdropHeroHeader
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // MARK: - 1. Cinematic Backdrop & Title Overlay
+                        backdropHeroHeader(availableSize: viewport.size)
 
-                    // MARK: - 2. Content Body
-                    VStack(alignment: .leading, spacing: MivuSpacing.l) {
-                        // Playback CTA Button & Action Bar
-                        playbackControlsSection
+                        // MARK: - 2. Content Body
+                        VStack(alignment: .leading, spacing: MivuSpacing.l) {
+                            // Playback CTA Button & Action Bar
+                            playbackControlsSection
 
-                        // Plot Synopsis / Overview
-                        if let overview = currentItem.overview, !overview.isEmpty {
-                            overviewSection(overview)
+                            // Plot Synopsis / Overview
+                            if let overview = currentItem.overview, !overview.isEmpty {
+                                overviewSection(overview)
+                            }
+                            if let genres = currentItem.genres, !genres.isEmpty {
+                                Text(genres.joined(separator: " · "))
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+
+                            // Cast & Crew Carousel (演职人员)
+                            if let people = currentItem.people, !people.isEmpty {
+                                castAndCrewSection(people)
+                            }
+
+                            // Similar Titles (类似作品)
+                            if !similarItems.isEmpty {
+                                similarWorksSection
+                            }
+
+                            // Media Technical Specs Cards (媒体信息: 视频, 音频)
+                            mediaInfoSection
+
+                            // Technical Metadata & Footer Release Info
+                            footerReleaseSection
                         }
-
-                        // Cast & Crew Carousel (演职人员)
-                        if let people = currentItem.people, !people.isEmpty {
-                            castAndCrewSection(people)
-                        }
-
-                        // Similar Titles (类似作品)
-                        if !similarItems.isEmpty {
-                            similarWorksSection
-                        }
-
-                        // Media Technical Specs Cards (媒体信息: 视频, 音频)
-                        mediaInfoSection
-
-                        // Technical Metadata & Footer Release Info
-                        footerReleaseSection
+                        .padding(.horizontal, MivuSpacing.m)
+                        .padding(.top, MivuSpacing.s)
+                        .padding(.bottom, 60)
                     }
-                    .padding(.horizontal, MivuSpacing.m)
-                    .padding(.top, MivuSpacing.s)
-                    .padding(.bottom, 60)
                 }
-            }
-            .ignoresSafeArea(edges: .top)
+                .ignoresSafeArea(edges: .top)
 
-            // MARK: - Floating Top Bar Buttons (Back, Search, More)
-            floatingTopBar
+                // MARK: - Floating Top Bar Buttons (Back, Search, More)
+                floatingTopBar
+            }
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -117,7 +125,7 @@ public struct VideoDetailView: View {
                     Image(systemName: "chevron.backward")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
                 }
@@ -165,10 +173,11 @@ public struct VideoDetailView: View {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 44, height: 44)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel("更多操作")
                 }
             }
             .padding(.horizontal, 16)
@@ -185,12 +194,14 @@ public struct VideoDetailView: View {
     }
 
     // MARK: - 1. Backdrop Hero Header
-    private var backdropHeroHeader: some View {
-        ZStack(alignment: .bottom) {
+    private func backdropHeroHeader(availableSize: CGSize) -> some View {
+        let headerHeight = max(190, min(430, min(availableSize.height * 0.52, availableSize.width * 0.92)))
+
+        return ZStack(alignment: .bottom) {
             // Backdrop image or blur poster
             GeometryReader { proxy in
                 let minY = proxy.frame(in: .global).minY
-                let headerHeight: CGFloat = 430 + (minY > 0 ? minY : 0)
+                let imageHeight = headerHeight + max(minY, 0)
 
                 Group {
                     if let backdrop = currentItem.backdropUrl {
@@ -202,11 +213,11 @@ public struct VideoDetailView: View {
                     }
                 }
                 .scaledToFill()
-                .frame(width: proxy.size.width, height: headerHeight)
+                .frame(width: proxy.size.width, height: imageHeight)
                 .clipped()
                 .offset(y: minY > 0 ? -minY : 0)
             }
-            .frame(height: 430)
+            .frame(height: headerHeight)
 
             // Deep multi-stop gradient overlay transitioning smoothly to pure black
             LinearGradient(
@@ -220,23 +231,24 @@ public struct VideoDetailView: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 430)
+            .frame(height: headerHeight)
 
             // Title, Logo, Badges & Metadata
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 // Movie Logo or Big Stylized Title
                 if let logo = currentItem.logoUrl {
                     AsyncItemArtwork(url: logo, headers: currentItem.headers)
                         .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: 260, maxHeight: 75)
+                        .frame(maxWidth: 260, maxHeight: 64)
+                        .accessibilityLabel(currentItem.title)
                         .shadow(color: .black.opacity(0.8), radius: 8, x: 0, y: 4)
                         .padding(.bottom, 2)
                 } else {
                     Text(currentItem.title)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.title.bold())
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                        .lineLimit(1...2)
                         .shadow(color: .black.opacity(0.8), radius: 6, x: 0, y: 3)
                         .padding(.horizontal, 20)
                 }
@@ -298,45 +310,18 @@ public struct VideoDetailView: View {
                 }
 
                 // Formatted technical metadata summary row
-                HStack(spacing: 8) {
-                    if let duration = currentItem.duration, duration > 0 {
-                        Text(formatDuration(duration))
-                    }
-
-                    if let release = currentItem.releaseDate, !release.isEmpty {
-                        Text(verbatim: release)
-                    } else if let year = currentItem.year {
-                        Text("\(year)")
-                    }
-
-                    if let res = resolutionString {
-                        Text(verbatim: res)
-                    }
-
-                    if let dynamicRange = currentItem.videoStreamInfo?.dynamicRange, !dynamicRange.isEmpty {
-                        Text(dynamicRange.uppercased())
-                    }
-
-                    if let fps = currentItem.videoStreamInfo?.frameRate, fps > 0 {
-                        Text("\(Int(round(fps)))FPS")
-                    }
-
-                    if let size = currentItem.fileSize, size > 0 {
-                        Text(formatFileSize(size))
-                    }
-                }
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.85))
-                .lineLimit(1)
-
-                // Genres list
-                if let genres = currentItem.genres, !genres.isEmpty {
-                    Text(genres.joined(separator: "，"))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.65))
+                if !heroMetadata.isEmpty {
+                    Text(verbatim: heroMetadata)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, alignment: .bottom)
         }
     }
 
@@ -362,16 +347,19 @@ public struct VideoDetailView: View {
                             ProgressView()
                                 .tint(.mivuOnAccent)
                             Text("正在准备播放")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.headline.weight(.bold))
                         } else {
                             Image(systemName: "play.fill")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.headline.weight(.bold))
                             Text(verbatim: playButtonTitle)
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.headline.weight(.bold))
+                                .lineLimit(1...2)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
+                    .frame(minHeight: 50)
                     .background(MivuEdition.primaryTint)
                     .foregroundColor(.mivuOnAccent)
                     .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
@@ -426,7 +414,9 @@ public struct VideoDetailView: View {
                 // Watched toggle
                 actionCircleButton(
                     icon: currentItem.isPlayed == true ? "checkmark.circle.fill" : "checkmark.circle",
-                    tint: currentItem.isPlayed == true ? MivuEdition.primaryTint : .white
+                    tint: currentItem.isPlayed == true ? MivuEdition.primaryTint : .white,
+                    label: "观看状态",
+                    value: currentItem.isPlayed == true ? String(localized: "已看") : String(localized: "未看")
                 ) {
                     togglePlayed()
                 }
@@ -436,7 +426,9 @@ public struct VideoDetailView: View {
                 // Favorite toggle
                 actionCircleButton(
                     icon: currentItem.isFavorite == true ? "heart.fill" : "heart",
-                    tint: currentItem.isFavorite == true ? .red : .white
+                    tint: currentItem.isFavorite == true ? .red : .white,
+                    label: "收藏状态",
+                    value: currentItem.isFavorite == true ? String(localized: "已收藏") : String(localized: "未收藏")
                 ) {
                     toggleFavorite()
                 }
@@ -444,21 +436,30 @@ public struct VideoDetailView: View {
                 Spacer()
 
                 // Versions / Sources
-                actionCircleButton(icon: "film.stack", tint: .white) {
+                actionCircleButton(
+                    icon: "film.stack", tint: .white, label: "播放版本",
+                    value: String.localizedStringWithFormat(String(localized: "%d 个版本"), 1 + (currentItem.playbackAlternatives?.count ?? 0))
+                ) {
                     isShowingVersionsSheet = true
                 }
 
                 Spacer()
 
                 // Audio tracks
-                actionCircleButton(icon: "headphones", tint: .white) {
+                actionCircleButton(
+                    icon: "headphones", tint: .white, label: "音轨选项",
+                    value: String.localizedStringWithFormat(String(localized: "%d 条音轨"), currentItem.audioStreamInfo?.count ?? 0)
+                ) {
                     isShowingAudioSheet = true
                 }
 
                 Spacer()
 
                 // Subtitle tracks
-                actionCircleButton(icon: "captions.bubble", tint: .white) {
+                actionCircleButton(
+                    icon: "captions.bubble", tint: .white, label: "字幕选项",
+                    value: String.localizedStringWithFormat(String(localized: "%d 条字幕"), currentItem.subtitleTracks?.count ?? 0)
+                ) {
                     isShowingSubtitleSheet = true
                 }
             }
@@ -466,7 +467,13 @@ public struct VideoDetailView: View {
         }
     }
 
-    private func actionCircleButton(icon: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func actionCircleButton(
+        icon: String,
+        tint: Color,
+        label: LocalizedStringKey,
+        value: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 18))
@@ -476,12 +483,21 @@ public struct VideoDetailView: View {
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(value)
     }
 
     private var playButtonTitle: String {
-        if let resume = currentItem.resumePosition, let duration = currentItem.duration, duration > 0, resume > 0 {
-            let pct = Int((resume / duration) * 100)
-            return String.localizedStringWithFormat(String(localized: "继续播放 (%d%%)"), pct)
+        if let resume = currentItem.resumePosition,
+           let duration = currentItem.duration,
+           duration.isFinite, duration > 0,
+           resume.isFinite, resume > 0 {
+            let validResume = min(max(resume, 0), duration)
+            let remaining = max(duration - validResume, 0)
+            return String.localizedStringWithFormat(
+                String(localized: "继续播放 · 剩余 %@"),
+                formatDuration(remaining)
+            )
         }
         return String(localized: "播放")
     }
@@ -490,7 +506,7 @@ public struct VideoDetailView: View {
     private func overviewSection(_ overview: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(verbatim: overview)
-                .font(.system(size: 14, weight: .regular))
+                .font(.body)
                 .foregroundColor(.white.opacity(0.85))
                 .lineSpacing(4)
                 .lineLimit(isOverviewExpanded ? nil : 4)
@@ -501,7 +517,7 @@ public struct VideoDetailView: View {
                 }
             } label: {
                 Text(verbatim: isOverviewExpanded ? String(localized: "收起") : String(localized: "展开全文"))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundColor(MivuEdition.primaryTint)
             }
         }
@@ -969,9 +985,10 @@ public struct VideoDetailView: View {
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(similar.title)
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundColor(.white)
-                                        .lineLimit(1)
+                                        .lineLimit(1...2)
+                                        .fixedSize(horizontal: false, vertical: true)
 
                                     if let year = similar.year {
                                         Text("\(year)")
@@ -1509,9 +1526,30 @@ public struct VideoDetailView: View {
         return nil
     }
 
+    private var heroMetadata: String {
+        var facts: [String] = []
+        if let year = currentItem.year {
+            facts.append(String(year))
+        } else if let releaseDate = currentItem.releaseDate, !releaseDate.isEmpty {
+            facts.append(releaseDate)
+        }
+        if let duration = currentItem.duration, duration.isFinite, duration > 0 {
+            facts.append(formatDuration(duration))
+        }
+        if let resolution = resolutionString {
+            facts.append(resolution)
+        }
+        if let dynamicRange = currentItem.videoStreamInfo?.dynamicRange, !dynamicRange.isEmpty {
+            facts.append(dynamicRange.uppercased())
+        }
+        return facts.joined(separator: " · ")
+    }
+
     private func formatDuration(_ seconds: TimeInterval) -> String {
-        let hrs = Int(seconds) / 3600
-        let mins = (Int(seconds) % 3600) / 60
+        let safeSeconds = seconds.isFinite ? min(max(seconds, 0), Double(Int.max / 2)) : 0
+        let wholeSeconds = Int(safeSeconds)
+        let hrs = wholeSeconds / 3600
+        let mins = (wholeSeconds % 3600) / 60
         if hrs > 0 {
             return String.localizedStringWithFormat(String(localized: "%d h %d min"), hrs, mins)
         } else {

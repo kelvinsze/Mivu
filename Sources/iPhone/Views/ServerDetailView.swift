@@ -8,21 +8,34 @@ public struct ServerDetailView: View {
 
     @State private var libraries: [MediaLibrary] = []
     @State private var selectedLibrary: MediaLibrary?
-    @State private var libraryItems: [MediaItem] = []
+    @State private var itemsByLibrary: [String: [MediaItem]] = [:]
     @State private var searchText = ""
     @State private var searchResults: [MediaItem] = []
+    @State private var isSearchLoading = false
+    @State private var searchErrorMessage: String?
+    @State private var searchRequestID: UUID?
     @State private var continueWatching: [MediaItem] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var isLibraryError = false
     @State private var playbackResolveTask: Task<Void, Never>?
     @State private var playbackResolveID: UUID?
+    @State private var initialLibraryApplied = false
+    @State private var libraryLoadID: UUID?
+    @State private var itemsLoadID: UUID?
+    @State private var searchTask: Task<Void, Never>?
+    @State private var libraryTask: Task<Void, Never>?
+    @State private var itemsTask: Task<Void, Never>?
+    @State private var continueTask: Task<Void, Never>?
+    private let initialLibraryID: String?
 
     private let libraryColumns = [
         GridItem(.adaptive(minimum: 105, maximum: 140), spacing: 14)
     ]
 
-    public init(serverInfo: SavedServerInfo) {
+    public init(serverInfo: SavedServerInfo, initialLibraryID: String? = nil) {
         self.serverInfo = serverInfo
+        self.initialLibraryID = initialLibraryID
     }
 
     public var body: some View {
@@ -31,6 +44,10 @@ public struct ServerDetailView: View {
                 // 1. Library Filter Pills
                 if !libraries.isEmpty {
                     libraryPicker
+                }
+
+                if libraries.isEmpty {
+                    libraryLoadState
                 }
 
                 // 2. Continue Watching Horizontal Rail
@@ -42,7 +59,17 @@ public struct ServerDetailView: View {
                 if !searchText.isEmpty {
                     if !searchResults.isEmpty {
                         posterGrid(title: String(localized: "搜索结果"), items: searchResults)
-                    } else if !isLoading {
+                    } else if isSearchLoading {
+                        ProgressView().tint(Color.mivuAccent).frame(maxWidth: .infinity).padding(.top, 48)
+                    } else if let searchErrorMessage {
+                        VStack(spacing: 12) {
+                            ContentUnavailableView("搜索失败", systemImage: "exclamationmark.triangle", description: Text(verbatim: searchErrorMessage))
+                            Button("重试") { search() }
+                                .buttonStyle(.borderedProminent)
+                                .tint(Color.mivuAccent)
+                        }
+                        .padding(.top, 40)
+                    } else {
                         ContentUnavailableView.search(text: searchText)
                             .padding(.top, 40)
                     }
@@ -50,25 +77,62 @@ public struct ServerDetailView: View {
                     mediaLibrary
                 }
 
-                if let error = errorMessage {
-                    Label {
-                        Text(verbatim: error)
-                    } icon: {
-                        Image(systemName: "exclamationmark.triangle.fill")
+                if searchText.isEmpty,
+                   let error = errorMessage,
+                   let selectedLibrary,
+                   let items = itemsByLibrary[selectedLibrary.id],
+                   !items.isEmpty {
+                    HStack(spacing: 12) {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                        Spacer()
+                        if !isLibraryError {
+                            Button("重试") { loadItems(for: selectedLibrary) }
+                            .font(.footnote.weight(.semibold))
+                        } else {
+                            Button("重试") { loadLibraries() }
+                                .font(.footnote.weight(.semibold))
+                        }
                     }
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding(.horizontal)
+                    .padding(.horizontal)
                 }
             }
             .padding(.vertical, 12)
         }
-        .background(Color(.systemBackground))
+        .background(Color.mivuBackground)
+        .tint(Color.mivuAccent)
         .navigationTitle(serverInfo.name)
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
             loadLibraries()
             loadContinueWatching()
+            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                search()
+            }
+        }
+        .onDisappear {
+            libraryTask?.cancel()
+            itemsTask?.cancel()
+            searchTask?.cancel()
+            continueTask?.cancel()
+            playbackResolveTask?.cancel()
+            libraryLoadID = nil
+            itemsLoadID = nil
+            searchRequestID = nil
+            isLoading = false
+            isSearchLoading = false
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    loadLibraries(forceRefresh: true)
+                    loadContinueWatching()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("刷新媒体库")
+            }
         }
         .searchable(text: $searchText, prompt: "搜索影视、剧集")
         .onChange(of: searchText) { _, _ in
@@ -85,7 +149,6 @@ public struct ServerDetailView: View {
                 ForEach(libraries) { library in
                     Button {
                         selectedLibrary = library
-                        libraryItems = []
                         loadItems(for: library)
                     } label: {
                         Label {
@@ -99,7 +162,7 @@ public struct ServerDetailView: View {
                             .padding(.vertical, 9)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selectedLibrary?.id == library.id ? .orange : .secondary)
+                    .tint(selectedLibrary?.id == library.id ? Color.mivuAccent : .secondary)
                     .buttonBorderShape(.capsule)
                 }
             }
@@ -109,19 +172,59 @@ public struct ServerDetailView: View {
 
     @ViewBuilder
     private var mediaLibrary: some View {
-        if isLoading && libraryItems.isEmpty {
+        if let selectedLibrary, isLoading && (itemsByLibrary[selectedLibrary.id]?.isEmpty ?? true) {
             HStack {
                 Spacer()
                 ProgressView()
-                    .tint(.orange)
+                    .tint(Color.mivuAccent)
                     .padding(.top, 60)
                 Spacer()
             }
-        } else if let selectedLibrary, !libraryItems.isEmpty {
-            posterGrid(title: selectedLibrary.name, items: libraryItems)
-        } else if !isLoading && selectedLibrary != nil {
-            ContentUnavailableView("暂无视频内容", systemImage: "film", description: Text("该分类媒体库下未检索到可播放的影视文件。"))
-                .padding(.top, 48)
+        } else if let selectedLibrary {
+            let items = itemsByLibrary[selectedLibrary.id] ?? []
+            if !items.isEmpty {
+                posterGrid(title: selectedLibrary.name, items: items)
+            } else if let errorMessage {
+                VStack(spacing: 12) {
+                    ContentUnavailableView(
+                        isLibraryError ? "媒体分类刷新失败" : "媒体内容加载失败",
+                        systemImage: "exclamationmark.triangle",
+                        description: Text(verbatim: errorMessage)
+                    )
+                    Button("重试") {
+                        if isLibraryError {
+                            loadLibraries()
+                        } else {
+                            loadItems(for: selectedLibrary)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.mivuAccent)
+                }
+                .padding(.top, 40)
+            } else if !isLoading {
+                ContentUnavailableView("暂无视频内容", systemImage: "film", description: Text("该分类媒体库下未检索到可播放的影视文件。"))
+                    .padding(.top, 48)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var libraryLoadState: some View {
+        if isLoading {
+            HStack { Spacer(); ProgressView().tint(Color.mivuAccent); Spacer() }
+                .padding(.top, 60)
+        } else if let errorMessage {
+            VStack(spacing: 12) {
+                ContentUnavailableView("媒体分类加载失败", systemImage: "exclamationmark.triangle", description: Text(verbatim: errorMessage))
+                Button("重试") { loadLibraries() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.mivuAccent)
+            }
+            .padding(.top, 40)
+        } else {
+            ContentUnavailableView("暂无媒体分类", systemImage: "film", description: Text("此媒体源没有可浏览的媒体库。"))
+                .padding(.top, 40)
         }
     }
 
@@ -138,13 +241,12 @@ public struct ServerDetailView: View {
                                 ZStack(alignment: .bottom) {
                                     PosterArtwork(item: item)
                                         .frame(width: 125, height: 187)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .shadow(color: .black.opacity(0.18), radius: 6, x: 0, y: 3)
+                                        .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+                                        .contentShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
 
                                     if showsProgress, let progress = progress(for: item) {
                                         ProgressView(value: progress)
-                                            .progressViewStyle(LinearProgressViewStyle(tint: .orange))
+                                            .progressViewStyle(LinearProgressViewStyle(tint: Color.mivuAccent))
                                             .scaleEffect(x: 1, y: 2, anchor: .center)
                                             .clipShape(RoundedRectangle(cornerRadius: 2))
                                             .padding(.horizontal, 8)
@@ -155,7 +257,7 @@ public struct ServerDetailView: View {
                                 Text(item.title)
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(.primary)
-                                    .lineLimit(1)
+                                    .lineLimit(2, reservesSpace: true)
                                     .frame(width: 125, alignment: .leading)
 
                                 if showsProgress, let remaining = remainingTime(for: item) {
@@ -188,9 +290,8 @@ public struct ServerDetailView: View {
                             ZStack(alignment: .topTrailing) {
                                 PosterArtwork(item: item)
                                     .aspectRatio(2 / 3, contentMode: .fit)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                    .shadow(color: .black.opacity(0.15), radius: 5, x: 0, y: 3)
+                                    .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+                                    .contentShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
 
                                 // Quality or container badge if available
                                 if let hint = item.videoCodecHint ?? item.containerHint {
@@ -206,7 +307,7 @@ public struct ServerDetailView: View {
                             }
 
                             Text(item.title)
-                                .font(.caption.weight(.medium))
+                                .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.primary)
                                 .lineLimit(2, reservesSpace: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,48 +339,89 @@ public struct ServerDetailView: View {
 
     // MARK: - Networking
 
-    private func loadLibraries() {
-        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else { return }
+    private func loadLibraries(forceRefresh: Bool = false) {
+        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else {
+            errorMessage = String(localized: "无法连接此媒体源")
+            isLibraryError = true
+            isLoading = false
+            return
+        }
+        libraryTask?.cancel()
+        let requestID = UUID()
+        libraryLoadID = requestID
         isLoading = true
+        isLibraryError = false
         errorMessage = nil
 
-        Task {
+        libraryTask = Task {
             do {
                 let fetched = try await client.fetchLibraries()
-                await MainActor.run {
-                    self.libraries = fetched
-                    self.isLoading = false
-                    if let first = fetched.first {
-                        self.selectedLibrary = first
-                        loadItems(for: first)
-                    }
+                guard !Task.isCancelled, libraryLoadID == requestID else { return }
+                libraries = fetched
+                isLoading = false
+                let previousID = selectedLibrary?.id
+                let preferred: MediaLibrary? = {
+                    if let previousID, let selected = fetched.first(where: { $0.id == previousID }) { return selected }
+                    if !initialLibraryApplied, let initialLibraryID,
+                       let initial = fetched.first(where: { $0.id == initialLibraryID }) { return initial }
+                    return fetched.first
+                }
+                initialLibraryApplied = true
+                selectedLibrary = preferred
+                if let preferred, forceRefresh || previousID != preferred.id || itemsByLibrary[preferred.id] == nil {
+                    loadItems(for: preferred)
                 }
             } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                    self.isLoading = false
-                }
+                guard !Task.isCancelled, libraryLoadID == requestID else { return }
+                errorMessage = error.localizedDescription
+                isLibraryError = true
+                isLoading = false
             }
         }
     }
 
     private func loadContinueWatching() {
-        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else { return }
-        Task {
-            let items = (try? await client.fetchContinueWatching(limit: 10)) ?? []
-            await MainActor.run { continueWatching = items }
+        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else {
+            continueWatching = []
+            return
+        }
+        continueTask?.cancel()
+        continueTask = Task {
+            let result = try? await client.fetchContinueWatching(limit: 10)
+            guard !Task.isCancelled else { return }
+            continueWatching = result ?? []
         }
     }
 
     private func search() {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        searchTask?.cancel()
+        searchResults = []
+        searchErrorMessage = nil
         guard !query.isEmpty, let client = MediaServerManager.shared.getClient(for: serverInfo.id) else {
-            searchResults = []
+            isSearchLoading = false
+            searchRequestID = nil
+            if !query.isEmpty {
+                searchErrorMessage = String(localized: "无法连接此媒体源")
+            }
             return
         }
-        Task {
-            let items = (try? await client.search(query: query, limit: 30)) ?? []
-            await MainActor.run { searchResults = items }
+        let requestID = UUID()
+        searchRequestID = requestID
+        isSearchLoading = true
+        searchTask = Task {
+            do {
+                let items = try await client.search(query: query, limit: 30)
+                guard !Task.isCancelled, searchRequestID == requestID,
+                      query == searchText.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+                searchResults = items
+                isSearchLoading = false
+            } catch {
+                guard !Task.isCancelled, searchRequestID == requestID,
+                      query == searchText.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+                searchErrorMessage = error.localizedDescription
+                isSearchLoading = false
+            }
         }
     }
 
@@ -314,22 +456,29 @@ public struct ServerDetailView: View {
     }
 
     private func loadItems(for library: MediaLibrary) {
-        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else { return }
+        guard let client = MediaServerManager.shared.getClient(for: serverInfo.id) else {
+            errorMessage = String(localized: "无法连接此媒体源")
+            isLibraryError = false
+            isLoading = false
+            return
+        }
+        itemsTask?.cancel()
+        let requestID = UUID()
+        itemsLoadID = requestID
         isLoading = true
+        isLibraryError = false
         errorMessage = nil
 
-        Task {
+        itemsTask = Task {
             do {
                 let items = try await client.fetchItems(libraryId: library.id, startIndex: 0, limit: 50)
-                await MainActor.run {
-                    self.libraryItems = items
-                    self.isLoading = false
-                }
+                guard !Task.isCancelled, itemsLoadID == requestID, selectedLibrary?.id == library.id else { return }
+                itemsByLibrary[library.id] = items
+                isLoading = false
             } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                    self.isLoading = false
-                }
+                guard !Task.isCancelled, itemsLoadID == requestID, selectedLibrary?.id == library.id else { return }
+                errorMessage = error.localizedDescription
+                isLoading = false
             }
         }
     }

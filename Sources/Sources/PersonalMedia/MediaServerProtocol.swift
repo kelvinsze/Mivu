@@ -10,6 +10,7 @@ public protocol MediaServerProtocol: Sendable {
     func authenticate(username: String, password: String) async throws -> String
     func fetchLibraries() async throws -> [MediaLibrary]
     func fetchItems(libraryId: String, startIndex: Int, limit: Int) async throws -> [MediaItem]
+    func fetchRecentlyAdded(limit: Int) async throws -> [MediaItem]
     func fetchPlaybackInfo(itemId: String) async throws -> MediaPlaybackInfo
     func search(query: String, limit: Int) async throws -> [MediaItem]
     func fetchContinueWatching(limit: Int) async throws -> [MediaItem]
@@ -27,6 +28,9 @@ public protocol MediaServerProtocol: Sendable {
 
 public extension MediaServerProtocol {
     var playbackRequestHeaders: [String: String]? { nil }
+
+    /// Optional for sources that do not expose a server-side creation date sort.
+    func fetchRecentlyAdded(limit: Int) async throws -> [MediaItem] { [] }
 
     func fetchItemDetail(itemId: String) async throws -> MediaItem? { nil }
     func fetchSimilarItems(itemId: String, limit: Int) async throws -> [MediaItem] { [] }

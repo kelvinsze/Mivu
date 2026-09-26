@@ -114,6 +114,7 @@ public struct PlayerView: View {
                 // 默认比例适应模式下仅纵向延伸并保留横向安全区（避开车机左侧导航栏）；在填满屏幕模式（或缩放）下忽略全部安全区，恢复延伸至导航栏下方全屏显示
                 playbackSurface
                     .ignoresSafeArea(edges: (playerService.videoGravity == .resizeAspectFill || zoomScale > 1.05) ? .all : [.top, .bottom])
+                    .accessibilityHidden(playerService.session.status == .failed)
 
                 // Long press 2.0x speed gesture
                 LongPressSpeedGestureView(
@@ -130,9 +131,13 @@ public struct PlayerView: View {
                         }
                     }
                 )
+                .allowsHitTesting(playerService.session.status != .failed)
+                .accessibilityHidden(playerService.session.status == .failed)
 
                 // Gesture interaction layer (tap, double-tap, vertical drag brightness/volume, horizontal pan seek)
                 gestureLayer(geometry: geometry)
+                    .allowsHitTesting(playerService.session.status != .failed)
+                    .accessibilityHidden(playerService.session.status == .failed)
 
                 // On-screen HUD for Brightness (Left side)
                 if showBrightnessHUD {
@@ -213,6 +218,7 @@ public struct PlayerView: View {
                     .padding(.leading, 32)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     .transition(.opacity)
+                    .accessibilityHidden(playerService.session.status == .failed)
                 }
 
                 // Loading & Buffering Overlay with Speed and Percentage
@@ -318,6 +324,7 @@ public struct PlayerView: View {
                     }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
                     .animation(.easeInOut(duration: 0.3), value: playerService.showSkipOutroPrompt)
+                    .accessibilityHidden(playerService.session.status == .failed)
                 }
 
                 // Snapshot Flash & Toast Notification
@@ -348,7 +355,7 @@ public struct PlayerView: View {
                 }
 
                 // Top & Bottom Controls Overlays
-                if isControlsVisible && !isLocked {
+                if isControlsVisible && !isLocked && playerService.session.status != .failed {
                     controlsOverlay(geometry: geometry)
                         .transition(.opacity)
                 }
@@ -360,6 +367,8 @@ public struct PlayerView: View {
                     )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(Color.black.opacity(0.55).ignoresSafeArea())
+                        .contentShape(Rectangle())
+                        .accessibilityAddTraits(.isModal)
                         .zIndex(10)
                 }
             }
@@ -380,6 +389,8 @@ public struct PlayerView: View {
                 isControlsVisible = true
                 scheduleHideControls()
             } else if playerService.session.status == .loading {
+                isControlsVisible = false
+            } else if playerService.session.status == .failed {
                 isControlsVisible = false
             } else {
                 isControlsVisible = true
@@ -403,12 +414,16 @@ public struct PlayerView: View {
                     isControlsVisible = true
                 }
                 scheduleHideControls()
-            case .paused, .stopped, .failed:
+            case .paused, .stopped:
                 loadingDebounceTask?.cancel()
                 hideControlsTask?.cancel()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isControlsVisible = true
                 }
+            case .failed:
+                loadingDebounceTask?.cancel()
+                hideControlsTask?.cancel()
+                isControlsVisible = false
             case .loading:
                 // 短暂的网络卡顿或切片微小缓冲不打断当前的自隐流程，
                 // 仅当卡顿缓冲持续超过 1.5 秒时才显示控制条。
@@ -852,11 +867,13 @@ public struct PlayerView: View {
                     .padding(compact ? 6 : 10)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .frame(minWidth: 44, minHeight: 44)
             }
+            .accessibilityLabel("关闭播放器")
 
             VStack(alignment: .leading, spacing: compact ? 1 : 3) {
                 Text(verbatim: playerService.session.currentItem?.title ?? String(localized: "正在播放"))
-                    .font(.system(size: compact ? 14 : 17, weight: .semibold))
+                    .font(compact ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
                     .foregroundColor(.white)
                     .lineLimit(1)
 
@@ -904,7 +921,9 @@ public struct PlayerView: View {
                         .padding(6)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
+                        .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("选集")
             }
 
             Menu {
@@ -933,6 +952,8 @@ public struct PlayerView: View {
                     .clipShape(Capsule())
             }
             .layoutPriority(1)
+            .accessibilityLabel("播放速度")
+            .accessibilityValue(formatSpeedPill(playerService.selectedSpeed))
 
             Button {
                 showPlaybackSettingsSheet = true
@@ -944,7 +965,10 @@ public struct PlayerView: View {
                     .padding(6)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .frame(width: 44, height: 44)
             }
+            .accessibilityLabel("播放设置")
+            .accessibilityValue(String(format: "%.1fx", playerService.volumeBoost))
 
             // CarPlay 投屏或车载界面下隐藏字幕按钮，避免占用宝贵显示宽度
             if !playerService.isCarPlayActive {
@@ -978,7 +1002,10 @@ public struct PlayerView: View {
                         .padding(6)
                         .background(.ultraThinMaterial)
                         .clipShape(Circle())
+                        .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("字幕")
+                .accessibilityValue(playerService.selectedSubtitleTrack.map(subtitleLabel) ?? String(localized: "关闭字幕"))
             }
 
             Button {
@@ -991,7 +1018,10 @@ public struct PlayerView: View {
                     .padding(6)
                     .background(.ultraThinMaterial)
                     .clipShape(Circle())
+                    .frame(width: 44, height: 44)
             }
+            .accessibilityLabel("画面比例")
+            .accessibilityValue(playerService.videoGravity == .resizeAspect ? String(localized: "适应画面") : String(localized: "填满画面"))
 
             if !playerService.isCarPlayActive {
                 moreActionsMenu(compact: true)
@@ -1042,17 +1072,19 @@ public struct PlayerView: View {
 
             if playerService.session.status != .loading {
                 HStack(spacing: controlSpacing) {
-                if hasPlaylist {
-                    Button {
-                        playerService.playPreviousInPlaylist()
-                        scheduleHideControls()
-                    } label: {
-                        Image(systemName: "backward.end.fill")
-                            .font(.system(size: playlistIconSize))
-                            .foregroundColor(playerService.hasPreviousInPlaylist ? .white : .white.opacity(0.3))
+                    if hasPlaylist {
+                        Button {
+                            playerService.playPreviousInPlaylist()
+                            scheduleHideControls()
+                        } label: {
+                            Image(systemName: "backward.end.fill")
+                                .font(.system(size: playlistIconSize))
+                                .foregroundColor(playerService.hasPreviousInPlaylist ? .white : .white.opacity(0.3))
+                                .frame(width: 44, height: 44)
+                        }
+                        .disabled(!playerService.hasPreviousInPlaylist)
+                        .accessibilityLabel("上一集")
                     }
-                    .disabled(!playerService.hasPreviousInPlaylist)
-                }
 
                 Button {
                     playerService.seek(by: -15)
@@ -1061,7 +1093,9 @@ public struct PlayerView: View {
                     Image(systemName: "gobackward.15")
                         .font(.system(size: seekIconSize))
                         .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("后退 15 秒")
 
                 if isCarPlayPaused {
                     Button {
@@ -1083,7 +1117,9 @@ public struct PlayerView: View {
                         .font(.system(size: playIconSize))
                         .foregroundColor(.white)
                         .padding(playPadding)
+                        .frame(minWidth: 44, minHeight: 44)
                 }
+                .accessibilityLabel(playerService.session.status == .playing ? "暂停" : "播放")
 
                 if isCarPlayPaused {
                     Button {
@@ -1104,7 +1140,9 @@ public struct PlayerView: View {
                     Image(systemName: "goforward.15")
                         .font(.system(size: seekIconSize))
                         .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
                 }
+                .accessibilityLabel("快进 15 秒")
 
                 if hasPlaylist {
                     Button {
@@ -1114,8 +1152,10 @@ public struct PlayerView: View {
                         Image(systemName: "forward.end.fill")
                             .font(.system(size: playlistIconSize))
                             .foregroundColor(playerService.hasNextInPlaylist ? .white : .white.opacity(0.3))
+                            .frame(width: 44, height: 44)
                     }
                     .disabled(!playerService.hasNextInPlaylist)
+                    .accessibilityLabel("下一集")
                 }
             }
             .buttonStyle(.plain)

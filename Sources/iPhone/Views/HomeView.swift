@@ -8,6 +8,7 @@ public struct HomeView: View {
     @ObservedObject private var playerService = PlayerService.shared
     @ObservedObject var history = PlaybackHistory.shared
     @ObservedObject var serverManager = MediaServerManager.shared
+    @ObservedObject private var browseModel = MediaBrowseModel.shared
 
     @State private var clipboardURL: URL?
     @State private var errorMessage: String?
@@ -33,15 +34,18 @@ public struct HomeView: View {
                             .padding(.horizontal)
                     }
 
-                    // MARK: - 3. Connected Media Sources Rail
-                    mediaSourcesSection
+                    // MARK: - 3. Recently Added
+                    recentlyAddedSection
+
+                    // MARK: - 4. Media Categories
+                    mediaCategoriesSection
                         .padding(.horizontal)
 
-                    // MARK: - 4. Wi-Fi Uploaded Videos
+                    // MARK: - 5. Wi-Fi Uploaded Videos
                     WiFiUploadedVideosSection()
                         .padding(.horizontal)
 
-                    // MARK: - 5. Recently Played Carousel (2:3 Posters)
+                    // MARK: - 6. Recently Played Carousel (2:3 Posters)
                     if !history.items.isEmpty {
                         recentlyPlayedSection
                             .padding(.bottom, 60) // Extra padding for mini-player clearance
@@ -51,6 +55,17 @@ public struct HomeView: View {
             }
             .background(Color.mivuBackground)
             .navigationTitle("Mivu")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ServerSourcesManagementView()
+                    } label: {
+                        Image(systemName: "server.rack")
+                            .foregroundStyle(Color.mivuAccent)
+                    }
+                    .accessibilityLabel("管理媒体源")
+                }
+            }
             .safeAreaInset(edge: .bottom) {
                 HomeMiniPlayerBar(
                     playerService: playerService
@@ -63,6 +78,12 @@ public struct HomeView: View {
                 Button("好", role: .cancel) {}
             } message: {
                 Text(verbatim: errorMessage ?? String(localized: "发生未知错误"))
+            }
+            .onAppear {
+                browseModel.loadIfNeeded(servers: serverManager.savedServers)
+            }
+            .onChange(of: serverManager.savedServers) { _, servers in
+                browseModel.loadIfNeeded(servers: servers)
             }
         }
     }
@@ -128,7 +149,7 @@ public struct HomeView: View {
                         Text(item.title)
                             .font(.title3.bold())
                             .foregroundColor(.white)
-                            .lineLimit(1)
+                            .lineLimit(2, reservesSpace: true)
 
                         if let resume = item.resumePosition, let duration = item.duration, duration > 0 {
                             let remain = max(duration - resume, 0)
@@ -165,75 +186,170 @@ public struct HomeView: View {
         }
     }
 
-    /// Horizontal rail of connected servers (Emby / Jellyfin / SMB / WebDAV)
-    private var mediaSourcesSection: some View {
+    private var recentlyAddedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !serverManager.savedServers.isEmpty {
+                Text("最近添加")
+                    .font(.title3.bold())
+                    .padding(.horizontal)
+                ForEach(serverManager.savedServers) { server in
+                    recentlyAddedRow(server)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func recentlyAddedRow(_ server: SavedServerInfo) -> some View {
+        let snapshot = browseModel.snapshots[server.id]
+        VStack(alignment: .leading, spacing: 10) {
+            Text(verbatim: "\(server.name) · \(server.serverType.rawValue.uppercased())")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+            if let snapshot, !snapshot.recentlyAdded.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 14) {
+                        ForEach(snapshot.recentlyAdded) { item in
+                            NavigationLink(value: item) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Group {
+                                        if let poster = item.posterUrl {
+                                            AsyncItemArtwork(url: poster, headers: item.headers)
+                                                .scaledToFill()
+                                        } else {
+                                            posterPlaceholder(item)
+                                        }
+                                    }
+                                    .frame(width: 110, height: 165)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: MivuRadius.s, style: .continuous))
+                                    Text(item.title)
+                .font(.caption.bold())
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2, reservesSpace: true)
+                                        .frame(width: 110, alignment: .leading)
+                                }
+                                .frame(width: 110, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            if let error = snapshot?.recentItemsError {
+                HStack(spacing: 8) {
+                    Text(error).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                    Button("重试") { browseModel.refresh(server: server) }
+                        .font(.caption.weight(.semibold))
+                }
+                .padding(.horizontal)
+            } else if snapshot?.isLoadingRecentlyAdded == true || snapshot == nil {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("正在加载最近添加").font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal)
+            } else if snapshot?.recentItemsLoaded == true && snapshot?.recentlyAdded.isEmpty == true {
+                Text("暂无最近添加")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+            }
+        }
+    }
+
+    private var mediaCategoriesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("媒体库来源")
+                Text("媒体分类")
                     .font(.title3.bold())
                 Spacer()
                 NavigationLink {
-                    ServersView()
+                    ServersView(wrapsInNavigationStack: false)
                 } label: {
-                    Text("全部")
+                    Text("浏览全部")
                         .font(.subheadline)
-                        .foregroundColor(MivuEdition.primaryTint)
+                        .foregroundStyle(Color.mivuAccent)
                 }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    if serverManager.savedServers.isEmpty {
-                        NavigationLink {
-                            ServersView()
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                                    .foregroundColor(MivuEdition.primaryTint)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("添加个人媒体源")
-                                        .font(.subheadline.bold())
-                                        .foregroundColor(.primary)
-                                    Text("连接 Emby、Jellyfin、NAS")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color.mivuSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
-                        }
-                    } else {
-                        ForEach(serverManager.savedServers) { server in
-                            NavigationLink {
-                                ServerDetailView(serverInfo: server)
-                            } label: {
+            if serverManager.savedServers.isEmpty {
+                NavigationLink {
+                    ServerSourcesManagementView()
+                } label: {
+                    Label("添加媒体源", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(Color.mivuSurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+                }
+                .foregroundStyle(.primary)
+            } else {
+                ForEach(serverManager.savedServers) { server in
+                    let snapshot = browseModel.snapshots[server.id]
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(verbatim: "\(server.name) · \(server.serverType.rawValue.uppercased())")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        if let snapshot, !snapshot.libraries.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 10) {
-                                    Image(systemName: iconForServer(server.serverType))
-                                        .font(.title3)
-                                        .foregroundColor(MivuEdition.primaryTint)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(server.name)
-                                            .font(.subheadline.bold())
-                                            .foregroundColor(.primary)
-                                            .lineLimit(1)
-                                        Text(server.serverType.rawValue.uppercased())
-                                            .font(.system(size: 10, weight: .semibold))
-                                            .foregroundColor(.secondary)
+                                    ForEach(snapshot.libraries) { library in
+                                        NavigationLink {
+                                            ServerDetailView(serverInfo: server, initialLibraryID: library.id)
+                                        } label: {
+                                            Label {
+                                                Text(verbatim: library.name)
+                                            } icon: {
+                                                Image(systemName: categoryIcon(library.collectionType))
+                                            }
+                                                .font(.subheadline.weight(.semibold))
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 11)
+                                                .background(Color.mivuSurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+                                        }
+                                        .foregroundStyle(.primary)
+                                        .buttonStyle(.plain)
                                     }
                                 }
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                                .background(Color.mivuSurface)
-                                .clipShape(RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
                             }
+                            if let error = snapshot.libraryError {
+                                HStack(spacing: 8) {
+                                    Text(error).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                    Button("重试") { browseModel.refresh(server: server) }
+                                        .font(.caption.weight(.semibold))
+                                }
+                            }
+                        } else if snapshot?.isLoadingLibraries == true || snapshot == nil {
+                            HStack(spacing: 8) {
+                                ProgressView().controlSize(.small)
+                                Text("正在加载媒体分类").font(.caption).foregroundStyle(.secondary)
+                            }
+                        } else if let error = snapshot?.libraryError {
+                            HStack(spacing: 8) {
+                                Text(error).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                Button("重试") { browseModel.refresh(server: server) }
+                                    .font(.caption.weight(.semibold))
+                            }
+                        } else if snapshot?.librariesLoaded == true {
+                            Text("此媒体源暂无媒体分类")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
                 }
             }
+        }
+    }
+
+    private func categoryIcon(_ type: String?) -> String {
+        switch type?.lowercased() {
+        case "movies": return "film"
+        case "tvshows": return "tv"
+        case "music": return "music.note"
+        default: return "play.square.stack"
         }
     }
 
@@ -293,7 +409,7 @@ public struct HomeView: View {
                                 Text(item.title)
                                     .font(.caption.bold())
                                     .foregroundColor(.primary)
-                                    .lineLimit(1)
+                                    .lineLimit(2, reservesSpace: true)
                                     .frame(width: 110, alignment: .leading)
                             }
                             .frame(width: 110, alignment: .leading)
@@ -456,8 +572,11 @@ private struct HomeMiniPlayerBar: View {
                                 .foregroundColor(.secondary)
                         }
                     }
+                    .frame(minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("打开播放器：\(playerService.session.currentItem?.title ?? String(localized: "正在播放"))")
 
                 Spacer()
 
@@ -467,8 +586,10 @@ private struct HomeMiniPlayerBar: View {
                     Image(systemName: playerService.session.status == .playing ? "pause.fill" : "play.fill")
                         .font(.title3)
                         .foregroundColor(.primary)
-                        .padding(6)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel(playerService.session.status == .playing ? "暂停播放" : "继续播放")
 
                 Button {
                     playerService.stop()
@@ -476,8 +597,10 @@ private struct HomeMiniPlayerBar: View {
                     Image(systemName: "xmark")
                         .font(.caption.bold())
                         .foregroundColor(.secondary)
-                        .padding(6)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel("停止播放")
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
