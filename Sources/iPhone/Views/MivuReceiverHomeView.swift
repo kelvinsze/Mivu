@@ -492,6 +492,8 @@ public struct MivuReceiverHomeView: View {
                     }
                 } header: {
                     Text("支持投屏的视频 App")
+                } footer: {
+                    Text("请在 App 内打开分享或投屏菜单，并选择 Mivu 作为播放设备。")
                 }
             }
             .navigationTitle("视频 App 投屏")
