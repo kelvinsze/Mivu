@@ -33,7 +33,7 @@ public struct MivuReceiverHomeView: View {
                     }
 
                     if playerService.isCarPlayConnected {
-                        receiverStatusSummary
+                        receiverStatusCard
                             .padding(.horizontal)
                         if !isCarPlayWindow {
                             castingContentSection
@@ -44,8 +44,6 @@ public struct MivuReceiverHomeView: View {
                             .padding(.horizontal)
                         if !isCarPlayWindow {
                             castingGuideCard
-                                .padding(.horizontal)
-                            castingContentSection
                                 .padding(.horizontal)
                         }
                     }
