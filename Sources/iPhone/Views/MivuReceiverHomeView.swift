@@ -143,15 +143,16 @@ public struct MivuReceiverHomeView: View {
     // MARK: - 1. Live Receiver Status Card
     private var receiverStatusCard: some View {
         let isReceiverActive = playerService.isCarPlayConnected
+        // Ribbon faces overlap, so their base tint must be opaque to hide the back edges.
+        let statusTint: Color = isReceiverActive ? .mivuAccent : Color(uiColor: .systemGray)
 
         return VStack(spacing: MivuSpacing.s) {
             ZStack {
                 Circle()
-                    .fill(Color.mivuAccent.opacity(0.12))
+                    .fill(statusTint.opacity(0.12))
                     .frame(width: 56, height: 56)
-                Image(systemName: "antenna.radiowaves.left.and.right")
-                    .font(.title2)
-                    .foregroundColor(Color.mivuAccent)
+                MivuConnectionMark(tint: statusTint)
+                    .frame(width: 38, height: 38 * 525.2 / 779)
             }
 
             HStack(spacing: 6) {
@@ -159,7 +160,7 @@ public struct MivuReceiverHomeView: View {
                     .font(.headline)
                     .foregroundColor(.primary)
                 Circle()
-                    .fill(isReceiverActive ? Color.green : Color.secondary)
+                    .fill(statusTint)
                     .frame(width: 8, height: 8)
             }
 
@@ -196,7 +197,6 @@ public struct MivuReceiverHomeView: View {
                 externalAppSource
             }
             .disabled(!playerService.isCarPlayConnected || isPreparingPhotoVideo)
-            .opacity(playerService.isCarPlayConnected ? 1 : 0.45)
         }
         .padding(MivuSpacing.m)
         .mivuSurface(radius: MivuRadius.xl)
@@ -218,8 +218,7 @@ public struct MivuReceiverHomeView: View {
         PhotosPicker(selection: $selectedPhotoVideo, matching: .videos) {
             castingSourceCard(
                 title: isPreparingPhotoVideo ? "正在准备视频…" : "相册视频",
-                icon: "photo.on.rectangle.angled",
-                usesMulticolorSymbol: true
+                icon: "photo.on.rectangle.angled"
             )
         }
         .buttonStyle(.plain)
@@ -240,23 +239,27 @@ public struct MivuReceiverHomeView: View {
 
     private func castingSourceCard(
         title: LocalizedStringKey,
-        icon: String,
-        usesMulticolorSymbol: Bool = false
+        icon: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: MivuSpacing.xs) {
+        let isAvailable = playerService.isCarPlayConnected && !isPreparingPhotoVideo
+        let iconTint: Color = isAvailable ? .mivuAccent : Color(uiColor: .systemGray)
+        let contentOpacity = playerService.isCarPlayConnected ? 1.0 : 0.45
+
+        return VStack(alignment: .leading, spacing: MivuSpacing.xs) {
             HStack(alignment: .top) {
                 Image(systemName: icon)
-                    .symbolRenderingMode(usesMulticolorSymbol ? .multicolor : .monochrome)
+                    .symbolRenderingMode(.monochrome)
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.mivuAccent)
+                    .foregroundStyle(iconTint)
                     .frame(width: 44, height: 44)
-                    .background(Color.mivuSurface, in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
+                    .background(Color.mivuSurface.opacity(contentOpacity), in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
 
                 Spacer(minLength: MivuSpacing.xs)
 
                 Image(systemName: "chevron.right")
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .opacity(contentOpacity)
                     .padding(.top, MivuSpacing.xs)
             }
 
@@ -265,11 +268,12 @@ public struct MivuReceiverHomeView: View {
             Text(title)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(.primary)
+                .opacity(contentOpacity)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(MivuSpacing.xs)
         .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 0 : 136, alignment: .leading)
-        .background(Color.mivuSurfaceSecondary, in: RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
+        .background(Color.mivuSurfaceSecondary.opacity(contentOpacity), in: RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
     }
 
@@ -600,6 +604,120 @@ private struct PhotoLibraryVideo: Transferable {
             )
         }
     }
+}
+
+/// The four ribbon paths from docs/branding/Mivu-M.svg, shaded with the current status tint.
+private struct MivuConnectionMark: View {
+    let tint: Color
+
+    var body: some View {
+        Canvas { context, size in
+            var context = context
+            context.scaleBy(x: size.width / 779, y: size.height / 525.2)
+            context.translateBy(x: -236.6, y: -363.1)
+
+            for surface in Self.surfaces {
+                context.fill(surface.path, with: .color(tint))
+                context.fill(
+                    surface.path,
+                    with: .linearGradient(
+                        surface.shading,
+                        startPoint: surface.start,
+                        endPoint: surface.end
+                    )
+                )
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private struct Surface {
+        let path: Path
+        let start: CGPoint
+        let end: CGPoint
+        let shading: Gradient
+    }
+
+    private static let legShading = Gradient(stops: [
+        .init(color: .black.opacity(0.55), location: 0),
+        .init(color: .black.opacity(0.12), location: 0.38),
+        .init(color: .clear, location: 0.65),
+        .init(color: .white.opacity(0.22), location: 1)
+    ])
+
+    private static let surfaces: [Surface] = [
+        Surface(
+            path: Path { path in
+                path.move(to: CGPoint(x: 236.6, y: 474.6))
+                path.addLine(to: CGPoint(x: 428.7, y: 474.6))
+                path.addLine(to: CGPoint(x: 428.7, y: 791.7))
+                path.addCurve(to: CGPoint(x: 332.6, y: 888.3), control1: CGPoint(x: 428.7, y: 845.1), control2: CGPoint(x: 385.7, y: 888.3))
+                path.addCurve(to: CGPoint(x: 236.6, y: 791.7), control1: CGPoint(x: 279.6, y: 888.3), control2: CGPoint(x: 236.6, y: 845.1))
+                path.closeSubpath()
+            },
+            start: CGPoint(x: 411.550, y: 579.993),
+            end: CGPoint(x: 237.017, y: 836.329),
+            shading: legShading
+        ),
+        Surface(
+            path: Path { path in
+                path.move(to: CGPoint(x: 824.3, y: 473.9))
+                path.addLine(to: CGPoint(x: 1015.6, y: 473.9))
+                path.addLine(to: CGPoint(x: 1015.6, y: 791.8))
+                path.addCurve(to: CGPoint(x: 920, y: 888.3), control1: CGPoint(x: 1015.6, y: 845), control2: CGPoint(x: 972.8, y: 888.3))
+                path.addCurve(to: CGPoint(x: 824.3, y: 791.8), control1: CGPoint(x: 867.1, y: 888.3), control2: CGPoint(x: 824.3, y: 845))
+                path.closeSubpath()
+            },
+            start: CGPoint(x: 843.630, y: 571.690),
+            end: CGPoint(x: 1010.785, y: 841.811),
+            shading: legShading
+        ),
+        Surface(
+            path: Path { path in
+                path.move(to: CGPoint(x: 625.8, y: 553.2))
+                path.addLine(to: CGPoint(x: 832.9, y: 387.3))
+                path.addCurve(to: CGPoint(x: 904, y: 363.1), control1: CGPoint(x: 852.9, y: 371.2), control2: CGPoint(x: 877.6, y: 363.1))
+                path.addCurve(to: CGPoint(x: 1015.6, y: 473.9), control1: CGPoint(x: 965.7, y: 363.1), control2: CGPoint(x: 1015.6, y: 406.6))
+                path.addLine(to: CGPoint(x: 1015.6, y: 566))
+                path.addCurve(to: CGPoint(x: 955.8, y: 508.7), control1: CGPoint(x: 1015.6, y: 533.1), control2: CGPoint(x: 988.8, y: 508.7))
+                path.addCurve(to: CGPoint(x: 904.7, y: 529.6), control1: CGPoint(x: 938.1, y: 508.7), control2: CGPoint(x: 922.4, y: 515))
+                path.addLine(to: CGPoint(x: 779.5, y: 633.5))
+                path.addLine(to: CGPoint(x: 726, y: 676))
+                path.addLine(to: CGPoint(x: 600, y: 570))
+                path.closeSubpath()
+            },
+            start: CGPoint(x: 927.125, y: 359.401),
+            end: CGPoint(x: 737.239, y: 633.121),
+            shading: Gradient(stops: [
+                .init(color: .white.opacity(0.25), location: 0),
+                .init(color: .clear, location: 0.45),
+                .init(color: .black.opacity(0.32), location: 1)
+            ])
+        ),
+        Surface(
+            path: Path { path in
+                path.move(to: CGPoint(x: 236.6, y: 565.5))
+                path.addLine(to: CGPoint(x: 236.6, y: 474.6))
+                path.addCurve(to: CGPoint(x: 347.6, y: 363.1), control1: CGPoint(x: 236.6, y: 409), control2: CGPoint(x: 286.1, y: 363.1))
+                path.addCurve(to: CGPoint(x: 419.7, y: 385.5), control1: CGPoint(x: 374.3, y: 363.1), control2: CGPoint(x: 398.9, y: 371.4))
+                path.addLine(to: CGPoint(x: 710.9, y: 622.3))
+                path.addCurve(to: CGPoint(x: 779.5, y: 633.5), control1: CGPoint(x: 733.7, y: 640), control2: CGPoint(x: 759, y: 648.7))
+                path.addLine(to: CGPoint(x: 685.2, y: 714.5))
+                path.addCurve(to: CGPoint(x: 569.2, y: 717.7), control1: CGPoint(x: 649.6, y: 746.5), control2: CGPoint(x: 607.4, y: 747.5))
+                path.addLine(to: CGPoint(x: 349.1, y: 531))
+                path.addCurve(to: CGPoint(x: 297.3, y: 508.5), control1: CGPoint(x: 332.5, y: 517.6), control2: CGPoint(x: 317, y: 508.5))
+                path.addCurve(to: CGPoint(x: 236.6, y: 565.5), control1: CGPoint(x: 265.1, y: 508.5), control2: CGPoint(x: 238.2, y: 532.6))
+                path.closeSubpath()
+            },
+            start: CGPoint(x: 322.137, y: 354.249),
+            end: CGPoint(x: 647.883, y: 739.036),
+            shading: Gradient(stops: [
+                .init(color: .white.opacity(0.3), location: 0),
+                .init(color: .clear, location: 0.65),
+                .init(color: .black.opacity(0.06), location: 1)
+            ])
+        )
+    ]
 }
 
 private enum PhotoLibraryVideoError: LocalizedError {
