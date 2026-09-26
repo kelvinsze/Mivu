@@ -35,11 +35,7 @@ public struct MainTabView: View {
         .tint(MivuEdition.primaryTint)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
             if isCarPlayWindow {
-                if playerService.isCarPlayVideoPlaybackAvailable {
-                    PlayerView()
-                } else {
-                    CarPlayRemoteControlView()
-                }
+                PlayerView()
             } else {
                 MivuPlaybackPresentation()
             }

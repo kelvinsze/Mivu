@@ -137,11 +137,7 @@ public struct MivuLiteTabView: View {
         .tint(Color.mivuAccent)
         .fullScreenCover(isPresented: $playerService.isShowingPlayer) {
             if isCarPlayWindow {
-                if playerService.isCarPlayVideoPlaybackAvailable {
-                    PlayerView()
-                } else {
-                    CarPlayRemoteControlView()
-                }
+                PlayerView()
             } else {
                 MivuPlaybackPresentation()
             }
