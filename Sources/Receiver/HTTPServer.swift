@@ -686,7 +686,7 @@ enum WebRemoteTemplate {
             </div>
 
             <div id="uploadScreen" hidden>
-            <div class="card">
+            <div class="card" hidden>
               <div class="card-title" data-i18n="nowPlaying">Now Playing</div>
               <div class="status-text" id="mediaTitle" data-i18n="loading">Loading...</div>
               <div class="time-bar" id="mediaTime">00:00:00 / 00:00:00</div>
@@ -696,7 +696,7 @@ enum WebRemoteTemplate {
               </div>
             </div>
 
-            <div class="card">
+            <div class="card" hidden>
               <div class="card-title" data-i18n="pushTitle">Send a video URL to CarPlay / Mivu</div>
               <input type="text" id="videoUrlInput" data-i18n-placeholder="urlPlaceholder" placeholder="Enter an HTTP/HTTPS or HLS m3u8 URL">
               <button class="btn-primary" onclick="pushVideo()" data-i18n="push">🚀 Play on Mivu</button>
