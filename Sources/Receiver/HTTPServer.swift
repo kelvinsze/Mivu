@@ -678,13 +678,14 @@ enum WebRemoteTemplate {
               <div class="badge">\(friendlyName)</div>
             </header>
 
-            <div class="card">
+            <div class="card" id="accessScreen">
               <div class="card-title" data-i18n="accessTitle">Access Code</div>
               <input type="password" id="accessCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" data-i18n-placeholder="accessPlaceholder" placeholder="Enter the 6-digit code shown in Mivu">
               <button class="btn-primary" onclick="unlockWebRemote()" data-i18n="unlock">Unlock Remote</button>
               <div class="upload-status" id="accessCodeStatus" data-i18n="accessHint">Enter the code from Mivu to control or upload.</div>
             </div>
 
+            <div id="uploadScreen" hidden>
             <div class="card">
               <div class="card-title" data-i18n="nowPlaying">Now Playing</div>
               <div class="status-text" id="mediaTitle" data-i18n="loading">Loading...</div>
@@ -707,6 +708,7 @@ enum WebRemoteTemplate {
               <button class="btn-primary" id="uploadButton" onclick="uploadVideo()" data-i18n="upload">⬆️ Upload to Library</button>
               <progress id="uploadProgress" value="0" max="100" hidden></progress>
               <div class="upload-status" id="uploadStatus" data-i18n="uploadHint">Videos are saved to this device's Mivu library.</div>
+            </div>
             </div>
           </div>
 
@@ -739,6 +741,8 @@ enum WebRemoteTemplate {
             const accessCodeKey = 'mivu-web-access-code';
             const accessCodeInput = document.getElementById('accessCodeInput');
             const accessCodeStatus = document.getElementById('accessCodeStatus');
+            const accessScreen = document.getElementById('accessScreen');
+            const uploadScreen = document.getElementById('uploadScreen');
             const accessCodeFromFragment = new URLSearchParams(window.location.hash.slice(1)).get('access-code');
             if (/^\\d{6}$/.test(accessCodeFromFragment || '')) {
               sessionStorage.setItem(accessCodeKey, accessCodeFromFragment);
@@ -766,7 +770,13 @@ enum WebRemoteTemplate {
                   accessCodeStatus.textContent = tr('accessDenied');
                   return;
                 }
+                if (!response.ok) {
+                  accessCodeStatus.textContent = tr('offline');
+                  return;
+                }
                 accessCodeStatus.textContent = '';
+                accessScreen.hidden = true;
+                uploadScreen.hidden = false;
                 fetchStatus();
               } catch (_) {
                 accessCodeStatus.textContent = tr('offline');
@@ -788,7 +798,10 @@ enum WebRemoteTemplate {
                 document.getElementById('mediaTime').innerText = formatTime(data.currentTime) + ' / ' + formatTime(data.duration) + ' (' + data.status + ')';
               } catch(e) {}
             }
-            setInterval(() => { if (currentAccessCode()) fetchStatus(); }, 1500);
+            accessCodeInput.addEventListener('keydown', event => {
+              if (event.key === 'Enter') unlockWebRemote();
+            });
+            setInterval(() => { if (!uploadScreen.hidden) fetchStatus(); }, 1500);
             if (currentAccessCode()) unlockWebRemote();
 
             async function sendControl(action, value) {
