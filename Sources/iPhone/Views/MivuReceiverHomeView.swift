@@ -492,18 +492,6 @@ public struct MivuReceiverHomeView: View {
                     }
                 } header: {
                     Text("支持投屏的视频 App")
-                } footer: {
-                    Text("请在 App 内打开分享或投屏菜单，并选择 Mivu 作为播放设备。")
-                }
-
-                Section {
-                    Label("先连接 CarPlay", systemImage: "car.fill")
-                    Label("在视频 App 中打开分享或投屏菜单", systemImage: "square.and.arrow.up")
-                    Label("选择 Mivu 作为播放设备", systemImage: "rectangle.connected.to.line.below")
-                } header: {
-                    Text("从其他 App 投屏")
-                } footer: {
-                    Text("Mivu 会在 CarPlay 连接后自动作为局域网投屏设备出现。")
                 }
             }
             .navigationTitle("视频 App 投屏")
