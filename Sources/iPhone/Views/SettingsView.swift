@@ -62,6 +62,12 @@ public struct SettingsView: View {
                         Label("网页上传视频", systemImage: "arrow.up.doc.fill")
                             .foregroundColor(MivuEdition.utilityTint)
                     }
+                    NavigationLink {
+                        LocalVideoLibraryView()
+                    } label: {
+                        Label("查看本地视频", systemImage: "film.stack.fill")
+                            .foregroundColor(MivuEdition.utilityTint)
+                    }
                 } header: {
                     Text("Wi-Fi 文件上传")
                 } footer: {
@@ -314,12 +320,6 @@ public struct WiFiUploadLibraryView: View {
                 Text("请让上传设备与此 iPhone 连接同一个 Wi-Fi；App 保持在前台时可接收上传。")
                     .font(.footnote)
                     .foregroundColor(.secondary)
-            }
-
-            NavigationLink {
-                LocalVideoLibraryView()
-            } label: {
-                Label("查看本地视频", systemImage: "film.stack.fill")
             }
 
             Text("上传完成后，视频会出现在本地视频列表中。")
