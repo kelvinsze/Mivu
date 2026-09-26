@@ -17860,7 +17860,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Videos über das Web hochladen"
+            "value" : "Videos hochladen"
           }
         },
         "en" : {
@@ -17872,31 +17872,31 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Subir videos desde la web"
+            "value" : "Subir videos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Importer des vidéos depuis le Web"
+            "value" : "Importer des vidéos"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enviar vídeos pela web"
+            "value" : "Enviar vídeos"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "网页上传视频"
+            "value" : "上传视频"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "網頁上傳影片"
+            "value" : "上傳影片"
           }
         }
       }
