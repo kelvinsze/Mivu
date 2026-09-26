@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1254" height="1254" viewBox="0 0 1254 1254" role="img" aria-labelledby="mivu-title mivu-description" color-interpolation="sRGB">
+  <title id="mivu-title">Mivu — amber folded ribbon app icon</title>
+  <desc id="mivu-description">Reconstructed from the supplied Mivu reference. Four editable ribbon surfaces, sampled multi-axis amber gradients, and fold-edge highlights. Pure SVG paths and gradients; no embedded bitmap or external assets.</desc>
+  <defs>
+    <path id="icon-plate-path" d="M 355,70.5 H 898.5 C 1084.5,70.5 1184.8,168.5 1184.8,347.5 V 900 C 1184.8,1085.3 1086.5,1177.8 901.5,1177.8 H 354.5 C 169.5,1177.8 69.8,1085.3 69.8,900 V 349 C 69.8,168.5 169.5,70.5 355,70.5 Z"/>
+    <linearGradient id="plate-tone-0" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#212122"/>
+      <stop offset="0.052632" stop-color="#1f1f20"/>
+      <stop offset="0.105263" stop-color="#1d1d1d"/>
+      <stop offset="0.157895" stop-color="#191919"/>
+      <stop offset="0.210526" stop-color="#161616"/>
+      <stop offset="0.263158" stop-color="#151515"/>
+      <stop offset="0.315789" stop-color="#141415"/>
+      <stop offset="0.368421" stop-color="#121213"/>
+      <stop offset="0.421053" stop-color="#101011"/>
+      <stop offset="0.473684" stop-color="#0e0e10"/>
+      <stop offset="0.526316" stop-color="#0d0d0f"/>
+      <stop offset="0.578947" stop-color="#0c0d0e"/>
+      <stop offset="0.631579" stop-color="#0c0c0e"/>
+      <stop offset="0.684211" stop-color="#0b0b0d"/>
+      <stop offset="0.736842" stop-color="#0a0a0c"/>
+      <stop offset="0.789474" stop-color="#08090a"/>
+      <stop offset="0.842105" stop-color="#080809"/>
+      <stop offset="0.894737" stop-color="#080809"/>
+      <stop offset="0.947368" stop-color="#070708"/>
+      <stop offset="1.000000" stop-color="#070707"/>
+    </linearGradient>
+    <linearGradient id="plate-tone-1" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#1e1f20"/>
+      <stop offset="0.052632" stop-color="#1b1b1d"/>
+      <stop offset="0.105263" stop-color="#181819"/>
+      <stop offset="0.157895" stop-color="#141416"/>
+      <stop offset="0.210526" stop-color="#101112"/>
+      <stop offset="0.263158" stop-color="#0e0e0f"/>
+      <stop offset="0.315789" stop-color="#0d0c0d"/>
+      <stop offset="0.368421" stop-color="#0c0b0b"/>
+      <stop offset="0.421053" stop-color="#0b0a0a"/>
+      <stop offset="0.473684" stop-color="#0a090a"/>
+      <stop offset="0.526316" stop-color="#090909"/>
+      <stop offset="0.578947" stop-color="#090909"/>
+      <stop offset="0.631579" stop-color="#090809"/>
+      <stop offset="0.684211" stop-color="#080708"/>
+      <stop offset="0.736842" stop-color="#070607"/>
+      <stop offset="0.789474" stop-color="#070708"/>
+      <stop offset="0.842105" stop-color="#060607"/>
+      <stop offset="0.894737" stop-color="#050506"/>
+      <stop offset="0.947368" stop-color="#050506"/>
+      <stop offset="1.000000" stop-color="#050506"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-1" gradientUnits="userSpaceOnUse" x1="69.800" y1="0" x2="209.175" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-1" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-1)"/></mask>
+    <linearGradient id="plate-tone-2" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#1d1d1f"/>
+      <stop offset="0.052632" stop-color="#18191b"/>
+      <stop offset="0.105263" stop-color="#151618"/>
+      <stop offset="0.157895" stop-color="#121214"/>
+      <stop offset="0.210526" stop-color="#0f0f11"/>
+      <stop offset="0.263158" stop-color="#0b0b0b"/>
+      <stop offset="0.315789" stop-color="#090807"/>
+      <stop offset="0.368421" stop-color="#080706"/>
+      <stop offset="0.421053" stop-color="#080605"/>
+      <stop offset="0.473684" stop-color="#070605"/>
+      <stop offset="0.526316" stop-color="#060505"/>
+      <stop offset="0.578947" stop-color="#070606"/>
+      <stop offset="0.631579" stop-color="#070606"/>
+      <stop offset="0.684211" stop-color="#060404"/>
+      <stop offset="0.736842" stop-color="#050403"/>
+      <stop offset="0.789474" stop-color="#060506"/>
+      <stop offset="0.842105" stop-color="#060607"/>
+      <stop offset="0.894737" stop-color="#050406"/>
+      <stop offset="0.947368" stop-color="#040405"/>
+      <stop offset="1.000000" stop-color="#040405"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-2" gradientUnits="userSpaceOnUse" x1="209.175" y1="0" x2="348.550" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-2" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-2)"/></mask>
+    <linearGradient id="plate-tone-3" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#1c1d1f"/>
+      <stop offset="0.052632" stop-color="#17181b"/>
+      <stop offset="0.105263" stop-color="#141517"/>
+      <stop offset="0.157895" stop-color="#111214"/>
+      <stop offset="0.210526" stop-color="#0e0e10"/>
+      <stop offset="0.263158" stop-color="#0b0a0b"/>
+      <stop offset="0.315789" stop-color="#080707"/>
+      <stop offset="0.368421" stop-color="#070504"/>
+      <stop offset="0.421053" stop-color="#060402"/>
+      <stop offset="0.473684" stop-color="#060302"/>
+      <stop offset="0.526316" stop-color="#050302"/>
+      <stop offset="0.578947" stop-color="#060405"/>
+      <stop offset="0.631579" stop-color="#070607"/>
+      <stop offset="0.684211" stop-color="#060607"/>
+      <stop offset="0.736842" stop-color="#060607"/>
+      <stop offset="0.789474" stop-color="#060607"/>
+      <stop offset="0.842105" stop-color="#050506"/>
+      <stop offset="0.894737" stop-color="#040405"/>
+      <stop offset="0.947368" stop-color="#040304"/>
+      <stop offset="1.000000" stop-color="#040304"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-3" gradientUnits="userSpaceOnUse" x1="348.550" y1="0" x2="487.925" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-3" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-3)"/></mask>
+    <linearGradient id="plate-tone-4" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#1b1c1f"/>
+      <stop offset="0.052632" stop-color="#17181a"/>
+      <stop offset="0.105263" stop-color="#131417"/>
+      <stop offset="0.157895" stop-color="#101113"/>
+      <stop offset="0.210526" stop-color="#0d0e10"/>
+      <stop offset="0.263158" stop-color="#0b0b0d"/>
+      <stop offset="0.315789" stop-color="#08080a"/>
+      <stop offset="0.368421" stop-color="#060505"/>
+      <stop offset="0.421053" stop-color="#050302"/>
+      <stop offset="0.473684" stop-color="#050200"/>
+      <stop offset="0.526316" stop-color="#050201"/>
+      <stop offset="0.578947" stop-color="#050303"/>
+      <stop offset="0.631579" stop-color="#060506"/>
+      <stop offset="0.684211" stop-color="#070709"/>
+      <stop offset="0.736842" stop-color="#060608"/>
+      <stop offset="0.789474" stop-color="#050506"/>
+      <stop offset="0.842105" stop-color="#040405"/>
+      <stop offset="0.894737" stop-color="#040304"/>
+      <stop offset="0.947368" stop-color="#030304"/>
+      <stop offset="1.000000" stop-color="#040404"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-4" gradientUnits="userSpaceOnUse" x1="487.925" y1="0" x2="627.300" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-4" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-4)"/></mask>
+    <linearGradient id="plate-tone-5" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#191b1e"/>
+      <stop offset="0.052632" stop-color="#151619"/>
+      <stop offset="0.105263" stop-color="#121316"/>
+      <stop offset="0.157895" stop-color="#0f1012"/>
+      <stop offset="0.210526" stop-color="#0c0c0e"/>
+      <stop offset="0.263158" stop-color="#09090b"/>
+      <stop offset="0.315789" stop-color="#070708"/>
+      <stop offset="0.368421" stop-color="#060504"/>
+      <stop offset="0.421053" stop-color="#050302"/>
+      <stop offset="0.473684" stop-color="#050200"/>
+      <stop offset="0.526316" stop-color="#040201"/>
+      <stop offset="0.578947" stop-color="#050404"/>
+      <stop offset="0.631579" stop-color="#060506"/>
+      <stop offset="0.684211" stop-color="#060607"/>
+      <stop offset="0.736842" stop-color="#050506"/>
+      <stop offset="0.789474" stop-color="#050406"/>
+      <stop offset="0.842105" stop-color="#050406"/>
+      <stop offset="0.894737" stop-color="#050405"/>
+      <stop offset="0.947368" stop-color="#050505"/>
+      <stop offset="1.000000" stop-color="#070606"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-5" gradientUnits="userSpaceOnUse" x1="627.300" y1="0" x2="766.675" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-5" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-5)"/></mask>
+    <linearGradient id="plate-tone-6" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#17181b"/>
+      <stop offset="0.052632" stop-color="#131417"/>
+      <stop offset="0.105263" stop-color="#101113"/>
+      <stop offset="0.157895" stop-color="#0d0e11"/>
+      <stop offset="0.210526" stop-color="#0a0b0d"/>
+      <stop offset="0.263158" stop-color="#080808"/>
+      <stop offset="0.315789" stop-color="#060505"/>
+      <stop offset="0.368421" stop-color="#050403"/>
+      <stop offset="0.421053" stop-color="#050302"/>
+      <stop offset="0.473684" stop-color="#050201"/>
+      <stop offset="0.526316" stop-color="#040302"/>
+      <stop offset="0.578947" stop-color="#050303"/>
+      <stop offset="0.631579" stop-color="#050403"/>
+      <stop offset="0.684211" stop-color="#050303"/>
+      <stop offset="0.736842" stop-color="#050303"/>
+      <stop offset="0.789474" stop-color="#060505"/>
+      <stop offset="0.842105" stop-color="#070607"/>
+      <stop offset="0.894737" stop-color="#080707"/>
+      <stop offset="0.947368" stop-color="#090808"/>
+      <stop offset="1.000000" stop-color="#0b0a0a"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-6" gradientUnits="userSpaceOnUse" x1="766.675" y1="0" x2="906.050" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-6" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-6)"/></mask>
+    <linearGradient id="plate-tone-7" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#141518"/>
+      <stop offset="0.052632" stop-color="#111215"/>
+      <stop offset="0.105263" stop-color="#0e0f12"/>
+      <stop offset="0.157895" stop-color="#0c0c0f"/>
+      <stop offset="0.210526" stop-color="#090a0c"/>
+      <stop offset="0.263158" stop-color="#070709"/>
+      <stop offset="0.315789" stop-color="#060506"/>
+      <stop offset="0.368421" stop-color="#050405"/>
+      <stop offset="0.421053" stop-color="#040304"/>
+      <stop offset="0.473684" stop-color="#040304"/>
+      <stop offset="0.526316" stop-color="#040304"/>
+      <stop offset="0.578947" stop-color="#050404"/>
+      <stop offset="0.631579" stop-color="#050404"/>
+      <stop offset="0.684211" stop-color="#050404"/>
+      <stop offset="0.736842" stop-color="#060405"/>
+      <stop offset="0.789474" stop-color="#070606"/>
+      <stop offset="0.842105" stop-color="#090808"/>
+      <stop offset="0.894737" stop-color="#0b0909"/>
+      <stop offset="0.947368" stop-color="#0d0c0b"/>
+      <stop offset="1.000000" stop-color="#0f0e0d"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-7" gradientUnits="userSpaceOnUse" x1="906.050" y1="0" x2="1045.425" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-7" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-7)"/></mask>
+    <linearGradient id="plate-tone-8" gradientUnits="userSpaceOnUse" x1="0" y1="70.5" x2="0" y2="1177.8">
+      <stop offset="0.000000" stop-color="#111316"/>
+      <stop offset="0.052632" stop-color="#101113"/>
+      <stop offset="0.105263" stop-color="#0e0f11"/>
+      <stop offset="0.157895" stop-color="#0c0c0f"/>
+      <stop offset="0.210526" stop-color="#0a0b0d"/>
+      <stop offset="0.263158" stop-color="#09090b"/>
+      <stop offset="0.315789" stop-color="#07080a"/>
+      <stop offset="0.368421" stop-color="#06070a"/>
+      <stop offset="0.421053" stop-color="#060709"/>
+      <stop offset="0.473684" stop-color="#060608"/>
+      <stop offset="0.526316" stop-color="#050508"/>
+      <stop offset="0.578947" stop-color="#050507"/>
+      <stop offset="0.631579" stop-color="#050507"/>
+      <stop offset="0.684211" stop-color="#060608"/>
+      <stop offset="0.736842" stop-color="#070608"/>
+      <stop offset="0.789474" stop-color="#080708"/>
+      <stop offset="0.842105" stop-color="#0a0909"/>
+      <stop offset="0.894737" stop-color="#0d0c0b"/>
+      <stop offset="0.947368" stop-color="#100f0e"/>
+      <stop offset="1.000000" stop-color="#141211"/>
+    </linearGradient>
+    <linearGradient id="plate-blend-8" gradientUnits="userSpaceOnUse" x1="1045.425" y1="0" x2="1184.800" y2="0"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="plate-mask-8" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#plate-blend-8)"/></mask>
+    <linearGradient id="plate-rim" gradientUnits="userSpaceOnUse" x1="210" y1="70" x2="850" y2="1180">
+      <stop stop-color="#a4a6ab" stop-opacity=".22"/>
+      <stop offset=".42" stop-color="#66686c" stop-opacity=".08"/>
+      <stop offset=".8" stop-color="#73706d" stop-opacity=".09"/>
+      <stop offset="1" stop-color="#ada7a0" stop-opacity=".16"/>
+    </linearGradient>
+    <path id="left-leg-path" d="M 236.6,474.6 H 428.7 V 791.7 C 428.7,845.1 385.7,888.3 332.6,888.3 C 279.6,888.3 236.6,845.1 236.6,791.7 Z"/>
+    <path id="right-leg-path" d="M 824.3,473.9 H 1015.6 V 791.8 C 1015.6,845.0 972.8,888.3 920.0,888.3 C 867.1,888.3 824.3,845.0 824.3,791.8 Z"/>
+    <path id="rising-ribbon-path" d="M 625.8,553.2 L 832.9,387.3 C 852.9,371.2 877.6,363.1 904.0,363.1 C 965.7,363.1 1015.6,406.6 1015.6,473.9 L 1015.6,566.0 C 1015.6,533.1 988.8,508.7 955.8,508.7 C 938.1,508.7 922.4,515.0 904.7,529.6 L 779.5,633.5 L 726,676 L 600,570 Z"/>
+    <path id="front-ribbon-path" d="M 236.6,565.5 L 236.6,474.6 C 236.6,409.0 286.1,363.1 347.6,363.1 C 374.3,363.1 398.9,371.4 419.7,385.5 L 710.9,622.3 C 733.7,640.0 759.0,648.7 779.5,633.5 L 685.2,714.5 C 649.6,746.5 607.4,747.5 569.2,717.7 L 349.1,531.0 C 332.5,517.6 317.0,508.5 297.3,508.5 C 265.1,508.5 238.2,532.6 236.6,565.5 Z"/>
+    <linearGradient id="left-leg-tone-1" gradientUnits="userSpaceOnUse" x1="411.550" y1="579.993" x2="237.017" y2="836.329">
+      <stop offset="0.000000" stop-color="#9e3f04"/>
+      <stop offset="0.058824" stop-color="#b2510a"/>
+      <stop offset="0.117647" stop-color="#c56110"/>
+      <stop offset="0.176471" stop-color="#d57014"/>
+      <stop offset="0.235294" stop-color="#e17d18"/>
+      <stop offset="0.294118" stop-color="#eb891b"/>
+      <stop offset="0.352941" stop-color="#f2941e"/>
+      <stop offset="0.411765" stop-color="#f79e22"/>
+      <stop offset="0.470588" stop-color="#fba728"/>
+      <stop offset="0.529412" stop-color="#fdad2d"/>
+      <stop offset="0.588235" stop-color="#feb230"/>
+      <stop offset="0.647059" stop-color="#feb634"/>
+      <stop offset="0.705882" stop-color="#feb736"/>
+      <stop offset="0.764706" stop-color="#feb937"/>
+      <stop offset="0.823529" stop-color="#feb938"/>
+      <stop offset="0.882353" stop-color="#fdb837"/>
+      <stop offset="0.941176" stop-color="#feb737"/>
+      <stop offset="1.000000" stop-color="#feb839"/>
+    </linearGradient>
+    <linearGradient id="left-leg-tone-2" gradientUnits="userSpaceOnUse" x1="411.550" y1="579.993" x2="237.017" y2="836.329">
+      <stop offset="0.000000" stop-color="#9d3f03"/>
+      <stop offset="0.058824" stop-color="#b45009"/>
+      <stop offset="0.117647" stop-color="#c9620f"/>
+      <stop offset="0.176471" stop-color="#da7215"/>
+      <stop offset="0.235294" stop-color="#e47f19"/>
+      <stop offset="0.294118" stop-color="#ec891b"/>
+      <stop offset="0.352941" stop-color="#f2931f"/>
+      <stop offset="0.411765" stop-color="#f69a22"/>
+      <stop offset="0.470588" stop-color="#f9a025"/>
+      <stop offset="0.529412" stop-color="#fba528"/>
+      <stop offset="0.588235" stop-color="#fca92a"/>
+      <stop offset="0.647059" stop-color="#fdae2d"/>
+      <stop offset="0.705882" stop-color="#feb02f"/>
+      <stop offset="0.764706" stop-color="#feb432"/>
+      <stop offset="0.823529" stop-color="#feb937"/>
+      <stop offset="0.882353" stop-color="#febd3c"/>
+      <stop offset="0.941176" stop-color="#fec241"/>
+      <stop offset="1.000000" stop-color="#fec747"/>
+    </linearGradient>
+    <linearGradient id="left-leg-blend-1" gradientUnits="userSpaceOnUse" x1="447.678" y1="782.976" x2="385.461" y2="740.613"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="left-leg-mask-1" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#left-leg-blend-1)"/></mask>
+    <linearGradient id="left-leg-tone-3" gradientUnits="userSpaceOnUse" x1="411.550" y1="579.993" x2="237.017" y2="836.329">
+      <stop offset="0.000000" stop-color="#9e4002"/>
+      <stop offset="0.058824" stop-color="#b55008"/>
+      <stop offset="0.117647" stop-color="#cd620e"/>
+      <stop offset="0.176471" stop-color="#dd7314"/>
+      <stop offset="0.235294" stop-color="#e68019"/>
+      <stop offset="0.294118" stop-color="#ed8b1d"/>
+      <stop offset="0.352941" stop-color="#f29420"/>
+      <stop offset="0.411765" stop-color="#f69b23"/>
+      <stop offset="0.470588" stop-color="#f9a226"/>
+      <stop offset="0.529412" stop-color="#fba82a"/>
+      <stop offset="0.588235" stop-color="#fdae2e"/>
+      <stop offset="0.647059" stop-color="#fdb332"/>
+      <stop offset="0.705882" stop-color="#fdb837"/>
+      <stop offset="0.764706" stop-color="#febe3c"/>
+      <stop offset="0.823529" stop-color="#fec342"/>
+      <stop offset="0.882353" stop-color="#fec847"/>
+      <stop offset="0.941176" stop-color="#fece4e"/>
+      <stop offset="1.000000" stop-color="#fed555"/>
+    </linearGradient>
+    <linearGradient id="left-leg-blend-2" gradientUnits="userSpaceOnUse" x1="385.461" y1="740.613" x2="323.244" y2="698.251"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="left-leg-mask-2" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#left-leg-blend-2)"/></mask>
+    <linearGradient id="left-leg-tone-4" gradientUnits="userSpaceOnUse" x1="411.550" y1="579.993" x2="237.017" y2="836.329">
+      <stop offset="0.000000" stop-color="#a04203"/>
+      <stop offset="0.058824" stop-color="#b75109"/>
+      <stop offset="0.117647" stop-color="#cd620f"/>
+      <stop offset="0.176471" stop-color="#db7014"/>
+      <stop offset="0.235294" stop-color="#e57d18"/>
+      <stop offset="0.294118" stop-color="#ed891b"/>
+      <stop offset="0.352941" stop-color="#f2931f"/>
+      <stop offset="0.411765" stop-color="#f69d24"/>
+      <stop offset="0.470588" stop-color="#faa528"/>
+      <stop offset="0.529412" stop-color="#fcae2d"/>
+      <stop offset="0.588235" stop-color="#feb634"/>
+      <stop offset="0.647059" stop-color="#febc3a"/>
+      <stop offset="0.705882" stop-color="#fec340"/>
+      <stop offset="0.764706" stop-color="#fec946"/>
+      <stop offset="0.823529" stop-color="#fece4d"/>
+      <stop offset="0.882353" stop-color="#fed454"/>
+      <stop offset="0.941176" stop-color="#feda5b"/>
+      <stop offset="1.000000" stop-color="#fee262"/>
+    </linearGradient>
+    <linearGradient id="left-leg-blend-3" gradientUnits="userSpaceOnUse" x1="323.244" y1="698.251" x2="261.027" y2="655.889"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="left-leg-mask-3" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#left-leg-blend-3)"/></mask>
+    <linearGradient id="left-leg-tone-5" gradientUnits="userSpaceOnUse" x1="411.550" y1="579.993" x2="237.017" y2="836.329">
+      <stop offset="0.000000" stop-color="#9f4003"/>
+      <stop offset="0.058824" stop-color="#b34d08"/>
+      <stop offset="0.117647" stop-color="#c65b0c"/>
+      <stop offset="0.176471" stop-color="#d56910"/>
+      <stop offset="0.235294" stop-color="#e27a16"/>
+      <stop offset="0.294118" stop-color="#ec891a"/>
+      <stop offset="0.352941" stop-color="#f2961f"/>
+      <stop offset="0.411765" stop-color="#f7a023"/>
+      <stop offset="0.470588" stop-color="#faaa29"/>
+      <stop offset="0.529412" stop-color="#fdb430"/>
+      <stop offset="0.588235" stop-color="#febe39"/>
+      <stop offset="0.647059" stop-color="#fec641"/>
+      <stop offset="0.705882" stop-color="#fecd49"/>
+      <stop offset="0.764706" stop-color="#fed351"/>
+      <stop offset="0.823529" stop-color="#fed958"/>
+      <stop offset="0.882353" stop-color="#fee060"/>
+      <stop offset="0.941176" stop-color="#fee768"/>
+      <stop offset="1.000000" stop-color="#feee70"/>
+    </linearGradient>
+    <linearGradient id="left-leg-blend-4" gradientUnits="userSpaceOnUse" x1="261.027" y1="655.889" x2="198.809" y2="613.527"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="left-leg-mask-4" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#left-leg-blend-4)"/></mask>
+    <linearGradient id="right-leg-tone-1" gradientUnits="userSpaceOnUse" x1="843.630" y1="571.690" x2="1010.785" y2="841.811">
+      <stop offset="0.000000" stop-color="#9e3f02"/>
+      <stop offset="0.058824" stop-color="#b04d07"/>
+      <stop offset="0.117647" stop-color="#c45d0e"/>
+      <stop offset="0.176471" stop-color="#d56d13"/>
+      <stop offset="0.235294" stop-color="#e17d18"/>
+      <stop offset="0.294118" stop-color="#ea891c"/>
+      <stop offset="0.352941" stop-color="#f0921f"/>
+      <stop offset="0.411765" stop-color="#f49a23"/>
+      <stop offset="0.470588" stop-color="#f8a429"/>
+      <stop offset="0.529412" stop-color="#fbae31"/>
+      <stop offset="0.588235" stop-color="#fdb93a"/>
+      <stop offset="0.647059" stop-color="#fec141"/>
+      <stop offset="0.705882" stop-color="#fec645"/>
+      <stop offset="0.764706" stop-color="#fec846"/>
+      <stop offset="0.823529" stop-color="#fec744"/>
+      <stop offset="0.882353" stop-color="#fdc541"/>
+      <stop offset="0.941176" stop-color="#fdc23d"/>
+      <stop offset="1.000000" stop-color="#fdbf38"/>
+    </linearGradient>
+    <linearGradient id="right-leg-tone-2" gradientUnits="userSpaceOnUse" x1="843.630" y1="571.690" x2="1010.785" y2="841.811">
+      <stop offset="0.000000" stop-color="#a24302"/>
+      <stop offset="0.058824" stop-color="#b55009"/>
+      <stop offset="0.117647" stop-color="#c85e0e"/>
+      <stop offset="0.176471" stop-color="#d96e13"/>
+      <stop offset="0.235294" stop-color="#e37c17"/>
+      <stop offset="0.294118" stop-color="#ec891c"/>
+      <stop offset="0.352941" stop-color="#f19320"/>
+      <stop offset="0.411765" stop-color="#f69c23"/>
+      <stop offset="0.470588" stop-color="#f9a428"/>
+      <stop offset="0.529412" stop-color="#fcab2e"/>
+      <stop offset="0.588235" stop-color="#fdb333"/>
+      <stop offset="0.647059" stop-color="#feb838"/>
+      <stop offset="0.705882" stop-color="#febc3b"/>
+      <stop offset="0.764706" stop-color="#fdbd3c"/>
+      <stop offset="0.823529" stop-color="#fdbd3b"/>
+      <stop offset="0.882353" stop-color="#fdbc3a"/>
+      <stop offset="0.941176" stop-color="#fdbb37"/>
+      <stop offset="1.000000" stop-color="#fdb934"/>
+    </linearGradient>
+    <linearGradient id="right-leg-blend-1" gradientUnits="userSpaceOnUse" x1="1052.511" y1="622.089" x2="990.269" y2="660.606"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="right-leg-mask-1" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#right-leg-blend-1)"/></mask>
+    <linearGradient id="right-leg-tone-3" gradientUnits="userSpaceOnUse" x1="843.630" y1="571.690" x2="1010.785" y2="841.811">
+      <stop offset="0.000000" stop-color="#a44402"/>
+      <stop offset="0.058824" stop-color="#b55008"/>
+      <stop offset="0.117647" stop-color="#c9600e"/>
+      <stop offset="0.176471" stop-color="#d96f13"/>
+      <stop offset="0.235294" stop-color="#e37d19"/>
+      <stop offset="0.294118" stop-color="#eb891d"/>
+      <stop offset="0.352941" stop-color="#f19320"/>
+      <stop offset="0.411765" stop-color="#f69b24"/>
+      <stop offset="0.470588" stop-color="#f9a126"/>
+      <stop offset="0.529412" stop-color="#fba729"/>
+      <stop offset="0.588235" stop-color="#fdac2c"/>
+      <stop offset="0.647059" stop-color="#fdae2e"/>
+      <stop offset="0.705882" stop-color="#fdb130"/>
+      <stop offset="0.764706" stop-color="#fdb231"/>
+      <stop offset="0.823529" stop-color="#feb433"/>
+      <stop offset="0.882353" stop-color="#feb432"/>
+      <stop offset="0.941176" stop-color="#fdb431"/>
+      <stop offset="1.000000" stop-color="#fdb330"/>
+    </linearGradient>
+    <linearGradient id="right-leg-blend-2" gradientUnits="userSpaceOnUse" x1="990.269" y1="660.606" x2="928.026" y2="699.123"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="right-leg-mask-2" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#right-leg-blend-2)"/></mask>
+    <linearGradient id="right-leg-tone-4" gradientUnits="userSpaceOnUse" x1="843.630" y1="571.690" x2="1010.785" y2="841.811">
+      <stop offset="0.000000" stop-color="#a44202"/>
+      <stop offset="0.058824" stop-color="#b55108"/>
+      <stop offset="0.117647" stop-color="#c9620f"/>
+      <stop offset="0.176471" stop-color="#d87014"/>
+      <stop offset="0.235294" stop-color="#e17b18"/>
+      <stop offset="0.294118" stop-color="#ea871b"/>
+      <stop offset="0.352941" stop-color="#f0911f"/>
+      <stop offset="0.411765" stop-color="#f59922"/>
+      <stop offset="0.470588" stop-color="#f89e25"/>
+      <stop offset="0.529412" stop-color="#faa327"/>
+      <stop offset="0.588235" stop-color="#fca628"/>
+      <stop offset="0.647059" stop-color="#fda82a"/>
+      <stop offset="0.705882" stop-color="#fdaa2b"/>
+      <stop offset="0.764706" stop-color="#fdac2b"/>
+      <stop offset="0.823529" stop-color="#fdad2d"/>
+      <stop offset="0.882353" stop-color="#fdae2e"/>
+      <stop offset="0.941176" stop-color="#fdae2d"/>
+      <stop offset="1.000000" stop-color="#feae2d"/>
+    </linearGradient>
+    <linearGradient id="right-leg-blend-3" gradientUnits="userSpaceOnUse" x1="928.026" y1="699.123" x2="865.784" y2="737.639"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="right-leg-mask-3" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#right-leg-blend-3)"/></mask>
+    <linearGradient id="right-leg-tone-5" gradientUnits="userSpaceOnUse" x1="843.630" y1="571.690" x2="1010.785" y2="841.811">
+      <stop offset="0.000000" stop-color="#a54201"/>
+      <stop offset="0.058824" stop-color="#b75208"/>
+      <stop offset="0.117647" stop-color="#c7620f"/>
+      <stop offset="0.176471" stop-color="#d57014"/>
+      <stop offset="0.235294" stop-color="#e07b18"/>
+      <stop offset="0.294118" stop-color="#e9861a"/>
+      <stop offset="0.352941" stop-color="#f0911d"/>
+      <stop offset="0.411765" stop-color="#f59920"/>
+      <stop offset="0.470588" stop-color="#f8a024"/>
+      <stop offset="0.529412" stop-color="#fba426"/>
+      <stop offset="0.588235" stop-color="#fca829"/>
+      <stop offset="0.647059" stop-color="#fdac2c"/>
+      <stop offset="0.705882" stop-color="#fdae2e"/>
+      <stop offset="0.764706" stop-color="#fdb02f"/>
+      <stop offset="0.823529" stop-color="#fdb030"/>
+      <stop offset="0.882353" stop-color="#fdaf2f"/>
+      <stop offset="0.941176" stop-color="#fdad2c"/>
+      <stop offset="1.000000" stop-color="#feaa2a"/>
+    </linearGradient>
+    <linearGradient id="right-leg-blend-4" gradientUnits="userSpaceOnUse" x1="865.784" y1="737.639" x2="803.542" y2="776.156"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="right-leg-mask-4" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#right-leg-blend-4)"/></mask>
+    <linearGradient id="rising-ribbon-tone-1" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#ffcc4d"/>
+      <stop offset="0.047619" stop-color="#ffcb4d"/>
+      <stop offset="0.095238" stop-color="#fec84c"/>
+      <stop offset="0.142857" stop-color="#fec549"/>
+      <stop offset="0.190476" stop-color="#fec144"/>
+      <stop offset="0.238095" stop-color="#febd40"/>
+      <stop offset="0.285714" stop-color="#fdba3d"/>
+      <stop offset="0.333333" stop-color="#fdb93b"/>
+      <stop offset="0.380952" stop-color="#fdb83a"/>
+      <stop offset="0.428571" stop-color="#fdb839"/>
+      <stop offset="0.476190" stop-color="#feb93a"/>
+      <stop offset="0.523810" stop-color="#feba3b"/>
+      <stop offset="0.571429" stop-color="#ffbc3d"/>
+      <stop offset="0.619048" stop-color="#ffbd3d"/>
+      <stop offset="0.666667" stop-color="#ffbe3d"/>
+      <stop offset="0.714286" stop-color="#ffbd3a"/>
+      <stop offset="0.761905" stop-color="#ffba36"/>
+      <stop offset="0.809524" stop-color="#ffb531"/>
+      <stop offset="0.857143" stop-color="#ffaf2b"/>
+      <stop offset="0.904762" stop-color="#ffa625"/>
+      <stop offset="0.952381" stop-color="#ff9d1f"/>
+      <stop offset="1.000000" stop-color="#fc9318"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-tone-2" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#ffcd4f"/>
+      <stop offset="0.047619" stop-color="#feca4d"/>
+      <stop offset="0.095238" stop-color="#fec84b"/>
+      <stop offset="0.142857" stop-color="#fec548"/>
+      <stop offset="0.190476" stop-color="#fec244"/>
+      <stop offset="0.238095" stop-color="#fec041"/>
+      <stop offset="0.285714" stop-color="#febf40"/>
+      <stop offset="0.333333" stop-color="#febe3f"/>
+      <stop offset="0.380952" stop-color="#febc3d"/>
+      <stop offset="0.428571" stop-color="#febb3c"/>
+      <stop offset="0.476190" stop-color="#febb3c"/>
+      <stop offset="0.523810" stop-color="#febb3c"/>
+      <stop offset="0.571429" stop-color="#febc3d"/>
+      <stop offset="0.619048" stop-color="#ffbc3d"/>
+      <stop offset="0.666667" stop-color="#ffba3a"/>
+      <stop offset="0.714286" stop-color="#ffb736"/>
+      <stop offset="0.761905" stop-color="#ffb231"/>
+      <stop offset="0.809524" stop-color="#feab2b"/>
+      <stop offset="0.857143" stop-color="#fba225"/>
+      <stop offset="0.904762" stop-color="#f89920"/>
+      <stop offset="0.952381" stop-color="#f28e1a"/>
+      <stop offset="1.000000" stop-color="#ec8315"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-1" gradientUnits="userSpaceOnUse" x1="967.391" y1="588.979" x2="927.174" y2="561.079"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-1" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-1)"/></mask>
+    <linearGradient id="rising-ribbon-tone-3" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#fecd53"/>
+      <stop offset="0.047619" stop-color="#fec94d"/>
+      <stop offset="0.095238" stop-color="#fec74a"/>
+      <stop offset="0.142857" stop-color="#fec448"/>
+      <stop offset="0.190476" stop-color="#fec346"/>
+      <stop offset="0.238095" stop-color="#fec244"/>
+      <stop offset="0.285714" stop-color="#fec243"/>
+      <stop offset="0.333333" stop-color="#fec142"/>
+      <stop offset="0.380952" stop-color="#fec041"/>
+      <stop offset="0.428571" stop-color="#febe3f"/>
+      <stop offset="0.476190" stop-color="#febd3e"/>
+      <stop offset="0.523810" stop-color="#febc3d"/>
+      <stop offset="0.571429" stop-color="#febb3c"/>
+      <stop offset="0.619048" stop-color="#feba3c"/>
+      <stop offset="0.666667" stop-color="#feb637"/>
+      <stop offset="0.714286" stop-color="#feb031"/>
+      <stop offset="0.761905" stop-color="#fca92b"/>
+      <stop offset="0.809524" stop-color="#f9a025"/>
+      <stop offset="0.857143" stop-color="#f49620"/>
+      <stop offset="0.904762" stop-color="#ee8b1b"/>
+      <stop offset="0.952381" stop-color="#e67f17"/>
+      <stop offset="1.000000" stop-color="#dd7312"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-2" gradientUnits="userSpaceOnUse" x1="927.174" y1="561.079" x2="886.957" y2="533.180"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-2" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-2)"/></mask>
+    <linearGradient id="rising-ribbon-tone-4" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#fece56"/>
+      <stop offset="0.047619" stop-color="#fecc51"/>
+      <stop offset="0.095238" stop-color="#fecb4f"/>
+      <stop offset="0.142857" stop-color="#feca4e"/>
+      <stop offset="0.190476" stop-color="#fec94d"/>
+      <stop offset="0.238095" stop-color="#fec84b"/>
+      <stop offset="0.285714" stop-color="#fec84b"/>
+      <stop offset="0.333333" stop-color="#fec74a"/>
+      <stop offset="0.380952" stop-color="#fec548"/>
+      <stop offset="0.428571" stop-color="#fec345"/>
+      <stop offset="0.476190" stop-color="#fec143"/>
+      <stop offset="0.523810" stop-color="#febe40"/>
+      <stop offset="0.571429" stop-color="#febb3b"/>
+      <stop offset="0.619048" stop-color="#feb738"/>
+      <stop offset="0.666667" stop-color="#fdb233"/>
+      <stop offset="0.714286" stop-color="#fba92c"/>
+      <stop offset="0.761905" stop-color="#f8a026"/>
+      <stop offset="0.809524" stop-color="#f39520"/>
+      <stop offset="0.857143" stop-color="#ed891b"/>
+      <stop offset="0.904762" stop-color="#e47c16"/>
+      <stop offset="0.952381" stop-color="#d97113"/>
+      <stop offset="1.000000" stop-color="#cf660f"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-3" gradientUnits="userSpaceOnUse" x1="886.957" y1="533.180" x2="846.739" y2="505.280"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-3" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-3)"/></mask>
+    <linearGradient id="rising-ribbon-tone-5" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#fdd05a"/>
+      <stop offset="0.047619" stop-color="#fdd15b"/>
+      <stop offset="0.095238" stop-color="#fed25c"/>
+      <stop offset="0.142857" stop-color="#fed35e"/>
+      <stop offset="0.190476" stop-color="#fed35d"/>
+      <stop offset="0.238095" stop-color="#fed25b"/>
+      <stop offset="0.285714" stop-color="#fed058"/>
+      <stop offset="0.333333" stop-color="#fece54"/>
+      <stop offset="0.380952" stop-color="#fecb4f"/>
+      <stop offset="0.428571" stop-color="#fec84b"/>
+      <stop offset="0.476190" stop-color="#fec447"/>
+      <stop offset="0.523810" stop-color="#fec042"/>
+      <stop offset="0.571429" stop-color="#febb3c"/>
+      <stop offset="0.619048" stop-color="#fdb536"/>
+      <stop offset="0.666667" stop-color="#fcae2f"/>
+      <stop offset="0.714286" stop-color="#faa428"/>
+      <stop offset="0.761905" stop-color="#f59921"/>
+      <stop offset="0.809524" stop-color="#ef8d1c"/>
+      <stop offset="0.857143" stop-color="#e68018"/>
+      <stop offset="0.904762" stop-color="#db7113"/>
+      <stop offset="0.952381" stop-color="#ce640f"/>
+      <stop offset="1.000000" stop-color="#c45b0b"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-4" gradientUnits="userSpaceOnUse" x1="846.739" y1="505.280" x2="806.522" y2="477.380"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-4" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-4)"/></mask>
+    <linearGradient id="rising-ribbon-tone-6" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#fdd361"/>
+      <stop offset="0.047619" stop-color="#fdd766"/>
+      <stop offset="0.095238" stop-color="#fdda6b"/>
+      <stop offset="0.142857" stop-color="#fedd6f"/>
+      <stop offset="0.190476" stop-color="#fede70"/>
+      <stop offset="0.238095" stop-color="#fedd6d"/>
+      <stop offset="0.285714" stop-color="#feda66"/>
+      <stop offset="0.333333" stop-color="#fed55d"/>
+      <stop offset="0.380952" stop-color="#fed054"/>
+      <stop offset="0.428571" stop-color="#feca4c"/>
+      <stop offset="0.476190" stop-color="#fec445"/>
+      <stop offset="0.523810" stop-color="#febf3f"/>
+      <stop offset="0.571429" stop-color="#fdba39"/>
+      <stop offset="0.619048" stop-color="#fdb433"/>
+      <stop offset="0.666667" stop-color="#fcad2e"/>
+      <stop offset="0.714286" stop-color="#faa528"/>
+      <stop offset="0.761905" stop-color="#f69a21"/>
+      <stop offset="0.809524" stop-color="#f18f1c"/>
+      <stop offset="0.857143" stop-color="#ea8419"/>
+      <stop offset="0.904762" stop-color="#df7615"/>
+      <stop offset="0.952381" stop-color="#d36810"/>
+      <stop offset="1.000000" stop-color="#c75d0b"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-5" gradientUnits="userSpaceOnUse" x1="806.522" y1="477.380" x2="766.305" y2="449.481"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-5" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-5)"/></mask>
+    <linearGradient id="rising-ribbon-tone-7" gradientUnits="userSpaceOnUse" x1="927.125" y1="359.401" x2="737.239" y2="633.121">
+      <stop offset="0.000000" stop-color="#fdd769"/>
+      <stop offset="0.047619" stop-color="#fddd72"/>
+      <stop offset="0.095238" stop-color="#fde27a"/>
+      <stop offset="0.142857" stop-color="#fde67f"/>
+      <stop offset="0.190476" stop-color="#fde881"/>
+      <stop offset="0.238095" stop-color="#fde77e"/>
+      <stop offset="0.285714" stop-color="#fee374"/>
+      <stop offset="0.333333" stop-color="#fedd68"/>
+      <stop offset="0.380952" stop-color="#fed55a"/>
+      <stop offset="0.428571" stop-color="#fecd4e"/>
+      <stop offset="0.476190" stop-color="#fec544"/>
+      <stop offset="0.523810" stop-color="#febe3c"/>
+      <stop offset="0.571429" stop-color="#fdb936"/>
+      <stop offset="0.619048" stop-color="#fdb331"/>
+      <stop offset="0.666667" stop-color="#fcad2c"/>
+      <stop offset="0.714286" stop-color="#faa627"/>
+      <stop offset="0.761905" stop-color="#f89e21"/>
+      <stop offset="0.809524" stop-color="#f5951c"/>
+      <stop offset="0.857143" stop-color="#f08d1a"/>
+      <stop offset="0.904762" stop-color="#e98318"/>
+      <stop offset="0.952381" stop-color="#e17814"/>
+      <stop offset="1.000000" stop-color="#d5690f"/>
+    </linearGradient>
+    <linearGradient id="rising-ribbon-blend-6" gradientUnits="userSpaceOnUse" x1="766.305" y1="449.481" x2="726.087" y2="421.581"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="rising-ribbon-mask-6" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#rising-ribbon-blend-6)"/></mask>
+    <linearGradient id="front-ribbon-tone-1" gradientUnits="userSpaceOnUse" x1="322.137" y1="354.249" x2="647.883" y2="739.036">
+      <stop offset="0.000000" stop-color="#fecd60"/>
+      <stop offset="0.058824" stop-color="#fdcf62"/>
+      <stop offset="0.117647" stop-color="#fed063"/>
+      <stop offset="0.176471" stop-color="#fed161"/>
+      <stop offset="0.235294" stop-color="#fecf5c"/>
+      <stop offset="0.294118" stop-color="#fecc55"/>
+      <stop offset="0.352941" stop-color="#fec84e"/>
+      <stop offset="0.411765" stop-color="#fec447"/>
+      <stop offset="0.470588" stop-color="#febf41"/>
+      <stop offset="0.529412" stop-color="#febb3c"/>
+      <stop offset="0.588235" stop-color="#feb637"/>
+      <stop offset="0.647059" stop-color="#feb234"/>
+      <stop offset="0.705882" stop-color="#fdae32"/>
+      <stop offset="0.764706" stop-color="#fdaa2d"/>
+      <stop offset="0.823529" stop-color="#fca427"/>
+      <stop offset="0.882353" stop-color="#fa9d22"/>
+      <stop offset="0.941176" stop-color="#f79720"/>
+      <stop offset="1.000000" stop-color="#f5941f"/>
+    </linearGradient>
+    <linearGradient id="front-ribbon-tone-2" gradientUnits="userSpaceOnUse" x1="322.137" y1="354.249" x2="647.883" y2="739.036">
+      <stop offset="0.000000" stop-color="#fecf5d"/>
+      <stop offset="0.058824" stop-color="#fecf5d"/>
+      <stop offset="0.117647" stop-color="#fecf5c"/>
+      <stop offset="0.176471" stop-color="#fecf5a"/>
+      <stop offset="0.235294" stop-color="#fecd55"/>
+      <stop offset="0.294118" stop-color="#fec84d"/>
+      <stop offset="0.352941" stop-color="#fec346"/>
+      <stop offset="0.411765" stop-color="#febe3f"/>
+      <stop offset="0.470588" stop-color="#fdb839"/>
+      <stop offset="0.529412" stop-color="#feb534"/>
+      <stop offset="0.588235" stop-color="#feb02f"/>
+      <stop offset="0.647059" stop-color="#fdac2b"/>
+      <stop offset="0.705882" stop-color="#fda929"/>
+      <stop offset="0.764706" stop-color="#fda526"/>
+      <stop offset="0.823529" stop-color="#fba023"/>
+      <stop offset="0.882353" stop-color="#fa9c1f"/>
+      <stop offset="0.941176" stop-color="#f7951d"/>
+      <stop offset="1.000000" stop-color="#f5921c"/>
+    </linearGradient>
+    <linearGradient id="front-ribbon-blend-1" gradientUnits="userSpaceOnUse" x1="590.609" y1="456.357" x2="530.907" y2="506.898"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="front-ribbon-mask-1" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#front-ribbon-blend-1)"/></mask>
+    <linearGradient id="front-ribbon-tone-3" gradientUnits="userSpaceOnUse" x1="322.137" y1="354.249" x2="647.883" y2="739.036">
+      <stop offset="0.000000" stop-color="#fed25b"/>
+      <stop offset="0.058824" stop-color="#fed058"/>
+      <stop offset="0.117647" stop-color="#fece55"/>
+      <stop offset="0.176471" stop-color="#fecc52"/>
+      <stop offset="0.235294" stop-color="#fec94d"/>
+      <stop offset="0.294118" stop-color="#fec546"/>
+      <stop offset="0.352941" stop-color="#febf41"/>
+      <stop offset="0.411765" stop-color="#febc3c"/>
+      <stop offset="0.470588" stop-color="#feb837"/>
+      <stop offset="0.529412" stop-color="#fdb534"/>
+      <stop offset="0.588235" stop-color="#fdb130"/>
+      <stop offset="0.647059" stop-color="#fdae2d"/>
+      <stop offset="0.705882" stop-color="#fdac2a"/>
+      <stop offset="0.764706" stop-color="#fda828"/>
+      <stop offset="0.823529" stop-color="#fca425"/>
+      <stop offset="0.882353" stop-color="#fba022"/>
+      <stop offset="0.941176" stop-color="#f8991f"/>
+      <stop offset="1.000000" stop-color="#f5911b"/>
+    </linearGradient>
+    <linearGradient id="front-ribbon-blend-2" gradientUnits="userSpaceOnUse" x1="530.907" y1="506.898" x2="471.205" y2="557.440"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="front-ribbon-mask-2" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#front-ribbon-blend-2)"/></mask>
+    <linearGradient id="front-ribbon-tone-4" gradientUnits="userSpaceOnUse" x1="322.137" y1="354.249" x2="647.883" y2="739.036">
+      <stop offset="0.000000" stop-color="#fed75d"/>
+      <stop offset="0.058824" stop-color="#fed157"/>
+      <stop offset="0.117647" stop-color="#fecc51"/>
+      <stop offset="0.176471" stop-color="#feca4d"/>
+      <stop offset="0.235294" stop-color="#fec84a"/>
+      <stop offset="0.294118" stop-color="#fec646"/>
+      <stop offset="0.352941" stop-color="#fec242"/>
+      <stop offset="0.411765" stop-color="#fec03f"/>
+      <stop offset="0.470588" stop-color="#febd3d"/>
+      <stop offset="0.529412" stop-color="#febb3a"/>
+      <stop offset="0.588235" stop-color="#feb835"/>
+      <stop offset="0.647059" stop-color="#fdb533"/>
+      <stop offset="0.705882" stop-color="#fdb330"/>
+      <stop offset="0.764706" stop-color="#feb12d"/>
+      <stop offset="0.823529" stop-color="#fdac2a"/>
+      <stop offset="0.882353" stop-color="#fca726"/>
+      <stop offset="0.941176" stop-color="#fa9e22"/>
+      <stop offset="1.000000" stop-color="#f7941d"/>
+    </linearGradient>
+    <linearGradient id="front-ribbon-blend-3" gradientUnits="userSpaceOnUse" x1="471.205" y1="557.440" x2="411.504" y2="607.981"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="front-ribbon-mask-3" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#front-ribbon-blend-3)"/></mask>
+    <linearGradient id="front-ribbon-tone-5" gradientUnits="userSpaceOnUse" x1="322.137" y1="354.249" x2="647.883" y2="739.036">
+      <stop offset="0.000000" stop-color="#fedd62"/>
+      <stop offset="0.058824" stop-color="#fed960"/>
+      <stop offset="0.117647" stop-color="#fed55d"/>
+      <stop offset="0.176471" stop-color="#fed056"/>
+      <stop offset="0.235294" stop-color="#fecb4e"/>
+      <stop offset="0.294118" stop-color="#fec748"/>
+      <stop offset="0.352941" stop-color="#fec544"/>
+      <stop offset="0.411765" stop-color="#fec342"/>
+      <stop offset="0.470588" stop-color="#fec241"/>
+      <stop offset="0.529412" stop-color="#fec13f"/>
+      <stop offset="0.588235" stop-color="#febf3c"/>
+      <stop offset="0.647059" stop-color="#febd39"/>
+      <stop offset="0.705882" stop-color="#febb36"/>
+      <stop offset="0.764706" stop-color="#feb933"/>
+      <stop offset="0.823529" stop-color="#feb42f"/>
+      <stop offset="0.882353" stop-color="#fdad2a"/>
+      <stop offset="0.941176" stop-color="#fca324"/>
+      <stop offset="1.000000" stop-color="#f9991e"/>
+    </linearGradient>
+    <linearGradient id="front-ribbon-blend-4" gradientUnits="userSpaceOnUse" x1="411.504" y1="607.981" x2="351.802" y2="658.522"><stop stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    <mask id="front-ribbon-mask-4" maskUnits="userSpaceOnUse" x="0" y="0" width="1254" height="1254"><rect width="1254" height="1254" fill="url(#front-ribbon-blend-4)"/></mask>
+    <linearGradient id="gold-rim" gradientUnits="userSpaceOnUse" x1="285" y1="365" x2="810" y2="890">
+      <stop stop-color="#fff3a3" stop-opacity=".62"/>
+      <stop offset=".42" stop-color="#ffe586" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#ffd655" stop-opacity=".38"/>
+    </linearGradient>
+    <linearGradient id="left-fold-rim" gradientUnits="userSpaceOnUse" x1="237" y1="518" x2="429" y2="593">
+      <stop stop-color="#ffe89a" stop-opacity=".34"/>
+      <stop offset=".3" stop-color="#fff2ad" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#ffe17a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="right-fold-rim" gradientUnits="userSpaceOnUse" x1="824" y1="593" x2="1016" y2="518">
+      <stop stop-color="#ffe17a" stop-opacity="0"/>
+      <stop offset=".7" stop-color="#fff2ad" stop-opacity=".65"/>
+      <stop offset="1" stop-color="#ffe89a" stop-opacity=".32"/>
+    </linearGradient>
+  </defs>
+  <rect id="canvas" width="1254" height="1254" fill="#000"/>
+  <g id="icon-background">
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-0)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-1)" mask="url(#plate-mask-1)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-2)" mask="url(#plate-mask-2)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-3)" mask="url(#plate-mask-3)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-4)" mask="url(#plate-mask-4)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-5)" mask="url(#plate-mask-5)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-6)" mask="url(#plate-mask-6)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-7)" mask="url(#plate-mask-7)"/>
+    <use xlink:href="#icon-plate-path" fill="url(#plate-tone-8)" mask="url(#plate-mask-8)"/>
+    <use xlink:href="#icon-plate-path" fill="none" stroke="url(#plate-rim)" stroke-width="1.5"/>
+  </g>
+  <g id="mivu-mark">
+    <g id="left-leg">
+      <use xlink:href="#left-leg-path" fill="url(#left-leg-tone-1)"/>
+      <use xlink:href="#left-leg-path" fill="url(#left-leg-tone-2)" mask="url(#left-leg-mask-1)"/>
+      <use xlink:href="#left-leg-path" fill="url(#left-leg-tone-3)" mask="url(#left-leg-mask-2)"/>
+      <use xlink:href="#left-leg-path" fill="url(#left-leg-tone-4)" mask="url(#left-leg-mask-3)"/>
+      <use xlink:href="#left-leg-path" fill="url(#left-leg-tone-5)" mask="url(#left-leg-mask-4)"/>
+    </g>
+    <g id="right-leg">
+      <use xlink:href="#right-leg-path" fill="url(#right-leg-tone-1)"/>
+      <use xlink:href="#right-leg-path" fill="url(#right-leg-tone-2)" mask="url(#right-leg-mask-1)"/>
+      <use xlink:href="#right-leg-path" fill="url(#right-leg-tone-3)" mask="url(#right-leg-mask-2)"/>
+      <use xlink:href="#right-leg-path" fill="url(#right-leg-tone-4)" mask="url(#right-leg-mask-3)"/>
+      <use xlink:href="#right-leg-path" fill="url(#right-leg-tone-5)" mask="url(#right-leg-mask-4)"/>
+    </g>
+    <g id="rising-ribbon">
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-1)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-2)" mask="url(#rising-ribbon-mask-1)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-3)" mask="url(#rising-ribbon-mask-2)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-4)" mask="url(#rising-ribbon-mask-3)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-5)" mask="url(#rising-ribbon-mask-4)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-6)" mask="url(#rising-ribbon-mask-5)"/>
+      <use xlink:href="#rising-ribbon-path" fill="url(#rising-ribbon-tone-7)" mask="url(#rising-ribbon-mask-6)"/>
+    </g>
+    <g id="front-ribbon">
+      <use xlink:href="#front-ribbon-path" fill="url(#front-ribbon-tone-1)"/>
+      <use xlink:href="#front-ribbon-path" fill="url(#front-ribbon-tone-2)" mask="url(#front-ribbon-mask-1)"/>
+      <use xlink:href="#front-ribbon-path" fill="url(#front-ribbon-tone-3)" mask="url(#front-ribbon-mask-2)"/>
+      <use xlink:href="#front-ribbon-path" fill="url(#front-ribbon-tone-4)" mask="url(#front-ribbon-mask-3)"/>
+      <use xlink:href="#front-ribbon-path" fill="url(#front-ribbon-tone-5)" mask="url(#front-ribbon-mask-4)"/>
+    </g>
+    <g id="fold-highlights" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 236.6,474.6 C 236.6,409.0 286.1,363.1 347.6,363.1 C 374.3,363.1 398.9,371.4 419.7,385.5 L 625.8,552.3 L 832.9,387.3 C 852.9,371.2 877.6,363.1 904,363.1 C 965.7,363.1 1015.6,406.6 1015.6,473.9 V 791.8 C 1015.6,845 972.8,888.3 920,888.3 C 867.1,888.3 824.3,845 824.3,791.8 V 595.4 L 779.5,633.5 L 685.2,714.5 C 649.6,746.5 607.4,747.5 569.2,717.7 L 428.7,598.2 V 791.7 C 428.7,845.1 385.7,888.3 332.6,888.3 C 279.6,888.3 236.6,845.1 236.6,791.7 Z" stroke="url(#gold-rim)" stroke-width="1"/>
+      <path d="M 236.6,565.5 C 238.2,532.6 265.1,508.5 297.3,508.5 C 317,508.5 332.5,517.6 349.1,531 L 428.7,598.2" stroke="url(#left-fold-rim)" stroke-width="1.35"/>
+      <path d="M 824.3,595.4 L 904.7,529.6 C 922.4,515 938.1,508.7 955.8,508.7 C 988.8,508.7 1015.6,533.1 1015.6,566" stroke="url(#right-fold-rim)" stroke-width="1.25"/>
+      <path d="M 710.9,622.3 C 733.7,640 759,648.7 779.5,633.5" stroke="#ffd462" stroke-opacity=".18" stroke-width=".8"/>
+    </g>
+  </g>
+</svg>
