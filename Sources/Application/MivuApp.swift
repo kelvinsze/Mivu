@@ -27,6 +27,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         logger.info("Mivu launching. Starting the local web upload service.")
+        do {
+            try UploadedVideoStore.applyBackupPreference()
+        } catch {
+            logger.error("Unable to apply uploaded video backup preference: \(error.localizedDescription)")
+        }
         HTTPServer.shared.start(port: 7890)
         SSDPService.shared.start()
 

@@ -866,6 +866,24 @@ enum WebRemoteTemplate {
 // MARK: - Wi-Fi Uploaded Video Storage
 
 public enum UploadedVideoStore {
+    public static let backupEnabledKey = "mivu_uploaded_videos_backup_enabled"
+
+    public static var isBackupEnabled: Bool {
+        UserDefaults.standard.bool(forKey: backupEnabledKey)
+    }
+
+    public static func applyBackupPreference() throws {
+        _ = try directoryURL()
+    }
+
+    public static func setBackupEnabled(_ enabled: Bool) throws {
+        var directory = try directoryURL()
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = !enabled
+        try directory.setResourceValues(values)
+        UserDefaults.standard.set(enabled, forKey: backupEnabledKey)
+    }
+
     private static let folderName = "Mivu Uploads"
     private static let supportedExtensions: Set<String> = [
         "mp4", "mov", "m4v", "mkv", "avi", "webm", "ts", "m2ts", "mpg", "mpeg", "3gp"
@@ -931,13 +949,16 @@ public enum UploadedVideoStore {
     }
 
     private static func directoryURL() throws -> URL {
-        let directory = try FileManager.default.url(
+        var directory = try FileManager.default.url(
             for: .documentDirectory,
             in: .userDomainMask,
             appropriateFor: nil,
             create: true
         ).appendingPathComponent(folderName, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = !isBackupEnabled
+        try directory.setResourceValues(values)
         return directory
     }
 }

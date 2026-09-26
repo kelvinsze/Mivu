@@ -4,6 +4,8 @@ import Combine
 /// Settings view for configuring the UPnP receiver and accessing Developer Lab.
 public struct SettingsView: View {
     @AppStorage("mivu_custom_friendly_name") private var customFriendlyName: String = ""
+    @AppStorage(UploadedVideoStore.backupEnabledKey) private var uploadedVideosBackupEnabled = false
+    @State private var uploadedVideosBackupError: String?
     @ObservedObject private var playerService = PlayerService.shared
 #if DEBUG
     @AppStorage(CarPlayVideoPresentation.drivingVideoRestrictionDetectionKey) private var isDrivingVideoRestrictionDetectionEnabled: Bool = true
@@ -68,10 +70,32 @@ public struct SettingsView: View {
                         Label("查看本地视频", systemImage: "film.stack.fill")
                             .foregroundColor(MivuEdition.utilityTint)
                     }
+                    Toggle("备份上传的视频", isOn: Binding(
+                        get: { uploadedVideosBackupEnabled },
+                        set: { enabled in
+                            do {
+                                try UploadedVideoStore.setBackupEnabled(enabled)
+                                uploadedVideosBackupEnabled = enabled
+                            } catch {
+                                uploadedVideosBackupError = error.localizedDescription
+                            }
+                        }
+                    ))
+                    .tint(MivuEdition.primaryTint)
+                    .alert("无法更改视频备份设置", isPresented: Binding(
+                        get: { uploadedVideosBackupError != nil },
+                        set: { if !$0 { uploadedVideosBackupError = nil } }
+                    )) {
+                        Button("好", role: .cancel) { uploadedVideosBackupError = nil }
+                    } message: {
+                        Text(uploadedVideosBackupError ?? "")
+                    }
                 } header: {
                     Text("Wi-Fi 文件上传")
                 } footer: {
                     Text("同一 Wi-Fi 下，在电脑或手机浏览器打开 Mivu 显示的地址即可上传视频；完成后会立即在 App 中播放。")
+                        .font(.caption2)
+                    Text("上传的视频默认仅保存在本机，不参与系统备份。开启后可随系统备份保存（包括 iCloud 备份），实际备份取决于系统设置；关闭时，换机或恢复备份需重新上传视频。")
                         .font(.caption2)
                 }
 
