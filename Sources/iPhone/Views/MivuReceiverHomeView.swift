@@ -189,9 +189,7 @@ public struct MivuReceiverHomeView: View {
                 .font(.title3.bold())
 
             LazyVGrid(
-                columns: dynamicTypeSize.isAccessibilitySize
-                    ? [GridItem(.flexible(), spacing: MivuSpacing.s)]
-                    : [GridItem(.adaptive(minimum: 145), spacing: MivuSpacing.s)],
+                columns: Array(repeating: GridItem(.flexible(), spacing: MivuSpacing.s), count: 3),
                 spacing: MivuSpacing.s
             ) {
                 localVideoSource
@@ -247,34 +245,22 @@ public struct MivuReceiverHomeView: View {
         let iconTint: Color = isAvailable ? .mivuAccent : Color(uiColor: .systemGray)
         let contentOpacity = playerService.isCarPlayConnected ? 1.0 : 0.45
 
-        return VStack(alignment: .leading, spacing: MivuSpacing.xs) {
-            HStack(alignment: .top) {
-                Image(systemName: icon)
-                    .symbolRenderingMode(.monochrome)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(iconTint)
-                    .frame(width: 44, height: 44)
-                    .background(Color.mivuSurface.opacity(contentOpacity), in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
-
-                Spacer(minLength: MivuSpacing.xs)
-
-                Image(systemName: "chevron.right")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .opacity(contentOpacity)
-                    .padding(.top, MivuSpacing.xs)
-            }
-
-            Spacer(minLength: MivuSpacing.xxs)
-
+        return VStack(spacing: MivuSpacing.xs) {
+            Image(systemName: icon)
+                .symbolRenderingMode(.monochrome)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(iconTint)
+                .frame(width: 36, height: 36)
+                .background(Color.mivuSurface.opacity(contentOpacity), in: RoundedRectangle(cornerRadius: MivuRadius.m, style: .continuous))
             Text(title)
-                .font(.body.weight(.semibold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(.primary)
                 .opacity(contentOpacity)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(MivuSpacing.xs)
-        .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? 0 : 136, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 96)
         .background(Color.mivuSurfaceSecondary.opacity(contentOpacity), in: RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: MivuRadius.l, style: .continuous))
     }
