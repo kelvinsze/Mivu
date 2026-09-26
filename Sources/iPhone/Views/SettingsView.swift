@@ -307,7 +307,7 @@ public struct WiFiUploadLibraryView: View {
     public init() {}
 
     private var webAddress: String {
-        "http://\(HTTPServer.shared.localIPAddress):\(HTTPServer.shared.port)/web#access-code=\(HTTPServer.shared.webAccessCode)"
+        "\(HTTPServer.shared.localIPAddress):\(HTTPServer.shared.port)"
     }
 
     public var body: some View {
@@ -320,6 +320,14 @@ public struct WiFiUploadLibraryView: View {
                 Text("请让上传设备与此 iPhone 连接同一个 Wi-Fi；App 保持在前台时可接收上传。")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+            }
+
+            Section("Access Code") {
+                Text(verbatim: HTTPServer.shared.webAccessCode)
+                    .font(.system(size: 40, weight: .semibold, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 8)
             }
 
             Text("上传完成后，视频会出现在本地视频列表中。")
